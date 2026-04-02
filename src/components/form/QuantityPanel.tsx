@@ -1,5 +1,5 @@
 import { Materiau, LigneDevis } from '@/types';
-import { Trash2, Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useCallback, useRef } from 'react';
 
@@ -7,10 +7,9 @@ interface Props {
   materiau: Materiau;
   ligne: LigneDevis;
   onUpdate: (updates: Partial<LigneDevis>) => void;
-  onRemove: () => void;
 }
 
-export default function QuantityPanel({ materiau, ligne, onUpdate, onRemove }: Props) {
+export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
   const isTonnes = ligne.modeEntree === 'tonnes';
   const timerRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
