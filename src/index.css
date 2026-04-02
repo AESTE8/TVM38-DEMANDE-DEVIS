@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;700;800;900&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@layer base {
+  :root {
+    --background: 206 100% 97%; /* #f3faff */
+    --foreground: 200 70% 9%; /* #071e27 */
+    --card: 0 0% 100%;
+    --card-foreground: 200 70% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 70% 9%;
+    --primary: 20 100% 32%; /* #a43700 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 200 10% 37%; /* #546067 */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 200 100% 95%; /* #e6f6ff */
+    --muted-foreground: 200 10% 45%; 
+    --accent: 200 50% 88%; /* #cfe6f2 */
+    --accent-foreground: 200 70% 9%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 20 30% 80%; /* outline-variant: #e3bfb2 - softened */
+    --input: 200 50% 88%; /* surface-variant: #cfe6f2 */
+    --ring: 20 100% 32%;
+    --radius: 0.125rem;
+  }
+
+  * { @apply border-border; }
+  body {
+    @apply bg-surface font-body text-on-surface antialiased;
+  }
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.bg-industrial-gradient {
+  background: linear-gradient(135deg, #a43700 0%, #cd4700 100%);
+}
+
+/* Suppression des flèches (spinners) par défaut sur Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Suppression des flèches sur Firefox */
+input[type=number] {
+  -moz-appearance: textfield;
+}

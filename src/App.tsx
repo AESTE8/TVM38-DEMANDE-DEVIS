@@ -1,0 +1,16 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import FormPage from '@/pages/FormPage';
+import SuccessPage from '@/pages/SuccessPage';
+import { Toaster } from 'sonner';
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<FormPage />} />
+        <Route path="/merci" element={<SuccessPage />} />
+      </Routes>
+      <Toaster richColors position="top-center" />
+    </BrowserRouter>
+  );
+}

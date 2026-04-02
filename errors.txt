@@ -1,0 +1,8 @@
+﻿src/components/form/SectionClient.tsx(5,22): error TS6133: 'RadioGroupItem' is declared but its value is never read.
+src/components/ui/badge.tsx(2,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/ui/badge.tsx(30,29): error TS2339: Property 'variant' does not exist on type 'BadgeProps'.
+src/components/ui/button.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/components/ui/button.tsx(44,17): error TS2339: Property 'variant' does not exist on type 'ButtonProps'.
+src/components/ui/button.tsx(44,26): error TS2339: Property 'size' does not exist on type 'ButtonProps'.
+src/components/ui/label.tsx(3,40): error TS2307: Cannot find module 'class-variance-authority' or its corresponding type declarations.
+src/pages/SuccessPage.tsx(25,17): error TS2322: Type '{ children: string; variant: string; onClick: () => void | Promise<void>; }' is not assignable to type 'IntrinsicAttributes & ButtonProps & RefAttributes<HTMLButtonElement>'.
