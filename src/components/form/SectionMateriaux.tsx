@@ -47,9 +47,7 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
     });
   };
 
-  const removeLigne = (materiauId: string) => {
-    setLignes(prev => prev.filter(l => l.materiauId !== materiauId));
-  };
+
 
   return (
     <div>
@@ -88,7 +86,6 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
                       isExpanded={expandedId === mat.id}
                       onToggle={() => setExpandedId(expandedId === mat.id ? null : mat.id)}
                       onUpdate={(updates) => updateLigne(mat.id, updates)}
-                      onRemove={() => removeLigne(mat.id)}
                     />
                   ))}
                 </div>

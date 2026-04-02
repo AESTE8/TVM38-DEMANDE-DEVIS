@@ -8,10 +8,9 @@ interface Props {
   isExpanded: boolean;
   onToggle: () => void;
   onUpdate: (updates: Partial<LigneDevis>) => void;
-  onRemove: () => void;
 }
 
-export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, onUpdate, onRemove }: Props) {
+export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, onUpdate }: Props) {
   const isSelected = !!ligne && ligne.quantiteTonnes > 0;
 
   return (
@@ -41,7 +40,6 @@ export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, on
           materiau={materiau}
           ligne={ligne || { materiauId: materiau.id, quantiteTonnes: 0, quantiteM3: 0, modeEntree: 'tonnes' }}
           onUpdate={onUpdate}
-          onRemove={onRemove}
         />
       )}
     </div>
