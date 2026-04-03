@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,8 +22,7 @@ const schema = z.object({
   nom: z.string().min(2, 'Nom requis'),
   prenom: z.string().min(2, 'Prénom requis'),
   telephone: z.string()
-    .min(10, 'Numéro invalide')
-    .regex(/^[0-9\s\+\-\.\(\)]{10,}$/, 'Format invalide'),
+    .regex(/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
   email: z.string().email('Adresse email invalide'),
   typeDemande: z.enum(['livraison', 'fourniture']),
   adresseLivraison: z.string().optional(),
@@ -36,7 +35,6 @@ const schema = z.object({
     modeEntree: z.enum(['tonnes', 'm3']),
   })),
   notes: z.string().optional(),
-  documents: z.array(z.any()).optional(),
 }).superRefine((data, ctx) => {
   if (data.typeClient === 'professionnel') {
     if (!data.entrepriseNom || data.entrepriseNom.length < 2) {
@@ -64,10 +62,25 @@ export default function FormPage() {
       typeDemande: 'livraison',
       creneau: 'indifferent',
       lignes: [],
-      documents: [],
     },
   });
   const [lignes, setLignes] = useState<LigneDevis[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState(1);
+  const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const observers = sectionRefs.current.map((el, i) => {
+      if (!el) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveSection(i + 1); },
+        { threshold: 0.3 }
+      );
+      obs.observe(el);
+      return obs;
+    });
+    return () => observers.forEach(obs => obs?.disconnect());
+  }, []);
 
   const formatDate = (iso?: string) => {
     if (!iso) return 'Non précisée';
@@ -82,6 +95,7 @@ export default function FormPage() {
   }, [lignes, setValue]);
 
   const onSubmit = async (data: DevisFormData) => {
+    setSubmitError(null);
     try {
       const materailsSummary = (data.lignes || [])
         .map((l: any) => {
@@ -121,14 +135,48 @@ export default function FormPage() {
       } else {
         throw new Error(result.message);
       }
-    } catch {
-      toast.error("Erreur d'envoi. Veuillez réessayer.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur inconnue.";
+      toast.error(`Erreur d'envoi : ${message}`);
+      setSubmitError(message);
     }
   };
 
   return (
     <div className="min-h-screen bg-surface">
       <Header />
+
+      {/* Indicateur mobile (visible uniquement sur petit écran) */}
+      <div className="lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-surface/90 backdrop-blur-sm border border-border rounded-full px-4 py-2 shadow-md">
+        <span className="text-xs font-bold text-secondary">Étape </span>
+        <span className="text-xs font-black text-primary">{activeSection}/4</span>
+        <span className="text-xs font-bold text-secondary ml-1">— {['Coordonnées', 'Projet', 'Matériaux', 'Précisions'][activeSection - 1]}</span>
+      </div>
+
+      {/* Indicateur de progression vertical fixe */}
+      <div className="hidden lg:flex fixed right-6 top-1/2 -translate-y-1/2 z-40 flex-col items-end gap-0">
+        {[
+          { n: 1, label: 'Coordonnées' },
+          { n: 2, label: 'Projet' },
+          { n: 3, label: 'Matériaux' },
+          { n: 4, label: 'Précisions' },
+        ].map(({ n, label }, i, arr) => (
+          <div key={n} className="flex flex-col items-end">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold uppercase tracking-tight transition-colors duration-300 ${activeSection === n ? 'text-primary' : 'text-secondary/40'}`}>
+                {label}
+              </span>
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all duration-300 ${activeSection >= n ? 'bg-primary text-on-primary' : 'bg-surface-container text-secondary'}`}>
+                {n}
+              </div>
+            </div>
+            {i < arr.length - 1 && (
+              <div className={`w-0.5 h-12 self-end mr-3 transition-colors duration-300 ${activeSection > n ? 'bg-primary' : 'bg-border'}`} />
+            )}
+          </div>
+        ))}
+      </div>
+
       <main className="pt-24 pb-16">
         
         {/* Hero Section */}
@@ -153,7 +201,7 @@ export default function FormPage() {
         </section>
 
         {/* Form Section */}
-        <section className="max-w-screen-xl mx-auto px-4 md:px-8">
+        <section id="devis-form" className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             
             {/* Left Box */}
@@ -192,19 +240,42 @@ export default function FormPage() {
             <div className="lg:col-span-2">
               <div className="bg-surface-container-lowest p-6 md:p-12 shadow-sm rounded-xl">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-12">
-                  <SectionClient register={register} errors={errors} watch={watch} setValue={setValue} />
-                  <SectionDemande register={register} errors={errors} watch={watch} setValue={setValue} />
-                  <SectionMateriaux lignes={lignes} setLignes={setLignes} />
-                  {errors.lignes && (
-                    <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mb-4">
-                      {errors.lignes.message as string}
-                    </p>
-                  )}
-                  <SectionNotes register={register} setValue={setValue} />
+                  <div ref={el => { sectionRefs.current[0] = el; }}>
+                    <SectionClient register={register} errors={errors} watch={watch} setValue={setValue} />
+                  </div>
+                  <div ref={el => { sectionRefs.current[1] = el; }}>
+                    <SectionDemande register={register} errors={errors} watch={watch} setValue={setValue} />
+                  </div>
+                  <div ref={el => { sectionRefs.current[2] = el; }}>
+                    <SectionMateriaux lignes={lignes} setLignes={setLignes} />
+                    {errors.lignes && (
+                      <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mb-4">
+                        {errors.lignes.message as string}
+                      </p>
+                    )}
+                  </div>
+                  <div ref={el => { sectionRefs.current[3] = el; }}>
+                    <SectionNotes register={register} />
+                  </div>
                   
+                  {submitError && (
+                    <div className="bg-error-container border border-destructive/30 rounded-lg px-5 py-4 space-y-2">
+                      <p className="text-sm font-bold text-destructive">L'envoi a échoué : {submitError}</p>
+                      <p className="text-xs text-destructive/80">
+                        Vous pouvez nous contacter directement par email :{' '}
+                        <a
+                          href="mailto:tvm38@midali.fr"
+                          className="underline font-bold hover:opacity-80"
+                        >
+                          tvm38@midali.fr
+                        </a>
+                      </p>
+                    </div>
+                  )}
+
                   <div className="pt-4 flex flex-col md:flex-row items-center justify-between gap-6 border-t border-border mt-8 pt-8">
                     <p className="text-xs text-secondary max-w-xs">En envoyant ce formulaire, vous acceptez que vos données soient traitées par MIDALI - TVM38 pour l'établissement de votre devis.</p>
-                    <button 
+                    <button
                       type="submit"
                       disabled={isSubmitting}
                       className="w-full md:w-auto bg-industrial-gradient text-on-primary font-headline font-extrabold px-12 py-5 rounded-md hover:shadow-xl active:scale-[0.98] transition-all uppercase tracking-tighter text-base md:text-xl"

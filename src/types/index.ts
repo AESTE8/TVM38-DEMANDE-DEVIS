@@ -37,5 +37,4 @@ export interface DevisFormData {
   creneau?: CreneauLivraison;
   lignes: LigneDevis[];
   notes?: string;
-  documents?: File[];
 }

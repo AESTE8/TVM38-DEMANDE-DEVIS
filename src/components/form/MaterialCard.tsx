@@ -20,8 +20,8 @@ export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, on
         onClick={onToggle}
         className={cn(
           "flex items-center text-left px-5 py-4 rounded-sm transition-all border-l-4",
-          isSelected 
-            ? "bg-surface-container-low border-primary shadow-sm" 
+          isSelected
+            ? "bg-surface-container-low border-primary shadow-sm"
             : isExpanded
               ? "bg-surface-container-highest border-primary/40"
               : "bg-surface-container-highest border-transparent hover:bg-surface-container-low hover:border-primary/20"

@@ -20,8 +20,11 @@ export default function Header() {
             Donnez votre avis
           </a>
           
-          <button className="bg-industrial-gradient text-on-primary font-headline font-extrabold py-2 px-6 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-sm md:text-base shadow-lg shadow-primary/20">
-              DEMANDER UN DEVIS
+          <button
+            onClick={() => document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' })}
+            className="bg-industrial-gradient text-on-primary font-headline font-extrabold py-2 px-6 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-sm md:text-base shadow-lg shadow-primary/20"
+          >
+            DEMANDER UN DEVIS
           </button>
         </div>
       </div>

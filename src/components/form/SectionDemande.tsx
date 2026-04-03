@@ -16,6 +16,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
   const typeDemande = watch('typeDemande');
   const creneau = watch('creneau');
   const adresseLivraison = watch('adresseLivraison') || '';
+  const entrepriseAdresse = watch('entrepriseAdresse') || '';
 
   return (
     <div>
@@ -46,8 +47,21 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
         {typeDemande === 'livraison' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-fade-in">
             <div className="md:col-span-2 space-y-1">
-              <Label htmlFor="adresseLivraison" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between">
-                <div>Adresse de livraison (chantier)</div>
+              <Label htmlFor="adresseLivraison" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center">
+                <div>Adresse de livraison (chantier) <span className="text-destructive">*</span></div>
+                {entrepriseAdresse && (
+                  <label className="flex items-center gap-1.5 cursor-pointer normal-case text-xs font-medium text-secondary hover:text-primary transition-colors">
+                    <input
+                      type="checkbox"
+                      className="accent-primary w-3.5 h-3.5"
+                      checked={adresseLivraison === entrepriseAdresse}
+                      onChange={(e) => {
+                        setValue('adresseLivraison', e.target.checked ? entrepriseAdresse : '', { shouldValidate: true });
+                      }}
+                    />
+                    Même adresse que le siège
+                  </label>
+                )}
               </Label>
               <AddressAutocomplete
                 value={adresseLivraison}

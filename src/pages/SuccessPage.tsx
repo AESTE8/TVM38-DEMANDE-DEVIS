@@ -5,6 +5,14 @@ import Header from '@/components/layout/Header';
 
 export default function SuccessPage() {
   const navigate = useNavigate();
+
+  const handleNewRequest = () => {
+    navigate('/');
+    setTimeout(() => {
+      document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -19,10 +27,9 @@ export default function SuccessPage() {
           Votre demande de devis a bien été transmise à notre équipe.
         </p>
         <p className="text-muted-foreground mb-8">
-          Vous recevrez une confirmation par email sous quelques minutes.
-          Nous vous recontacterons sous <strong>24h ouvrées</strong>.
+          Nous reviendrons vers vous <strong>très prochainement</strong>.
         </p>
-        <Button variant="outline" onClick={() => navigate('/')}>
+        <Button variant="outline" onClick={handleNewRequest}>
           Soumettre une nouvelle demande
         </Button>
       </main>

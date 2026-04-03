@@ -156,12 +156,12 @@ export default function SectionClient({ register, errors, watch, setValue }: Pro
         {typeClient === 'professionnel' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
             <div className="space-y-1 md:col-span-1">
-              <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom de l'entreprise</Label>
+              <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom de l'entreprise <span className="text-destructive">*</span></Label>
               <Input id="entrepriseNom" placeholder="Ex: TP Isère" {...register('entrepriseNom')} />
               {errors.entrepriseNom && <p className="text-xs text-destructive mt-1">{errors.entrepriseNom.message}</p>}
             </div>
             <div className="space-y-1 md:col-span-1">
-              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Adresse du siège</Label>
+              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Adresse du siège <span className="text-destructive">*</span></Label>
               <AddressAutocomplete
                 value={entrepriseAdresse}
                 onChange={(val) => setValue('entrepriseAdresse', val)}
@@ -182,27 +182,27 @@ export default function SectionClient({ register, errors, watch, setValue }: Pro
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-1">
-            <Label htmlFor="nom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom</Label>
+            <Label htmlFor="nom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom <span className="text-destructive">*</span></Label>
             <Input id="nom" placeholder="Ex: Dupont" {...register('nom')} />
             {errors.nom && <p className="text-xs text-destructive mt-1">{errors.nom.message}</p>}
           </div>
           
           <div className="space-y-1">
-            <Label htmlFor="prenom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Prénom</Label>
+            <Label htmlFor="prenom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Prénom <span className="text-destructive">*</span></Label>
             <Input id="prenom" placeholder="Ex: Jean" {...register('prenom')} />
             {errors.prenom && <p className="text-xs text-destructive mt-1">{errors.prenom.message}</p>}
           </div>
 
           <div className="space-y-1">
             <Label htmlFor="email" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
-              Email <span className="text-[10px] text-primary/60 normal-case ml-1">(récepteur du devis)</span>
+              Email <span className="text-destructive">*</span> <span className="text-[10px] text-primary/60 normal-case ml-1">(récepteur du devis)</span>
             </Label>
             <Input id="email" type="email" placeholder="jean.dupont@email.com" {...register('email')} />
             {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="telephone" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Téléphone</Label>
+            <Label htmlFor="telephone" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Téléphone <span className="text-destructive">*</span></Label>
             <Input 
               id="telephone" 
               type="tel" 
