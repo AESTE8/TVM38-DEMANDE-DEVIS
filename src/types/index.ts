@@ -31,6 +31,8 @@ export interface DevisFormData {
   telephone: string;
   email: string;
   
+  fonction?: string;
+  agenceNom?: string;
   typeDemande: TypeDemande;
   adresseLivraison?: string;
   dateSouhaitee?: string;

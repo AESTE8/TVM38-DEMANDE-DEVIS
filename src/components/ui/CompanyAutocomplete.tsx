@@ -34,11 +34,11 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
 
     const timer = setTimeout(async () => {
       try {
-        // NOTE: Modifier 'clients' et 'nom_entreprise' selon la structure exacte de la BDD Supabase
         const { data, error } = await supabase
-          .from('clients') 
-          .select('*')
+          .from('clients')
+          .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences')
           .ilike('nom', `%${value}%`)
+          .neq('type', 'professionnel_sans_compte')
           .limit(5);
 
         if (error) throw error;

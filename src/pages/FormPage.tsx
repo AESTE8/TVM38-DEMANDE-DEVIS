@@ -7,7 +7,7 @@ import { toast, Toaster } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
 import Header from '@/components/layout/Header';
-import SectionClient from '@/components/form/SectionClient';
+import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
 import SectionNotes from '@/components/form/SectionNotes';
@@ -19,6 +19,8 @@ const schema = z.object({
   typeClient: z.enum(['professionnel', 'particulier']),
   entrepriseNom: z.string().optional(),
   entrepriseAdresse: z.string().optional(),
+  agenceNom: z.string().optional(),
+  fonction: z.string().optional(),
   nom: z.string().min(2, 'Nom requis'),
   prenom: z.string().min(2, 'Prénom requis'),
   telephone: z.string()
@@ -68,6 +70,7 @@ export default function FormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState(1);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const sectionClientRef = useRef<SectionClientHandle>(null);
 
   useEffect(() => {
     const observers = sectionRefs.current.map((el, i) => {
@@ -97,6 +100,7 @@ export default function FormPage() {
   const onSubmit = async (data: DevisFormData) => {
     setSubmitError(null);
     try {
+      await sectionClientRef.current?.saveNewContactIfNeeded(data);
       const materailsSummary = (data.lignes || [])
         .map((l: any) => {
           const mat = MATERIAUX.find(m => m.id === l.materiauId);
@@ -104,22 +108,25 @@ export default function FormPage() {
         })
         .join('\n');
 
+      const creneauLabel = { matin: 'Matin', apres_midi: 'Après-midi', indifferent: 'Indifférent' }[data.creneau ?? 'indifferent'] ?? data.creneau;
+
       const formData = {
         access_key: import.meta.env.VITE_WEB3FORMS_KEY,
         from_name: "MIDALI - TVM38 DEVIS",
         subject: `DEMANDE DEVIS : ${data.entrepriseNom || (data.prenom + ' ' + data.nom)}`,
-        "1. NOM CLIENT": `${data.prenom} ${data.nom}`,
-        "2. CONTACT": `${data.email} | ${data.telephone}`,
-        "3. TYPE CLIENT": data.typeClient === 'professionnel' ? 'Profil Professionnel' : 'Profil Particulier',
+        "1. NOM CONTACT": `${data.prenom} ${data.nom}${data.fonction ? ` (${data.fonction})` : ''}`,
+        "2. COORDONNEES": `${data.email} | ${data.telephone}`,
+        "3. TYPE CLIENT": `${data.typeClient === 'professionnel' ? 'Professionnel' : 'Particulier'} — ${data.dejaClient === 'oui' ? 'Client existant' : 'Nouveau client'}`,
         "4. SOCIETE": data.entrepriseNom || 'N/A',
         "5. ADRESSE SIEGE": data.entrepriseAdresse || 'N/A',
+        "6. AGENCE": data.agenceNom || 'N/A',
         "---": "-----------",
-        "6. DEMANDE": data.typeDemande === 'livraison' ? 'LIVRAISON avec transport' : 'FOURNITURE uniquement',
-        "7. ADRESSE CHANTIER": data.adresseLivraison || 'N/A',
-        "8. PLANIFICATION": `Le ${formatDate(data.dateSouhaitee)} (Créneau : ${data.creneau})`,
-        "--- ": "----------- ",
-        "9. MATERIAUX": materailsSummary || 'Aucun matériau sélectionné',
-        "10. NOTES CLIENT": data.notes || 'Aucune note',
+        "7. DEMANDE": data.typeDemande === 'livraison' ? 'LIVRAISON avec transport' : 'FOURNITURE uniquement',
+        "8. ADRESSE CHANTIER": data.adresseLivraison || 'N/A',
+        "9. PLANIFICATION": `Le ${formatDate(data.dateSouhaitee)} — Créneau : ${creneauLabel}`,
+        "--- ": "-----------",
+        "10. MATERIAUX": materailsSummary || 'Aucun matériau sélectionné',
+        "11. NOTES CLIENT": data.notes || 'Aucune note',
         replyto: data.email,
       };
 
@@ -241,7 +248,7 @@ export default function FormPage() {
               <div className="bg-surface-container-lowest p-6 md:p-12 shadow-sm rounded-xl">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-12">
                   <div ref={el => { sectionRefs.current[0] = el; }}>
-                    <SectionClient register={register} errors={errors} watch={watch} setValue={setValue} />
+                    <SectionClient ref={sectionClientRef} register={register} errors={errors} watch={watch} setValue={setValue} />
                   </div>
                   <div ref={el => { sectionRefs.current[1] = el; }}>
                     <SectionDemande register={register} errors={errors} watch={watch} setValue={setValue} />
