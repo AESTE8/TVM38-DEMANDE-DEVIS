@@ -3,7 +3,7 @@ import { Resend } from 'resend';
 import { MATERIAUX } from '../../src/data/materiaux';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const STAFF_EMAIL = 'e.aubree-carceles@midali.fr'; // Temporaire pour tests (anciennement process.env.TVM38_STAFF_EMAIL)
+const STAFF_EMAIL = process.env.TVM38_STAFF_EMAIL!;
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL!;
 
 function formatDate(iso?: string): string {
