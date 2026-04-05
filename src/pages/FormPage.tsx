@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { DevisFormData, LigneDevis } from '@/types';
 import { toast, Toaster } from 'sonner';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 import Header from '@/components/layout/Header';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
@@ -314,7 +314,7 @@ export default function FormPage() {
           <div className="flex flex-col gap-4">
             <span className="font-headline font-bold text-sm uppercase text-on-surface">Liens utiles</span>
             <a className="font-body text-sm text-secondary hover:text-primary transition-colors" href="https://www.midali.fr" target="_blank" rel="noopener">Société MIDALI</a>
-            <a className="font-body text-sm text-secondary hover:text-primary transition-colors" href="https://tvm38estimation.netlify.app/" target="_blank" rel="noopener">Laisser un avis</a>
+            <Link className="font-body text-sm text-secondary hover:text-primary transition-colors" to="/estimation">Laisser un avis</Link>
           </div>
           <div className="flex flex-col gap-4">
             <span className="font-headline font-bold text-sm uppercase text-on-surface">Contact</span>

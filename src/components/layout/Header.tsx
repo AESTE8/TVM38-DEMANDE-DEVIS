@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function Header() {
   return (
     <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm border-b border-border/30">
@@ -11,14 +13,12 @@ export default function Header() {
         </div>
         
         <div className="flex gap-4 items-center">
-          <a 
-            href="https://tvm38estimation.netlify.app/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link 
+            to="/estimation"
             className="hidden sm:inline-block text-xs font-black uppercase tracking-tighter text-on-surface hover:text-primary transition-colors py-2 px-4 bg-surface-container-highest rounded-sm border-l-4 border-primary"
           >
             Donnez votre avis
-          </a>
+          </Link>
           
           <button
             onClick={() => document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' })}

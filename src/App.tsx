@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import FormPage from '@/pages/FormPage';
 import SuccessPage from '@/pages/SuccessPage';
+import EstimationPage from '@/pages/EstimationPage';
 import { Toaster } from 'sonner';
 
 export default function App() {
@@ -9,6 +10,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<FormPage />} />
         <Route path="/merci" element={<SuccessPage />} />
+        <Route path="/estimation" element={<EstimationPage />} />
       </Routes>
       <Toaster richColors position="top-center" />
     </BrowserRouter>
