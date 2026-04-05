@@ -214,6 +214,9 @@ export default function EstimationPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [rating, setRating] = useState(0);
+  useEffect(() => {
+    document.title = "Valorisation de matériaux - Estimation";
+  }, []);
 
   const handleRating = (n: number) => {
     if (n >= 4) {
@@ -285,8 +288,10 @@ export default function EstimationPage() {
           animation: estFadeDown .6s ease both;
         }
         .est-logo-wrap img {
-          max-height: 72px;
-          max-width: 220px;
+          display: block;
+          margin: 0 auto;
+          max-height: 90px;
+          max-width: 240px;
           object-fit: contain;
         }
 
@@ -384,47 +389,49 @@ export default function EstimationPage() {
           position: fixed;
           bottom: 24px; left: 24px;
           background: var(--blue);
-          color: #fff !important;
-          padding: 12px 20px;
+          color: #ffffff !important;
+          padding: 14px 24px;
           border-radius: 50px;
           text-decoration: none;
           font-family: 'Montserrat', sans-serif;
-          font-size: 13px; font-weight: 700;
+          font-size: 13px; font-weight: 800;
           box-shadow: 0 4px 15px rgba(46,163,242,0.3);
           transition: transform .2s, background .2s, box-shadow .2s;
           z-index: 100;
           display: flex; align-items: center; gap: 8px;
           cursor: pointer; border: none;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
         .est-btn-contact:hover {
           background: var(--blue-dark);
           transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(46,163,242,0.4);
+          box-shadow: 0 8px 25px rgba(46,163,242,0.4);
         }
 
         /* ── MODAL ── */
         .est-modal-overlay {
           position: fixed; inset: 0;
-          background: rgba(0,0,0,.5);
-          backdrop-filter: blur(5px);
+          background: rgba(0,0,0,.65);
+          backdrop-filter: blur(8px);
           z-index: 1000;
           display: flex; align-items: center; justify-content: center;
           padding: 20px;
           opacity: 0; visibility: hidden;
-          transition: opacity .25s, visibility .25s;
+          transition: opacity .3s, visibility .3s;
         }
         .est-modal-overlay.active { opacity: 1; visibility: visible; }
 
         .est-modal {
-          background: var(--white);
-          border-radius: 18px;
-          box-shadow: var(--shadow-lg);
+          background: #ffffff !important;
+          border-radius: 24px;
+          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
           padding: 44px 40px;
-          max-width: 460px; width: 100%;
+          max-width: 480px; width: 100%;
           position: relative;
-          border: 1px solid var(--border);
-          transform: translateY(22px) scale(.97);
-          transition: transform .32s cubic-bezier(.34,1.56,.64,1);
+          border: none;
+          transform: translateY(30px) scale(.95);
+          transition: transform .4s cubic-bezier(.16,1,.3,1), opacity .4s;
         }
         .est-modal-overlay.active .est-modal { transform: translateY(0) scale(1); }
         .est-modal::before {

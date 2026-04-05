@@ -70,6 +70,10 @@ export default function FormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeSection, setActiveSection] = useState(1);
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([]);
+  useEffect(() => {
+    document.title = "Valorisation de matériaux - Devis";
+  }, []);
+
   const sectionClientRef = useRef<SectionClientHandle>(null);
 
   useEffect(() => {
@@ -196,15 +200,7 @@ export default function FormPage() {
               Vos matériaux, votre livraison, <span className="text-primary font-bold tracking-tight">votre devis</span>. Recevez une proposition détaillée rapidement pour tous vos projets de travaux.
             </p>
           </div>
-          <div className="lg:col-span-4 hidden lg:block">
-            <div className="bg-surface-container p-6 rounded-lg">
-              <span className="font-label text-xs font-bold uppercase tracking-widest text-primary mb-2 block">Statut du Service</span>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 bg-green-600 rounded-full animate-pulse"></span>
-                <span className="text-sm font-semibold">Opérationnel - Livraison 38/69/01</span>
-              </div>
-            </div>
-          </div>
+          <div className="lg:col-span-4 hidden lg:block" />
         </section>
 
         {/* Form Section */}
