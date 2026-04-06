@@ -103,8 +103,20 @@ export default function FormPage() {
 
   const onSubmit = async (data: DevisFormData) => {
     setSubmitError(null);
+
     try {
+      // 1. Sauvegarder nouveau contact si besoin
       await sectionClientRef.current?.saveNewContactIfNeeded(data);
+      // 2. Sauvegarder nouvelle agence si besoin
+      await sectionClientRef.current?.saveNewAgenceIfNeeded(data);
+      // 3. Mettre à jour les infos client si modifiées
+      await sectionClientRef.current?.updateClientInfoIfChanged(data);
+    } catch (err) {
+      // Erreur Supabase silencieuse — l'email Web3Forms est le filet de sécurité
+      console.warn('Supabase sync partielle :', err);
+    }
+
+    try {
       const materailsSummary = (data.lignes || [])
         .map((l: any) => {
           const mat = MATERIAUX.find(m => m.id === l.materiauId);

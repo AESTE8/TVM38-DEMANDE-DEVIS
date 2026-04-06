@@ -18,6 +18,8 @@ interface Props {
 
 export interface SectionClientHandle {
   saveNewContactIfNeeded: (formData: DevisFormData) => Promise<void>;
+  saveNewAgenceIfNeeded: (formData: DevisFormData) => Promise<void>;
+  updateClientInfoIfChanged: (formData: DevisFormData) => Promise<void>;
 }
 
 const SectionClient = forwardRef<SectionClientHandle, Props>(
@@ -30,6 +32,21 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     const [companyContacts, setCompanyContacts] = useState<any[]>([]);
     const [companyAgences, setCompanyAgences] = useState<any[]>([]);
     const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+
+    // Amélioration 1 — Nouvelle agence inline
+    const [showNewAgence, setShowNewAgence] = useState(false);
+    const [newAgenceNom, setNewAgenceNom] = useState('');
+    const [newAgenceAdresse, setNewAgenceAdresse] = useState('');
+
+    // Amélioration 2 — Snapshot infos client + mode édition
+    const [originalClient, setOriginalClient] = useState<{
+      telephone: string;
+      email: string;
+      adresse: string;
+    } | null>(null);
+    const [editingPhone, setEditingPhone] = useState(false);
+    const [editingEmail, setEditingEmail] = useState(false);
+    const [editingAdresse, setEditingAdresse] = useState(false);
 
     useImperativeHandle(ref, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
@@ -54,6 +71,49 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
         await supabase
           .from('clients')
           .update({ contacts: [...contactsExistants, nouveauContact] })
+          .eq('id', selectedClientId);
+      },
+
+      saveNewAgenceIfNeeded: async (_formData: DevisFormData) => {
+        if (!showNewAgence || !newAgenceNom || !selectedClientId) return;
+
+        const nouvelleAgence = {
+          id: crypto.randomUUID(),
+          nom: newAgenceNom,
+          adresse: newAgenceAdresse,
+        };
+
+        const { data: clientData } = await supabase
+          .from('clients')
+          .select('agences')
+          .eq('id', selectedClientId)
+          .single();
+
+        const agencesExistantes = clientData?.agences || [];
+
+        await supabase
+          .from('clients')
+          .update({ agences: [...agencesExistantes, nouvelleAgence] })
+          .eq('id', selectedClientId);
+      },
+
+      updateClientInfoIfChanged: async (formData: DevisFormData) => {
+        if (!selectedClientId || !originalClient) return;
+
+        const telephone = formData.telephone || '';
+        const email = formData.email || '';
+        const adresse = formData.entrepriseAdresse || '';
+
+        const hasChanged =
+          telephone !== originalClient.telephone ||
+          email !== originalClient.email ||
+          adresse !== originalClient.adresse;
+
+        if (!hasChanged) return;
+
+        await supabase
+          .from('clients')
+          .update({ telephone, email, adresse })
           .eq('id', selectedClientId);
       },
     }));
@@ -116,10 +176,20 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                     setValue('entrepriseNom', company.nom || '', { shouldValidate: true });
                     if (company.adresse) setValue('entrepriseAdresse', company.adresse, { shouldValidate: true });
 
+                    // Snapshot des infos client
+                    setOriginalClient({
+                      telephone: company.telephone || '',
+                      email: company.email || '',
+                      adresse: company.adresse || '',
+                    });
+
                     // Réinitialiser l'agence à chaque changement d'entreprise
                     setCompanyAgences([]);
                     setValue('agenceNom', '');
                     setValue('adresseLivraison', '');
+                    setShowNewAgence(false);
+                    setNewAgenceNom('');
+                    setNewAgenceAdresse('');
 
                     if (company.contacts && Array.isArray(company.contacts) && company.contacts.length > 0) {
                       setCompanyContacts(company.contacts);
@@ -144,6 +214,111 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                   className="mt-2"
                 />
 
+                {/* Amélioration 2 — Infos entreprise modifiables */}
+                {watch('entrepriseNom') && originalClient && (
+                  <div className="mt-4 p-4 bg-surface-container-highest rounded-lg border border-border/40">
+                    <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-2">
+                      Infos enregistrées — cliquez sur ✏️ pour corriger
+                    </Label>
+                    <div className="space-y-2">
+                      {/* Téléphone */}
+                      <div className="flex items-center gap-2 py-1 border-b border-border/20">
+                        <span className="text-xs text-secondary w-20 shrink-0">Téléphone</span>
+                        {editingPhone ? (
+                          <Input
+                            className="h-7 text-sm flex-1"
+                            value={watch('telephone') || ''}
+                            onChange={(e) => setValue('telephone', e.target.value)}
+                            onBlur={() => setEditingPhone(false)}
+                            autoFocus
+                          />
+                        ) : (
+                          <>
+                            <span className="text-sm flex-1 text-on-surface">
+                              {watch('telephone') || originalClient.telephone || <span className="text-secondary italic">—</span>}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!watch('telephone')) setValue('telephone', originalClient.telephone);
+                                setEditingPhone(true);
+                              }}
+                              className="text-secondary hover:text-primary transition-colors text-sm px-1"
+                              title="Modifier le téléphone"
+                            >
+                              ✏️
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Email */}
+                      <div className="flex items-center gap-2 py-1 border-b border-border/20">
+                        <span className="text-xs text-secondary w-20 shrink-0">Email</span>
+                        {editingEmail ? (
+                          <Input
+                            className="h-7 text-sm flex-1"
+                            type="email"
+                            value={watch('email') || ''}
+                            onChange={(e) => setValue('email', e.target.value)}
+                            onBlur={() => setEditingEmail(false)}
+                            autoFocus
+                          />
+                        ) : (
+                          <>
+                            <span className="text-sm flex-1 text-on-surface truncate">
+                              {watch('email') || originalClient.email || <span className="text-secondary italic">—</span>}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!watch('email')) setValue('email', originalClient.email);
+                                setEditingEmail(true);
+                              }}
+                              className="text-secondary hover:text-primary transition-colors text-sm px-1 shrink-0"
+                              title="Modifier l'email"
+                            >
+                              ✏️
+                            </button>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Adresse siège */}
+                      <div className="flex items-center gap-2 py-1">
+                        <span className="text-xs text-secondary w-20 shrink-0">Adresse</span>
+                        {editingAdresse ? (
+                          <div className="flex-1">
+                            <AddressAutocomplete
+                              value={watch('entrepriseAdresse') || ''}
+                              onChange={(val) => setValue('entrepriseAdresse', val)}
+                              onSelect={(val) => { setValue('entrepriseAdresse', val, { shouldValidate: true }); setEditingAdresse(false); }}
+                              placeholder="Rechercher l'adresse..."
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <span className="text-sm flex-1 text-on-surface truncate">
+                              {watch('entrepriseAdresse') || originalClient.adresse || <span className="text-secondary italic">—</span>}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (!watch('entrepriseAdresse')) setValue('entrepriseAdresse', originalClient.adresse);
+                                setEditingAdresse(true);
+                              }}
+                              className="text-secondary hover:text-primary transition-colors text-sm px-1 shrink-0"
+                              title="Modifier l'adresse"
+                            >
+                              ✏️
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Sélecteur de site / agence */}
                 {watch('entrepriseNom') && companyAgences.length > 0 && (
                   <div className="mt-4 animate-fade-in">
@@ -159,6 +334,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                           const adresse = agence.adresse || agence.adresseStructuree?.rue || '';
                           setValue('adresseLivraison', adresse, { shouldValidate: true });
                           setValue('agenceNom', agence.nom || '');
+                          setShowNewAgence(false);
                         }
                       }}
                     >
@@ -169,7 +345,71 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                         </option>
                       ))}
                     </select>
-                    <p className="text-xs text-secondary italic mt-1">Votre agence n'apparaît pas ? Renseignez-la dans les commentaires en partie 4.</p>
+                  </div>
+                )}
+
+                {/* Amélioration 1 — Nouvelle agence inline */}
+                {watch('entrepriseNom') && (
+                  <div className="mt-3">
+                    {!showNewAgence ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowNewAgence(true);
+                          setValue('agenceNom', '');
+                          setValue('adresseLivraison', '');
+                        }}
+                        className="text-sm text-primary/70 hover:text-primary underline underline-offset-2 transition-colors"
+                      >
+                        + Mon agence n'est pas listée
+                      </button>
+                    ) : (
+                      <div className="mt-3 p-4 border border-primary/20 rounded-lg bg-surface-container-highest animate-fade-in space-y-3">
+                        <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block">
+                          Nouvelle agence
+                        </Label>
+                        <div className="space-y-1">
+                          <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                            Nom de l'agence <span className="text-destructive">*</span>
+                          </Label>
+                          <Input
+                            placeholder="Ex: Agence Nord Isère"
+                            value={newAgenceNom}
+                            onChange={(e) => {
+                              setNewAgenceNom(e.target.value);
+                              setValue('agenceNom', e.target.value);
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                            Adresse de l'agence
+                          </Label>
+                          <AddressAutocomplete
+                            value={newAgenceAdresse}
+                            onChange={(val) => setNewAgenceAdresse(val)}
+                            onSelect={(val) => {
+                              setNewAgenceAdresse(val);
+                              setValue('adresseLivraison', val, { shouldValidate: true });
+                            }}
+                            placeholder="Rechercher l'adresse..."
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowNewAgence(false);
+                            setNewAgenceNom('');
+                            setNewAgenceAdresse('');
+                            setValue('agenceNom', '');
+                            setValue('adresseLivraison', '');
+                          }}
+                          className="text-xs text-secondary hover:text-destructive transition-colors"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
