@@ -1,6 +1,6 @@
 import { CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 
 export default function SuccessPage() {
@@ -26,12 +26,20 @@ export default function SuccessPage() {
         <p className="text-muted-foreground mb-2">
           Votre demande de devis a bien été transmise à notre équipe.
         </p>
-        <p className="text-muted-foreground mb-8">
-          Nous reviendrons vers vous <strong>très prochainement</strong>.
+        <p className="text-muted-foreground mb-10">
+          Nous vous répondons <strong>dans les meilleurs délais</strong>.
         </p>
-        <Button variant="outline" onClick={handleNewRequest}>
-          Soumettre une nouvelle demande
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          <Button variant="outline" onClick={handleNewRequest}>
+            Soumettre une nouvelle demande
+          </Button>
+          <Link
+            to="/estimation"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md border border-red-600 bg-red-600 text-white text-sm font-medium hover:bg-red-700 transition-colors"
+          >
+            ★ Laisser un avis
+          </Link>
+        </div>
       </main>
     </div>
   );

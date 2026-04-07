@@ -15,23 +15,18 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const filteredMateriaux = useMemo(() => {
-    return MATERIAUX.filter(m => 
-      m.nom.toLowerCase().includes(search.toLowerCase()) || 
+    return MATERIAUX.filter(m =>
+      m.nom.toLowerCase().includes(search.toLowerCase()) ||
       m.code.toLowerCase().includes(search.toLowerCase())
     );
   }, [search]);
 
-  // Group materials by section
   const groupedMateriaux = useMemo(() => {
     const groups: Record<string, typeof MATERIAUX> = {};
-    
-    // If searching, just group whatever matches
-    // If not searching, use SECTION_ORDER to ensure categories appear even if empty (optional)
     filteredMateriaux.forEach(mat => {
       if (!groups[mat.section]) groups[mat.section] = [];
       groups[mat.section].push(mat);
     });
-    
     return groups;
   }, [filteredMateriaux]);
 
@@ -47,7 +42,8 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
     });
   };
 
-
+  const selectedLignes = lignes.filter(l => l.quantiteTonnes > 0);
+  const totalTonnes = selectedLignes.reduce((sum, l) => sum + l.quantiteTonnes, 0);
 
   return (
     <div>
@@ -59,8 +55,8 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
       <div className="space-y-6">
         <div className="relative mb-6">
           <Search className="absolute left-4 top-3.5 h-4 w-4 text-secondary/50" />
-          <Input 
-            placeholder="Rechercher un type de matériau..." 
+          <Input
+            placeholder="Ex : gravier, sable, tout-venant..."
             className="pl-10 h-11"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -92,12 +88,23 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
               </div>
             );
           })}
-          
+
           {filteredMateriaux.length === 0 && (
             <p className="text-center text-secondary py-8 text-sm">Aucun matériau trouvé pour cette recherche.</p>
           )}
         </div>
       </div>
+
+      {/* Bandeau flottant récapitulatif */}
+      {selectedLignes.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-primary text-on-primary rounded-full px-6 py-3 shadow-xl flex items-center gap-3 text-sm font-bold pointer-events-none animate-fade-in">
+          <span>
+            {selectedLignes.length} matériau{selectedLignes.length > 1 ? 'x' : ''} sélectionné{selectedLignes.length > 1 ? 's' : ''}
+          </span>
+          <span className="opacity-60">·</span>
+          <span>{Math.round(totalTonnes * 10) / 10} t au total</span>
+        </div>
+      )}
     </div>
   );
 }
