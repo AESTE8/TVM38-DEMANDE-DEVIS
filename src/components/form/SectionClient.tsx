@@ -203,7 +203,8 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           .update({ contacts: updated })
           .eq('id', selectedClientId);
       },
-    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [selectedClientId, selectedContactId, dejaClient, originalClient, showNewAgence, newAgenceNom, newAgenceAdresse, selectedAgenceId, originalAgence, editedAgenceNom, editedAgenceAdresse, editingAgence]);
 
     const handleSelectCompany = (company: any) => {
       setSelectedClientId(company.id || null);
