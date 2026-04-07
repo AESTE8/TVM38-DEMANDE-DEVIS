@@ -439,9 +439,19 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 {watch('entrepriseNom') && originalClient && (
                   <div className="mt-4 p-4 bg-surface-container-highest rounded-lg border border-border/40">
                     <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-2">
-                      Infos enregistrées — cliquez sur ✏️ pour corriger
+                       Infos principales Entreprise — cliquez sur ✏️ pour corriger
                     </Label>
                     <div className="space-y-2">
+                      {/* Nom de l'entreprise */}
+                      <div className="flex items-center gap-2 py-1 border-b border-border/20">
+                        <span className="text-xs text-secondary w-20 shrink-0">
+                          {typeClient === 'professionnel' ? 'Entreprise' : 'Compte'}
+                        </span>
+                        <span className="text-sm flex-1 text-on-surface truncate font-bold">
+                          {watch('entrepriseNom') || <span className="text-secondary italic">—</span>}
+                        </span>
+                      </div>
+
                       {/* Téléphone */}
                       <div className="flex items-center gap-2 py-1 border-b border-border/20">
                         <span className="text-xs text-secondary w-20 shrink-0">Téléphone</span>
@@ -777,8 +787,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           </div>
 
           {/* Champs de saisie (Client data) */}
-          {typeClient === 'professionnel' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+          <div className={cn(typeClient === 'professionnel' && dejaClient === 'non' ? "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4" : "hidden")}>
               <div className="space-y-1 md:col-span-1">
                 <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom de l'entreprise <span className="text-destructive">*</span></Label>
                 <Input id="entrepriseNom" placeholder="Ex: TP Isère" {...register('entrepriseNom')} />
@@ -794,8 +803,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 />
                 {errors.entrepriseAdresse && <p className="text-xs text-destructive mt-1">{errors.entrepriseAdresse.message}</p>}
               </div>
-            </div>
-          )}
+          </div>
 
           <div className="mt-10 mb-4 px-1 py-1 border-b border-primary/10">
             <h3 className="font-headline font-bold text-lg uppercase tracking-tight flex items-center gap-2">
