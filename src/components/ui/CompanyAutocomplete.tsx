@@ -9,9 +9,10 @@ interface Props {
   onSelect: (company: any) => void;
   placeholder?: string;
   className?: string;
+  clientType?: string;
 }
 
-export default function CompanyAutocomplete({ value, onChange, onSelect, placeholder, className }: Props) {
+export default function CompanyAutocomplete({ value, onChange, onSelect, placeholder, className, clientType }: Props) {
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -34,12 +35,18 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
 
     const timer = setTimeout(async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('clients')
           .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences')
-          .ilike('nom', `%${value}%`)
-          .neq('type', 'professionnel_sans_compte')
-          .limit(5);
+          .ilike('nom', `%${value}%`);
+
+        if (clientType) {
+          query = query.eq('type', clientType);
+        } else {
+          query = query.neq('type', 'professionnel_sans_compte');
+        }
+
+        const { data, error } = await query.limit(5);
 
         if (error) throw error;
         setSuggestions(data || []);

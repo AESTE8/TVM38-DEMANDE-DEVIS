@@ -383,6 +383,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                   onSelect={(company) => { handleSelectCompany(company); setShowAllClients(false); }}
                   placeholder={typeClient === 'professionnel' ? "Commencez à taper le nom..." : "Tapez votre nom..."}
                   className="mt-2"
+                  clientType={typeClient}
                 />
 
                 {/* Liste complète des clients */}
@@ -393,11 +394,17 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                       if (showAllClients) { setShowAllClients(false); return; }
                       setLoadingAllClients(true);
                       try {
-                        const { data } = await supabase
+                        let query = supabase
                           .from('clients')
-                          .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences')
-                          .neq('type', 'professionnel_sans_compte')
-                          .order('nom');
+                          .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences');
+                          
+                        if (typeClient) {
+                          query = query.eq('type', typeClient);
+                        } else {
+                          query = query.neq('type', 'professionnel_sans_compte');
+                        }
+                        
+                        const { data } = await query.order('nom');
                         setAllClients(data || []);
                         setShowAllClients(true);
                       } finally {
