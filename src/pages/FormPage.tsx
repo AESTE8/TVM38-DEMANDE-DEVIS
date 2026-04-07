@@ -316,8 +316,8 @@ export default function FormPage() {
               <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
-                  {/* Étape 1 — Coordonnées */}
-                  {currentStep === 1 && (
+                  {/* Étape 1 — Coordonnées (toujours monté pour conserver le ref) */}
+                  <div className={currentStep !== 1 ? "hidden" : ""}>
                     <SectionClient
                       ref={sectionClientRef}
                       register={register}
@@ -325,7 +325,7 @@ export default function FormPage() {
                       watch={watch}
                       setValue={setValue}
                     />
-                  )}
+                  </div>
 
                   {/* Étape 2 — Projet */}
                   {currentStep === 2 && (
