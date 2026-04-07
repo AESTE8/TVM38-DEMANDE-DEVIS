@@ -64,6 +64,11 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     const [editingEmail, setEditingEmail] = useState(false);
     const [editingAdresse, setEditingAdresse] = useState(false);
 
+    // Liste complète clients
+    const [showAllClients, setShowAllClients] = useState(false);
+    const [allClients, setAllClients] = useState<any[]>([]);
+    const [loadingAllClients, setLoadingAllClients] = useState(false);
+
     useImperativeHandle(ref, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
         if (!selectedClientId || selectedContactId !== 'nouveau' || dejaClient !== 'oui') return;
@@ -199,6 +204,43 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           .eq('id', selectedClientId);
       },
     }));
+
+    const handleSelectCompany = (company: any) => {
+      setSelectedClientId(company.id || null);
+      setValue('entrepriseNom', company.nom || '', { shouldValidate: true });
+      if (company.adresse) setValue('entrepriseAdresse', company.adresse, { shouldValidate: true });
+
+      setOriginalClient({
+        telephone: company.telephone || '',
+        email: company.email || '',
+        adresse: company.adresse || '',
+      });
+
+      setCompanyAgences([]);
+      setValue('agenceNom', '');
+      setValue('adresseLivraison', '');
+      setShowNewAgence(false);
+      setNewAgenceNom('');
+      setNewAgenceAdresse('');
+
+      if (company.contacts && Array.isArray(company.contacts) && company.contacts.length > 0) {
+        setCompanyContacts(company.contacts);
+        setSelectedContactId(null);
+      } else {
+        setCompanyContacts([]);
+        setSelectedContactId('nouveau');
+      }
+
+      if (company.agences && Array.isArray(company.agences) && company.agences.length > 0) {
+        setCompanyAgences(company.agences);
+      }
+
+      const hasContacts = company.contacts && Array.isArray(company.contacts) && company.contacts.length > 0;
+      setValue('nom', '');
+      setValue('prenom', '');
+      setValue('email', hasContacts ? '' : (company.email || ''), { shouldValidate: !!company.email });
+      setValue('telephone', hasContacts ? '' : (company.telephone || ''), { shouldValidate: !!company.telephone });
+    };
 
     return (
       <div>
@@ -337,48 +379,53 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 <CompanyAutocomplete
                   value={watch('entrepriseNom') || ''}
                   onChange={(val) => setValue('entrepriseNom', val)}
-                  onSelect={(company) => {
-                    setSelectedClientId(company.id || null);
-                    setValue('entrepriseNom', company.nom || '', { shouldValidate: true });
-                    if (company.adresse) setValue('entrepriseAdresse', company.adresse, { shouldValidate: true });
-
-                    // Snapshot des infos client
-                    setOriginalClient({
-                      telephone: company.telephone || '',
-                      email: company.email || '',
-                      adresse: company.adresse || '',
-                    });
-
-                    // Réinitialiser l'agence à chaque changement d'entreprise
-                    setCompanyAgences([]);
-                    setValue('agenceNom', '');
-                    setValue('adresseLivraison', '');
-                    setShowNewAgence(false);
-                    setNewAgenceNom('');
-                    setNewAgenceAdresse('');
-
-                    if (company.contacts && Array.isArray(company.contacts) && company.contacts.length > 0) {
-                      setCompanyContacts(company.contacts);
-                      setSelectedContactId(null);
-                    } else {
-                      setCompanyContacts([]);
-                      setSelectedContactId('nouveau');
-                    }
-
-                    if (company.agences && Array.isArray(company.agences) && company.agences.length > 0) {
-                      setCompanyAgences(company.agences);
-                    }
-
-                    // Pré-remplir depuis les champs racine si pas de contacts JSONB
-                    const hasContacts = company.contacts && Array.isArray(company.contacts) && company.contacts.length > 0;
-                    setValue('nom', '');
-                    setValue('prenom', '');
-                    setValue('email', hasContacts ? '' : (company.email || ''), { shouldValidate: !!company.email });
-                    setValue('telephone', hasContacts ? '' : (company.telephone || ''), { shouldValidate: !!company.telephone });
-                  }}
+                  onSelect={(company) => { handleSelectCompany(company); setShowAllClients(false); }}
                   placeholder={typeClient === 'professionnel' ? "Commencez à taper le nom..." : "Tapez votre nom..."}
                   className="mt-2"
                 />
+
+                {/* Liste complète des clients */}
+                <div className="mt-2">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (showAllClients) { setShowAllClients(false); return; }
+                      setLoadingAllClients(true);
+                      try {
+                        const { data } = await supabase
+                          .from('clients')
+                          .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences')
+                          .neq('type', 'professionnel_sans_compte')
+                          .order('nom');
+                        setAllClients(data || []);
+                        setShowAllClients(true);
+                      } finally {
+                        setLoadingAllClients(false);
+                      }
+                    }}
+                    className="text-xs text-primary/60 hover:text-primary underline underline-offset-2 transition-colors"
+                  >
+                    {loadingAllClients ? 'Chargement...' : showAllClients ? '▲ Masquer la liste' : '▼ Voir tous les clients'}
+                  </button>
+
+                  {showAllClients && allClients.length > 0 && (
+                    <div className="mt-2 border border-border rounded-md bg-white max-h-56 overflow-auto shadow-sm animate-fade-in">
+                      {allClients.map((c: any) => (
+                        <div
+                          key={c.id}
+                          className={cn(
+                            "px-4 py-2 cursor-pointer text-sm transition-colors border-b last:border-0 hover:bg-muted",
+                            watch('entrepriseNom') === c.nom ? "bg-primary/5 font-semibold" : ""
+                          )}
+                          onClick={() => { handleSelectCompany(c); setShowAllClients(false); }}
+                        >
+                          <div className="font-medium">{c.nom}</div>
+                          {c.adresse && <div className="text-xs text-muted-foreground">{c.adresse}</div>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 {/* Amélioration 2 — Infos entreprise modifiables */}
                 {watch('entrepriseNom') && originalClient && (
@@ -700,6 +747,21 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                         + Nouveau contact
                       </div>
                     </div>
+
+                    {/* Confirmation de sélection */}
+                    {selectedContactId && (
+                      <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm animate-fade-in">
+                        {selectedContactId === 'nouveau' ? (
+                          <span className="text-primary/70">✦ Nouveau contact — remplissez vos coordonnées dans le formulaire ci-dessous</span>
+                        ) : (
+                          <span className="text-primary/70">
+                            ✓ Contact sélectionné&nbsp;: <strong>{watch('prenom')} {watch('nom')}</strong>
+                            {watch('email') && <> — {watch('email')}</>}
+                            {watch('telephone') && <> — {watch('telephone')}</>}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
