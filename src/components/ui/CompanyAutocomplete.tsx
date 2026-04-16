@@ -28,7 +28,7 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
   }, []);
 
   useEffect(() => {
-    if (value.length < 2) {
+    if (value.length < 1) {
       setSuggestions([]);
       return;
     }
@@ -81,7 +81,6 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
             >
               {/* NOTE: Adapter ici si le nom de la colonne est différent */}
               <div className="font-medium">{s.nom}</div>
-              {s.adresse && <div className="text-xs text-muted-foreground">{s.adresse}</div>}
             </li>
           ))}
         </ul>

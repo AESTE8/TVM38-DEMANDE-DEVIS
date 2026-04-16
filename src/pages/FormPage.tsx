@@ -165,46 +165,50 @@ export default function FormPage() {
     }
 
     try {
-      const materailsSummary = (data.lignes || [])
+      const materiaux = (data.lignes || [])
         .map((l: any) => {
           const mat = MATERIAUX.find(m => m.id === l.materiauId);
           return `- ${mat?.nom ?? l.materiauId} : ${l.quantiteTonnes}t (${l.quantiteM3}m³)`;
         })
         .join('\n');
 
-      const creneauLabel = CRENEAU_LABELS[data.creneau ?? 'indifferent'] ?? data.creneau;
-
-      const formData = {
-        access_key: import.meta.env.VITE_WEB3FORMS_KEY,
-        from_name: "MIDALI - TVM38 DEVIS",
-        subject: `DEMANDE DEVIS : ${data.entrepriseNom || (data.prenom + ' ' + data.nom)}`,
-        "1. NOM CONTACT": `${data.prenom} ${data.nom}${data.fonction ? ` (${data.fonction})` : ''}`,
-        "2. COORDONNEES": `${data.email} | ${data.telephone}`,
-        "3. TYPE CLIENT": `${data.typeClient === 'professionnel' ? 'Professionnel' : 'Particulier'} — ${data.dejaClient === 'oui' ? 'Client existant' : 'Nouveau client'}`,
-        "4. SOCIETE": data.entrepriseNom || 'N/A',
-        "5. ADRESSE SIEGE": data.entrepriseAdresse || 'N/A',
-        "6. AGENCE": data.agenceNom || 'N/A',
-        "---": "-----------",
-        "7. DEMANDE": data.typeDemande === 'livraison' ? 'LIVRAISON avec transport' : data.typeDemande === 'decharge' ? 'MISE EN DÉCHARGE' : 'FOURNITURE uniquement',
-        "8. ADRESSE CHANTIER": data.typeDemande === 'livraison' ? (data.adresseLivraison || 'N/A') : data.typeDemande === 'decharge' ? "Carrière TVM38 — 489 Rue de l'Isle, 38190 Villard-Bonnot" : 'N/A (Enlèvement carrière)',
-        "9. PLANIFICATION": `Le ${formatDate(data.dateSouhaitee)} — Créneau : ${creneauLabel}`,
-        "--- ": "-----------",
-        "10. MATERIAUX": materailsSummary || 'Aucun matériau sélectionné',
-        "11. NOTES CLIENT": data.notes || 'Aucune note',
-        replyto: data.email,
+      const payload = {
+        // Contact
+        prenom: data.prenom,
+        nom: data.nom,
+        fonction: data.fonction,
+        email: data.email,
+        telephone: data.telephone,
+        // Client
+        typeClient: data.typeClient,
+        dejaClient: data.dejaClient,
+        entrepriseNom: data.entrepriseNom,
+        entrepriseAdresse: data.entrepriseAdresse,
+        agenceNom: data.agenceNom,
+        // Demande
+        typeDemande: data.typeDemande,
+        adresseLivraison: data.adresseLivraison,
+        dateSouhaitee: data.dateSouhaitee,
+        creneau: data.creneau,
+        // Matériaux & notes
+        materiaux,
+        notes: data.notes,
       };
 
-      const res = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify(formData),
-      });
+      const res = await fetch(
+        "https://dnauasukwbvwmhzjeecj.supabase.co/functions/v1/send-email",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
       const result = await res.json();
       if (result.success) {
         navigate('/merci', { state: { typeClient: data.typeClient } });
       } else {
-        throw new Error(result.message);
+        throw new Error(result.error || 'Erreur lors de l\'envoi');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur inconnue.";
