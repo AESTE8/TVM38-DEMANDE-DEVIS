@@ -344,7 +344,7 @@ export default function FormPage() {
                   {/* Étape 3 — Matériaux */}
                   {currentStep === 3 && (
                     <>
-                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} />
+                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} />
                       {errors.lignes && (
                         <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
                           {errors.lignes.message as string}
