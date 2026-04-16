@@ -202,7 +202,7 @@ export default function FormPage() {
 
       const result = await res.json();
       if (result.success) {
-        navigate('/merci');
+        navigate('/merci', { state: { typeClient: data.typeClient } });
       } else {
         throw new Error(result.message);
       }
