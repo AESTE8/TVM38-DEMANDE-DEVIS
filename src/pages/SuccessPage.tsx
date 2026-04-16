@@ -30,14 +30,11 @@ export default function SuccessPage() {
 
         {/* Message principal — ton humain (prop. 4) */}
         <h2 className="text-2xl font-bold mb-2">Merci, on s'occupe de tout.</h2>
-        <p className="text-muted-foreground mb-1">
+        <p className="text-muted-foreground mb-8">
           Votre demande a bien été transmise à notre équipe.
         </p>
-        <p className="text-muted-foreground mb-8">
-          Nous revenons vers vous <strong>sous 24h</strong>.
-        </p>
 
-        {/* Bloc preuve sociale (prop. 2) — adapté pro/particulier */}
+        {/* Bloc preuve sociale — adapté pro/particulier */}
         <div className="mb-6 p-5 rounded-xl bg-surface-container-highest border border-border text-left">
           {isPro ? (
             <>
@@ -45,8 +42,7 @@ export default function SuccessPage() {
                 350+ professionnels du BTP en Isère nous font confiance.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Un avis honnête de votre part aide d'autres professionnels à nous trouver.
-                Même 2 lignes, ça compte.
+                Le plus dur est derrière vous. Nous laisser un avis, c'est nettement plus simple.
               </p>
             </>
           ) : (
@@ -55,8 +51,7 @@ export default function SuccessPage() {
                 Des centaines de clients nous font confiance en Isère.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Votre avis aide d'autres personnes à faire le bon choix.
-                Si vous avez déjà travaillé avec nous, même quelques mots font la différence.
+                Le plus dur est derrière vous. Nous laisser un avis, c'est nettement plus simple.
               </p>
             </>
           )}
