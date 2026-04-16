@@ -2,24 +2,32 @@ import { useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { MATERIAUX, SECTION_ORDER } from '@/data/materiaux';
-import { LigneDevis } from '@/types';
+import { LigneDevis, TypeDemande } from '@/types';
 import MaterialCard from './MaterialCard';
+
+const SECTION_DECHARGE = 'Déblais en décharge';
 
 interface Props {
   lignes: LigneDevis[];
   setLignes: React.Dispatch<React.SetStateAction<LigneDevis[]>>;
+  typeDemande?: TypeDemande;
 }
 
-export default function SectionMateriaux({ lignes, setLignes }: Props) {
+export default function SectionMateriaux({ lignes, setLignes, typeDemande }: Props) {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const isDecharge = typeDemande === 'decharge';
+
   const filteredMateriaux = useMemo(() => {
-    return MATERIAUX.filter(m =>
+    const byType = isDecharge
+      ? MATERIAUX.filter(m => m.section === SECTION_DECHARGE)
+      : MATERIAUX;
+    return byType.filter(m =>
       m.nom.toLowerCase().includes(search.toLowerCase()) ||
       m.code.toLowerCase().includes(search.toLowerCase())
     );
-  }, [search]);
+  }, [search, isDecharge]);
 
   const groupedMateriaux = useMemo(() => {
     const groups: Record<string, typeof MATERIAUX> = {};
@@ -49,14 +57,16 @@ export default function SectionMateriaux({ lignes, setLignes }: Props) {
     <div>
       <div className="flex items-center gap-4 mb-8">
         <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">03</span>
-        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">Matériaux</h2>
+        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">
+          {isDecharge ? 'Déblais à déposer' : 'Matériaux'}
+        </h2>
       </div>
 
       <div className="space-y-6">
         <div className="relative mb-6">
           <Search className="absolute left-4 top-3.5 h-4 w-4 text-secondary/50" />
           <Input
-            placeholder="Ex : gravier, sable, tout-venant..."
+            placeholder={isDecharge ? 'Ex : béton, enrobé, déblais...' : 'Ex : gravier, sable, tout-venant...'}
             className="pl-10 h-11"
             value={search}
             onChange={e => setSearch(e.target.value)}

@@ -29,7 +29,7 @@ const schema = z.object({
   telephone: z.string()
     .regex(/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
   email: z.string().email('Adresse email invalide'),
-  typeDemande: z.enum(['livraison', 'fourniture']),
+  typeDemande: z.enum(['livraison', 'fourniture', 'decharge']),
   adresseLivraison: z.string().optional(),
   dateSouhaitee: z.string().optional(),
   creneau: z.enum(['matin', 'apres_midi', 'indifferent']).optional(),
@@ -185,8 +185,8 @@ export default function FormPage() {
         "5. ADRESSE SIEGE": data.entrepriseAdresse || 'N/A',
         "6. AGENCE": data.agenceNom || 'N/A',
         "---": "-----------",
-        "7. DEMANDE": data.typeDemande === 'livraison' ? 'LIVRAISON avec transport' : 'FOURNITURE uniquement',
-        "8. ADRESSE CHANTIER": data.adresseLivraison || 'N/A',
+        "7. DEMANDE": data.typeDemande === 'livraison' ? 'LIVRAISON avec transport' : data.typeDemande === 'decharge' ? 'MISE EN DÉCHARGE' : 'FOURNITURE uniquement',
+        "8. ADRESSE CHANTIER": data.typeDemande === 'livraison' ? (data.adresseLivraison || 'N/A') : data.typeDemande === 'decharge' ? "Carrière TVM38 — 489 Rue de l'Isle, 38190 Villard-Bonnot" : 'N/A (Enlèvement carrière)',
         "9. PLANIFICATION": `Le ${formatDate(data.dateSouhaitee)} — Créneau : ${creneauLabel}`,
         "--- ": "-----------",
         "10. MATERIAUX": materailsSummary || 'Aucun matériau sélectionné',
@@ -340,7 +340,7 @@ export default function FormPage() {
                   {/* Étape 3 — Matériaux */}
                   {currentStep === 3 && (
                     <>
-                      <SectionMateriaux lignes={lignes} setLignes={setLignes} />
+                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} />
                       {errors.lignes && (
                         <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
                           {errors.lignes.message as string}
@@ -393,10 +393,13 @@ export default function FormPage() {
                           </div>
                           <div className="text-sm space-y-0.5 text-on-surface">
                             <p className="font-bold">
-                              {formValues.typeDemande === 'livraison' ? '🚛 Livraison avec transport' : '📦 Fourniture uniquement'}
+                              {formValues.typeDemande === 'livraison' ? '🚛 Livraison avec transport' : formValues.typeDemande === 'decharge' ? '🏗️ Mise en décharge' : '📦 Fourniture uniquement'}
                             </p>
                             {formValues.typeDemande === 'livraison' && formValues.adresseLivraison && (
                               <p className="text-secondary text-xs">{formValues.adresseLivraison}</p>
+                            )}
+                            {formValues.typeDemande === 'decharge' && (
+                              <p className="text-secondary text-xs">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
                             )}
                             {formValues.dateSouhaitee && (
                               <p className="text-secondary text-xs">

@@ -14,7 +14,7 @@ export interface LigneDevis {
 }
 
 export type TypeClient = 'professionnel' | 'particulier';
-export type TypeDemande = 'livraison' | 'fourniture';
+export type TypeDemande = 'livraison' | 'fourniture' | 'decharge';
 export type CreneauLivraison = 'matin' | 'apres_midi' | 'indifferent';
 
 export interface DevisFormData {
