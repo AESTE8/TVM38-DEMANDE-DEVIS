@@ -45,7 +45,7 @@ export default function SuccessPage() {
                 350+ professionnels du BTP en Isère nous font confiance.
               </p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Un avis honnête de votre part aide les autres chefs de chantier à nous trouver.
+                Un avis honnête de votre part aide d'autres professionnels à nous trouver.
                 Même 2 lignes, ça compte.
               </p>
             </>
