@@ -54,3 +54,19 @@ input::-webkit-inner-spin-button {
 input[type=number] {
   -moz-appearance: textfield;
 }
+
+/* Spring-like easing pour la barre de progression */
+@keyframes progress-fill {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Glow pulsant bouton avis */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 6px 0px rgba(220, 38, 38, 0.4); }
+  50%       { box-shadow: 0 0 18px 6px rgba(220, 38, 38, 0.7); }
+}
+
+.btn-glow {
+  animation: glow-pulse 2s ease-in-out infinite;
+}

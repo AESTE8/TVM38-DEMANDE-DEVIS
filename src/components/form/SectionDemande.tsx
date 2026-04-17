@@ -5,6 +5,8 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import { cn } from '@/lib/utils';
+import { Truck, Package, ArrowDownToLine } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 interface Props {
   register: UseFormRegister<DevisFormData>;
@@ -13,22 +15,22 @@ interface Props {
   setValue: UseFormSetValue<DevisFormData>;
 }
 
-const TYPE_DEMANDE_OPTIONS: { val: TypeDemande; icon: string; title: string; desc: string }[] = [
+const TYPE_DEMANDE_OPTIONS: { val: TypeDemande; Icon: LucideIcon; title: string; desc: string }[] = [
   {
     val: 'livraison',
-    icon: '🚛',
+    Icon: Truck,
     title: 'Livraison avec transport',
     desc: 'On livre les matériaux directement sur votre chantier',
   },
   {
     val: 'fourniture',
-    icon: '📦',
+    Icon: Package,
     title: 'Fourniture uniquement',
     desc: 'Vous venez récupérer les matériaux à notre carrière',
   },
   {
     val: 'decharge',
-    icon: '🏗️',
+    Icon: ArrowDownToLine,
     title: 'Mise en décharge',
     desc: 'Vous apportez vos déblais ou matériaux à notre carrière',
   },
@@ -54,7 +56,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
         <div>
           <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block mb-3">Type de demande</Label>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TYPE_DEMANDE_OPTIONS.map(({ val, icon, title, desc }) => (
+            {TYPE_DEMANDE_OPTIONS.map(({ val, Icon, title, desc }) => (
               <button
                 key={val}
                 type="button"
@@ -66,7 +68,9 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
                     : "border-border bg-surface-container-highest hover:border-primary/30"
                 )}
               >
-                <div className="text-2xl mb-2">{icon}</div>
+                <div className={cn("mb-3 w-8 h-8 flex items-center justify-center rounded-md", typeDemande === val ? "bg-primary text-white" : "bg-surface-container text-secondary")}>
+                  <Icon className="w-4 h-4" strokeWidth={2} />
+                </div>
                 <div className={cn("font-bold text-sm mb-1", typeDemande === val ? "text-primary" : "text-on-surface")}>{title}</div>
                 <div className="text-xs text-secondary leading-relaxed">{desc}</div>
               </button>

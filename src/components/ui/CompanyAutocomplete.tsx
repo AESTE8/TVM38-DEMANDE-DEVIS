@@ -16,6 +16,7 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const justSelected = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -30,6 +31,11 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
   useEffect(() => {
     if (value.length < 1) {
       setSuggestions([]);
+      return;
+    }
+
+    if (justSelected.current) {
+      justSelected.current = false;
       return;
     }
 
@@ -75,6 +81,7 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
               key={idx}
               className="px-4 py-2 hover:bg-muted cursor-pointer text-sm transition-colors border-b last:border-0"
               onClick={() => {
+                justSelected.current = true;
                 onSelect(s);
                 setIsOpen(false);
               }}

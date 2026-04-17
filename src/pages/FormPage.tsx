@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DevisFormData, LigneDevis } from '@/types';
 import { toast, Toaster } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Pencil } from 'lucide-react';
+import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
@@ -232,7 +232,7 @@ export default function FormPage() {
 
       {/* Barre de progression */}
       <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-4">
+        <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
           <div className="flex items-center">
             {STEPS.map(({ n, label }, i) => (
               <div key={n} className="flex items-center flex-1 min-w-0">
@@ -247,7 +247,7 @@ export default function FormPage() {
                 >
                   <div className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all shrink-0",
-                    currentStep === n ? "bg-primary text-white shadow-sm" :
+                    currentStep === n ? "bg-primary text-white shadow-sm ring-4 ring-primary/20" :
                     currentStep > n ? "bg-primary/20 text-primary" :
                     "bg-surface-container text-secondary"
                   )}>
@@ -270,6 +270,13 @@ export default function FormPage() {
                 )}
               </div>
             ))}
+          </div>
+          {/* Barre de progression */}
+          <div className="mt-3 h-1 bg-border/50 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
+              style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+            />
           </div>
         </div>
       </div>
@@ -296,19 +303,34 @@ export default function FormPage() {
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-8 border-l-4 border-primary">
-                  <h3 className="font-headline font-bold text-xl mb-4">Pourquoi nous choisir ?</h3>
-                  <ul className="space-y-4">
-                    <li className="flex items-center gap-4">
-                      <span className="text-primary font-bold uppercase tracking-tighter text-lg min-w-[100px] shrink-0">Rapidité</span>
-                      <span className="text-sm font-medium leading-tight">Traitement prioritaire de vos demandes pour ne pas ralentir vos chantiers.</span>
+                  <h3 className="font-headline font-bold text-xl mb-5">Pourquoi nous choisir ?</h3>
+                  <ul className="space-y-5">
+                    <li className="flex items-start gap-4">
+                      <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <Zap className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Rapidité</span>
+                        <span className="text-sm text-secondary leading-snug">Traitement prioritaire de vos demandes pour ne pas ralentir vos chantiers.</span>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-4">
-                      <span className="text-primary font-bold uppercase tracking-tighter text-lg min-w-[100px] shrink-0">Locale</span>
-                      <span className="text-sm font-medium leading-tight">Vous choisissez une société familiale implantée dans le Grésivaudan depuis 1937.</span>
+                    <li className="flex items-start gap-4">
+                      <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <MapPin className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Locale</span>
+                        <span className="text-sm text-secondary leading-snug">Société familiale implantée dans le Grésivaudan depuis 1937.</span>
+                      </div>
                     </li>
-                    <li className="flex items-center gap-4">
-                      <span className="text-primary font-bold uppercase tracking-tighter text-lg min-w-[100px] shrink-0">Conforme</span>
-                      <span className="text-sm font-medium leading-tight">Matériaux certifiés conformes aux normes CE.</span>
+                    <li className="flex items-start gap-4">
+                      <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                        <ShieldCheck className="w-4 h-4 text-primary" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Conforme</span>
+                        <span className="text-sm text-secondary leading-snug">Matériaux certifiés conformes aux normes CE.</span>
+                      </div>
                     </li>
                   </ul>
                 </div>
@@ -317,7 +339,7 @@ export default function FormPage() {
 
             {/* Contenu du formulaire */}
             <div className={currentStep === 1 ? "lg:col-span-2" : "max-w-2xl mx-auto w-full"}>
-              <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl">
+              <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl border-t-4 border-primary/80">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
                   {/* Étape 1 — Coordonnées (toujours monté pour conserver le ref) */}
@@ -396,8 +418,10 @@ export default function FormPage() {
                             </button>
                           </div>
                           <div className="text-sm space-y-0.5 text-on-surface">
-                            <p className="font-bold">
-                              {formValues.typeDemande === 'livraison' ? '🚛 Livraison avec transport' : formValues.typeDemande === 'decharge' ? '🏗️ Mise en décharge' : '📦 Fourniture uniquement'}
+                            <p className="font-bold flex items-center gap-2">
+                              {formValues.typeDemande === 'livraison' && <><Truck className="w-4 h-4 text-primary shrink-0" /> Livraison avec transport</>}
+                              {formValues.typeDemande === 'fourniture' && <><Package className="w-4 h-4 text-primary shrink-0" /> Fourniture uniquement</>}
+                              {formValues.typeDemande === 'decharge' && <><ArrowDownToLine className="w-4 h-4 text-primary shrink-0" /> Mise en décharge</>}
                             </p>
                             {formValues.typeDemande === 'livraison' && formValues.adresseLivraison && (
                               <p className="text-secondary text-xs">{formValues.adresseLivraison}</p>
