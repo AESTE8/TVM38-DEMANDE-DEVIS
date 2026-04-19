@@ -15,7 +15,6 @@ import { MATERIAUX } from '@/data/materiaux';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
 
 // Validation schema
 const schema = z.object({
@@ -196,18 +195,20 @@ export default function FormPage() {
         notes: data.notes,
       };
 
-      const { data: result, error } = await supabase.functions.invoke("send-email", {
-        body: payload,
-      });
+      const res = await fetch(
+        "https://dnauasukwbvwmhzjeecj.supabase.co/functions/v1/send-email",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      if (error) {
-        throw new Error(error.message || 'Erreur réseau/serveur');
-      }
-
-      if (result && result.success) {
+      const result = await res.json();
+      if (result.success) {
         navigate('/merci', { state: { typeClient: data.typeClient } });
       } else {
-        throw new Error(result?.error || 'Erreur lors de l\'envoi');
+        throw new Error(result.error || 'Erreur lors de l\'envoi');
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : "Erreur inconnue.";
