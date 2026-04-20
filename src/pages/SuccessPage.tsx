@@ -107,7 +107,7 @@ export default function SuccessPage() {
                 />
                 <div>
                   <p className="text-sm font-bold text-gray-900">Esteban</p>
-                  <p className="text-xs text-gray-500">Développeur · Licence Pro</p>
+                  <p className="text-xs text-gray-500">Assistant conducteur de travaux · Licence Pro</p>
                 </div>
               </div>
 
