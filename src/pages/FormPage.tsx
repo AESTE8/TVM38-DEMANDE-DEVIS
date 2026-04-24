@@ -8,7 +8,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
+import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
+import { getConnectedClient } from '@/lib/auth';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
 import { MATERIAUX } from '@/data/materiaux';
@@ -86,10 +88,28 @@ export default function FormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const sectionClientRef = useRef<SectionClientHandle>(null);
+  const connectedClient = getConnectedClient();
 
   useEffect(() => {
     document.title = "Valorisation de matériaux - Devis";
   }, []);
+
+  // Pré-remplissage depuis la session client connecté
+  useEffect(() => {
+    if (!connectedClient) return;
+    setValue('dejaClient', 'oui');
+    setValue('typeClient', connectedClient.type === 'particulier' ? 'particulier' : 'professionnel');
+    if (connectedClient.nom) setValue('entrepriseNom', connectedClient.nom);
+    if (connectedClient.adresse) setValue('entrepriseAdresse', connectedClient.adresse);
+    const principal = connectedClient.contacts?.find((c: any) => c.principal) ?? connectedClient.contacts?.[0];
+    if (principal) {
+      if (principal.nom) setValue('nom', principal.nom);
+      if (principal.prenom) setValue('prenom', principal.prenom);
+      if (principal.telephone) setValue('telephone', principal.telephone);
+      if (principal.email) setValue('email', principal.email);
+      if (principal.fonction) setValue('fonction', principal.fonction);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setValue('lignes', lignes);
@@ -228,7 +248,9 @@ export default function FormPage() {
 
   return (
     <div className="min-h-screen bg-surface">
-      <Header />
+      <Header>
+        {connectedClient && <ClientBadge />}
+      </Header>
 
       {/* Barre de progression */}
       <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
@@ -350,6 +372,7 @@ export default function FormPage() {
                       errors={errors}
                       watch={watch}
                       setValue={setValue}
+                      connectedClient={connectedClient ?? undefined}
                     />
                   </div>
 

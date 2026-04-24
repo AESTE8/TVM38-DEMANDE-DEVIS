@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
 import { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import { DevisFormData } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,18 @@ interface Props {
   errors: FieldErrors<DevisFormData>;
   watch: UseFormWatch<DevisFormData>;
   setValue: UseFormSetValue<DevisFormData>;
+  connectedClient?: {
+    id: string;
+    nom: string;
+    prenom?: string;
+    code: string;
+    type: string;
+    email?: string;
+    telephone?: string;
+    adresse?: string;
+    contacts?: any[];
+    agences?: any[];
+  };
 }
 
 export interface SectionClientHandle {
@@ -26,7 +38,7 @@ export interface SectionClientHandle {
 }
 
 const SectionClient = forwardRef<SectionClientHandle, Props>(
-  ({ register, errors, watch, setValue }, ref) => {
+  ({ register, errors, watch, setValue, connectedClient }, ref) => {
     const typeClient = watch('typeClient');
     const dejaClient = watch('dejaClient');
     const entrepriseAdresse = watch('entrepriseAdresse') || '';
@@ -68,6 +80,40 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     const [showAllClients, setShowAllClients] = useState(false);
     const [allClients, setAllClients] = useState<any[]>([]);
     const [loadingAllClients, setLoadingAllClients] = useState(false);
+
+    // Initialisation depuis la session client connecté
+    useEffect(() => {
+      if (!connectedClient) return;
+
+      setSelectedClientId(connectedClient.id);
+      setOriginalClient({
+        telephone: connectedClient.telephone || '',
+        email: connectedClient.email || '',
+        adresse: connectedClient.adresse || '',
+      });
+
+      const contacts = connectedClient.contacts ?? [];
+      setCompanyContacts(contacts);
+      if (contacts.length > 0) {
+        const principal = contacts.find((c: any) => c.principal) ?? contacts[0];
+        setSelectedContactId(principal.id ?? null);
+      } else {
+        setSelectedContactId('nouveau');
+      }
+
+      const agences = connectedClient.agences ?? [];
+      setCompanyAgences(agences);
+      if (agences.length === 1) {
+        const a = agences[0];
+        setSelectedAgenceId(a.id);
+        setOriginalAgence({ nom: a.nom, adresse: a.adresse || '' });
+        setEditedAgenceNom(a.nom);
+        setEditedAgenceAdresse(a.adresse || '');
+        setValue('agenceNom', a.nom, { shouldValidate: false });
+        if (a.adresse) setValue('adresseLivraison', a.adresse, { shouldValidate: false });
+      }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useImperativeHandle(ref, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
