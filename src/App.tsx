@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import FormPage from '@/pages/FormPage';
 import SuccessPage from '@/pages/SuccessPage';
 import EstimationPage from '@/pages/EstimationPage';
@@ -12,14 +12,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Pages publiques */}
-        <Route path="/connexion" element={<LoginPage />} />
+        {/* Page de connexion — racine du site */}
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/connexion" element={<Navigate to="/" replace />} />
         <Route path="/identifiants-oublies" element={<CredentialsContactPage />} />
         <Route path="/estimation" element={<EstimationPage />} />
 
         {/* Pages protégées (session client ou mode guest) */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/" element={<FormPage />} />
+          <Route path="/formulaire" element={<FormPage />} />
           <Route path="/merci" element={<SuccessPage />} />
         </Route>
       </Routes>

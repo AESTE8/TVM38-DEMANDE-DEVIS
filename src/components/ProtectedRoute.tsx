@@ -3,7 +3,7 @@ import { hasAccess } from '@/lib/auth';
 
 export default function ProtectedRoute() {
   if (!hasAccess()) {
-    return <Navigate to="/connexion" replace />;
+    return <Navigate to="/" replace />;
   }
   return <Outlet />;
 }

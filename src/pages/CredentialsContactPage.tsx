@@ -67,7 +67,7 @@ export default function CredentialsContactPage() {
                   Notre équipe vous recontactera à l'adresse <strong>{form.email}</strong> dans les meilleurs délais.
                 </p>
                 <Link
-                  to="/connexion"
+                  to="/"
                   className="inline-block mt-4 text-sm text-primary hover:underline font-body"
                 >
                   ← Retour à la connexion
@@ -135,7 +135,7 @@ export default function CredentialsContactPage() {
                 </button>
 
                 <div className="text-center">
-                  <Link to="/connexion" className="text-xs text-secondary/70 hover:text-secondary font-body">
+                  <Link to="/" className="text-xs text-secondary/70 hover:text-secondary font-body">
                     ← Retour à la connexion
                   </Link>
                 </div>

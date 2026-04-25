@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, User, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
-import { setSession, setGuestMode, ClientData } from '@/lib/auth';
+import { setSession, setGuestMode, hasAccess, ClientData } from '@/lib/auth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
 
 export default function LoginPage() {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (hasAccess()) navigate('/formulaire', { replace: true });
+  }, []);
   const [identifiant, setIdentifiant] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,7 +48,7 @@ export default function LoginPage() {
       }
 
       setSession(data.client as ClientData);
-      navigate('/', { replace: true });
+      navigate('/formulaire', { replace: true });
     } catch {
       setError('Impossible de contacter le serveur. Vérifiez votre connexion.');
     } finally {
@@ -54,7 +58,7 @@ export default function LoginPage() {
 
   function handleGuest() {
     setGuestMode();
-    navigate('/', { replace: true });
+    navigate('/formulaire', { replace: true });
   }
 
   async function handleAccountRequest(e: React.FormEvent) {
@@ -203,6 +207,9 @@ export default function LoginPage() {
                 >
                   Continuer sans compte
                 </button>
+                <p className="text-center text-[11px] text-secondary/50 font-body -mt-1">
+                  (Professionnel sans compte, Particuliers)
+                </p>
               </div>
             ) : accountRequestSent ? (
               <div className="text-center py-4 space-y-2">

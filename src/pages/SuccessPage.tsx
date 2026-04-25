@@ -12,10 +12,7 @@ export default function SuccessPage() {
   const [widgetOpen, setWidgetOpen] = useState(false);
 
   const handleNewRequest = () => {
-    navigate('/');
-    setTimeout(() => {
-      document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    navigate('/formulaire');
   };
 
   return (

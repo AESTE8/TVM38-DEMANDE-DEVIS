@@ -8,6 +8,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
+import { CAMIONS_CAPACITES } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import { getConnectedClient, isGuestMode } from '@/lib/auth';
@@ -308,8 +309,38 @@ export default function FormPage() {
         <section className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className={cn(
             "grid gap-12",
-            currentStep === 1 ? "grid-cols-1 lg:grid-cols-3" : "grid-cols-1"
+            currentStep === 1 ? "grid-cols-1 lg:grid-cols-3" :
+            currentStep === 3 ? "grid-cols-1 lg:grid-cols-[260px_1fr]" :
+            "grid-cols-1"
           )}>
+
+            {/* Sidebar étape 3 — capacités camions (sticky) */}
+            {currentStep === 3 && (
+              <div className="lg:col-span-1">
+                <div className="sticky top-24 bg-surface-container-low border-l-4 border-primary p-6 rounded-sm">
+                  <h3 className="font-headline font-bold text-sm uppercase tracking-tight mb-4 flex items-center gap-2">
+                    <Truck className="w-4 h-4 text-primary" />
+                    Infos pratiques
+                  </h3>
+                  <p className="text-xs text-secondary font-body mb-4 leading-snug">
+                    Capacités par type de camion — pour vous aider à estimer vos quantités :
+                  </p>
+                  <ul className="space-y-2.5">
+                    {CAMIONS_CAPACITES.map(c => (
+                      <li key={c.nom} className="flex justify-between items-center text-sm">
+                        <span className="text-on-surface font-body">{c.nom}</span>
+                        <span className="font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full text-xs shrink-0 ml-2">
+                          {c.capacite} t
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-[10px] text-secondary/60 font-body mt-4 italic leading-snug">
+                    Vous n'êtes pas sûr de la quantité ? Contactez-nous, nous vous guidons.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Colonne gauche — étape 1 uniquement */}
             {currentStep === 1 && (
@@ -361,7 +392,11 @@ export default function FormPage() {
             )}
 
             {/* Contenu du formulaire */}
-            <div className={currentStep === 1 ? "lg:col-span-2" : "max-w-2xl mx-auto w-full"}>
+            <div className={
+              currentStep === 1 ? "lg:col-span-2" :
+              currentStep === 3 ? "w-full" :
+              "max-w-2xl mx-auto w-full"
+            }>
               <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl border-t-4 border-primary/80">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
