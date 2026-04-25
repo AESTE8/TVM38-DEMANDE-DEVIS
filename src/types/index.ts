@@ -11,10 +11,11 @@ export interface LigneDevis {
   quantiteTonnes: number;
   quantiteM3: number;
   modeEntree: 'tonnes' | 'm3';
+  type?: 'livraison' | 'decharge';
 }
 
 export type TypeClient = 'professionnel' | 'particulier';
-export type TypeDemande = 'livraison' | 'fourniture' | 'decharge';
+export type TypeDemande = 'livraison' | 'fourniture' | 'decharge' | 'livraison_decharge';
 export type CreneauLivraison = 'matin' | 'apres_midi' | 'indifferent';
 
 export interface DevisFormData {

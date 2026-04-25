@@ -738,7 +738,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           <div className="mt-10 mb-4 px-1 py-1 border-b border-primary/10">
             <h3 className="font-headline font-bold text-lg uppercase tracking-tight flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-primary rounded-full"></span>
-              Contact Référent
+              Vos coordonnées
             </h3>
           </div>
 

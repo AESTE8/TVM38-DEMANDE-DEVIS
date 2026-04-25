@@ -137,8 +137,8 @@ export default function SuccessPage() {
           onClick={() => setWidgetOpen((v) => !v)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#0f2940] text-white text-sm font-medium shadow-lg hover:bg-[#1a3f60] transition-all hover:scale-105 active:scale-95"
         >
-          <span>Pour les curieux·ses</span>
-          <span className="text-base">👀</span>
+          <span>Un mot du créateur</span>
+          <span className="text-base">👋</span>
         </button>
       </div>
     </div>

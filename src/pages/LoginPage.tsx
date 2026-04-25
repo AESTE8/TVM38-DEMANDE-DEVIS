@@ -93,16 +93,34 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
 
           {/* Titre */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-sm mb-4">
               <Building2 className="w-8 h-8 text-primary" />
             </div>
             <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
-              Espace client
+              Votre devis granulats en 3 minutes
             </h1>
-            <p className="text-sm text-secondary mt-1 font-body">
-              Connectez-vous pour accéder à votre espace de demande de devis
+            <p className="text-sm text-secondary mt-1.5 font-body">
+              Livraison sur chantier en Isère — Réponse sous 24h
             </p>
+          </div>
+
+          {/* Preuve sociale */}
+          <div className="flex items-center justify-center gap-6 mb-6 py-3 px-4 bg-primary/5 border border-primary/10 rounded-sm">
+            <div className="text-center">
+              <p className="text-lg font-black text-primary font-headline leading-none">350+</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">professionnels<br/>du BTP</p>
+            </div>
+            <div className="w-px h-8 bg-border/60" />
+            <div className="text-center">
+              <p className="text-lg font-black text-primary font-headline leading-none">1937</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">implantés en<br/>Grésivaudan</p>
+            </div>
+            <div className="w-px h-8 bg-border/60" />
+            <div className="text-center">
+              <p className="text-lg font-black text-primary font-headline leading-none">24h</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">délai de<br/>réponse</p>
+            </div>
           </div>
 
           {/* Carte login */}
@@ -190,26 +208,25 @@ export default function LoginPage() {
             {/* Section sans compte */}
             {!showAccountRequest ? (
               <div className="space-y-3">
-                <p className="text-xs text-center text-secondary font-body mb-4">
-                  Pas encore client TVM38 ?
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowAccountRequest(true)}
-                  className="w-full border-2 border-primary text-primary font-headline font-extrabold py-3 px-6 rounded-sm uppercase tracking-tighter text-sm hover:bg-primary/5 active:scale-[0.98] transition-all"
-                >
-                  Demander l'ouverture d'un compte
-                </button>
                 <button
                   type="button"
                   onClick={handleGuest}
-                  className="w-full border border-secondary/30 text-secondary/70 font-headline font-extrabold py-3 px-6 rounded-sm uppercase tracking-tighter text-sm hover:bg-surface-container active:scale-[0.98] transition-all"
+                  className="w-full border border-secondary/30 text-secondary/70 font-headline font-bold py-2.5 px-6 rounded-sm uppercase tracking-tighter text-xs hover:bg-surface-container active:scale-[0.98] transition-all"
                 >
                   Continuer sans compte
                 </button>
-                <p className="text-center text-[11px] text-secondary/50 font-body -mt-1">
-                  (Professionnel sans compte, Particuliers)
+                <p className="text-center text-[11px] text-secondary/40 font-body -mt-1">
+                  Professionnel sans compte · Particuliers
                 </p>
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowAccountRequest(true)}
+                    className="text-xs text-primary hover:underline font-body"
+                  >
+                    Pas encore client ? Demander l'ouverture d'un compte →
+                  </button>
+                </div>
               </div>
             ) : accountRequestSent ? (
               <div className="text-center py-4 space-y-2">
@@ -267,9 +284,12 @@ export default function LoginPage() {
             )}
           </div>
 
-          <p className="text-center text-xs text-secondary/50 mt-6 font-body">
-            TVM38 - MIDALI FRERES
-          </p>
+          <div className="text-center mt-6 space-y-1">
+            <p className="text-xs text-secondary/50 font-body">TVM38 - MIDALI FRERES</p>
+            <a href="tel:0476714211" className="text-xs text-primary font-bold font-body hover:underline">
+              📞 04 76 71 42 11
+            </a>
+          </div>
         </div>
       </main>
     </div>

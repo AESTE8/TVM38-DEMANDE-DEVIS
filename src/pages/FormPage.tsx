@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DevisFormData, LigneDevis } from '@/types';
 import { toast, Toaster } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine } from 'lucide-react';
+import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import { CAMIONS_CAPACITES } from '@/data/camions';
@@ -32,7 +32,7 @@ const schema = z.object({
   telephone: z.string()
     .regex(/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
   email: z.string().email('Adresse email invalide'),
-  typeDemande: z.enum(['livraison', 'fourniture', 'decharge']),
+  typeDemande: z.enum(['livraison', 'fourniture', 'decharge', 'livraison_decharge']),
   adresseLivraison: z.string().optional(),
   dateSouhaitee: z.string().optional(),
   creneau: z.enum(['matin', 'apres_midi', 'indifferent']).optional(),
@@ -41,6 +41,7 @@ const schema = z.object({
     quantiteTonnes: z.number(),
     quantiteM3: z.number(),
     modeEntree: z.enum(['tonnes', 'm3']),
+    type: z.enum(['livraison', 'decharge']).optional(),
   })),
   notes: z.string().optional(),
 }).superRefine((data, ctx) => {
@@ -52,11 +53,19 @@ const schema = z.object({
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Adresse d'entreprise requise", path: ['entrepriseAdresse'] });
     }
   }
-  if (data.typeDemande === 'livraison' && (!data.adresseLivraison || data.adresseLivraison.trim().length < 5)) {
+  if ((data.typeDemande === 'livraison' || data.typeDemande === 'livraison_decharge') && (!data.adresseLivraison || data.adresseLivraison.trim().length < 5)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Adresse de livraison requise", path: ['adresseLivraison'] });
   }
   if (!data.lignes.some(l => l.quantiteTonnes > 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Veuillez sélectionner au moins un matériau', path: ['lignes'] });
+  }
+  if (data.typeDemande === 'livraison_decharge') {
+    if (!data.lignes.some(l => l.quantiteTonnes > 0 && l.type === 'livraison')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ajoutez au moins un matériau à livrer (onglet Livraison)', path: ['lignes'] });
+    }
+    if (!data.lignes.some(l => l.quantiteTonnes > 0 && l.type === 'decharge')) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ajoutez au moins un déblai à récupérer (onglet Décharge)', path: ['lignes'] });
+    }
   }
 });
 
@@ -187,12 +196,20 @@ export default function FormPage() {
     }
 
     try {
-      const materiaux = (data.lignes || [])
-        .map((l: any) => {
+      const formatLignes = (lignes: any[]) =>
+        lignes.map((l: any) => {
           const mat = MATERIAUX.find(m => m.id === l.materiauId);
           return `- ${mat?.nom ?? l.materiauId} : ${l.quantiteTonnes}t (${l.quantiteM3}m³)`;
-        })
-        .join('\n');
+        }).join('\n');
+
+      let materiaux: string;
+      if (data.typeDemande === 'livraison_decharge') {
+        const livraisonLignes = (data.lignes || []).filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0);
+        const dischargeLignes = (data.lignes || []).filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0);
+        materiaux = `Matériaux à livrer :\n${formatLignes(livraisonLignes)}\n\nDéblais à récupérer :\n${formatLignes(dischargeLignes)}`;
+      } else {
+        materiaux = formatLignes((data.lignes || []).filter((l: any) => l.quantiteTonnes > 0));
+      }
 
       const payload = {
         // Contact
@@ -245,7 +262,7 @@ export default function FormPage() {
     .filter(l => l.quantiteTonnes > 0)
     .map(l => {
       const mat = MATERIAUX.find(m => m.id === l.materiauId);
-      return { nom: mat?.nom ?? l.materiauId, quantite: l.quantiteTonnes };
+      return { nom: mat?.nom ?? l.materiauId, quantite: l.quantiteTonnes, type: l.type };
     });
 
   return (
@@ -352,20 +369,20 @@ export default function FormPage() {
                     src="/bg-login.jpg"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-on-surface/80 to-transparent flex flex-col justify-end p-8">
-                    <span className="font-headline font-black text-3xl text-white tracking-tighter uppercase mb-2">Expertise TVM38</span>
-                    <p className="text-surface-variant text-sm italic opacity-90">Filiale de Midali, TVM38 est votre centre de valorisation & traitement de matériaux depuis 2000.</p>
+                    <span className="font-headline font-black text-3xl text-white tracking-tighter uppercase mb-2">350+ clients BTP nous font confiance</span>
+                    <p className="text-surface-variant text-sm italic opacity-90">Carrière & centre de valorisation à Villard-Bonnot — livraison sur chantier partout en Isère.</p>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-8 border-l-4 border-primary">
-                  <h3 className="font-headline font-bold text-xl mb-5">Pourquoi nous choisir ?</h3>
+                  <h3 className="font-headline font-bold text-xl mb-5">Ce qui fait la différence</h3>
                   <ul className="space-y-5">
                     <li className="flex items-start gap-4">
                       <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                         <Zap className="w-4 h-4 text-primary" strokeWidth={2.5} />
                       </div>
                       <div>
-                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Rapidité</span>
-                        <span className="text-sm text-secondary leading-snug">Traitement prioritaire de vos demandes pour ne pas ralentir vos chantiers.</span>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Réponse sous 24h</span>
+                        <span className="text-sm text-secondary leading-snug">Devis reçu le jour même pour les demandes urgentes — on ne ralentit pas vos chantiers.</span>
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
@@ -373,8 +390,8 @@ export default function FormPage() {
                         <MapPin className="w-4 h-4 text-primary" strokeWidth={2.5} />
                       </div>
                       <div>
-                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Locale</span>
-                        <span className="text-sm text-secondary leading-snug">Société familiale implantée dans le Grésivaudan depuis 1937.</span>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Basés en Isère depuis 1937</span>
+                        <span className="text-sm text-secondary leading-snug">Société familiale à Villard-Bonnot — on connaît vos chantiers et vos contraintes locales.</span>
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
@@ -382,8 +399,8 @@ export default function FormPage() {
                         <ShieldCheck className="w-4 h-4 text-primary" strokeWidth={2.5} />
                       </div>
                       <div>
-                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Conforme</span>
-                        <span className="text-sm text-secondary leading-snug">Matériaux certifiés conformes aux normes CE.</span>
+                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Certifiés CE</span>
+                        <span className="text-sm text-secondary leading-snug">Matériaux conformes aux normes CE — acceptés sur tous vos marchés publics et privés.</span>
                       </div>
                     </li>
                   </ul>
@@ -399,6 +416,14 @@ export default function FormPage() {
             }>
               <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl border-t-4 border-primary/80">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
+
+                  {/* Bandeau rassurance — étape 1 uniquement */}
+                  {currentStep === 1 && (
+                    <div className="flex items-center gap-2 mb-6 px-4 py-2.5 bg-surface-container rounded-sm border border-border/40 text-xs text-secondary font-body">
+                      <span className="text-primary">⏱</span>
+                      <span>Environ <strong>2 minutes</strong> — sans engagement, devis gratuit</span>
+                    </div>
+                  )}
 
                   {/* Étape 1 — Coordonnées (toujours monté pour conserver le ref) */}
                   <div className={currentStep !== 1 ? "hidden" : ""}>
@@ -479,11 +504,18 @@ export default function FormPage() {
                           </div>
                           <div className="text-sm space-y-0.5 text-on-surface">
                             <p className="font-bold flex items-center gap-2">
-                              {formValues.typeDemande === 'livraison' && <><Truck className="w-4 h-4 text-primary shrink-0" /> Livraison avec transport</>}
-                              {formValues.typeDemande === 'fourniture' && <><Package className="w-4 h-4 text-primary shrink-0" /> Fourniture uniquement</>}
-                              {formValues.typeDemande === 'decharge' && <><ArrowDownToLine className="w-4 h-4 text-primary shrink-0" /> Mise en décharge</>}
+                              {formValues.typeDemande === 'livraison' && <><Truck className="w-4 h-4 text-primary shrink-0" /> Livraison sur chantier</>}
+                              {formValues.typeDemande === 'fourniture' && <><Package className="w-4 h-4 text-primary shrink-0" /> Enlèvement carrière</>}
+                              {formValues.typeDemande === 'decharge' && <><ArrowDownToLine className="w-4 h-4 text-primary shrink-0" /> Dépôt de déblais</>}
+                              {formValues.typeDemande === 'livraison_decharge' && (
+                                <span className="flex items-center gap-1.5">
+                                  <Package className="w-4 h-4 text-primary shrink-0" />
+                                  <Trash2 className="w-4 h-4 text-purple-500 shrink-0" />
+                                  Livraison + Décharge (aller-retour)
+                                </span>
+                              )}
                             </p>
-                            {formValues.typeDemande === 'livraison' && formValues.adresseLivraison && (
+                            {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.adresseLivraison && (
                               <p className="text-secondary text-xs">{formValues.adresseLivraison}</p>
                             )}
                             {formValues.typeDemande === 'decharge' && (
@@ -500,7 +532,9 @@ export default function FormPage() {
                         {/* Matériaux */}
                         <div className="p-5 border border-border rounded-xl bg-surface-container-highest">
                           <div className="flex justify-between items-center mb-3">
-                            <span className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary">Matériaux</span>
+                            <span className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary">
+                              {formValues.typeDemande === 'livraison_decharge' ? 'Matériaux & Déblais' : 'Matériaux'}
+                            </span>
                             <button
                               type="button"
                               onClick={() => goToStep(3)}
@@ -509,14 +543,51 @@ export default function FormPage() {
                               <Pencil className="w-3 h-3" /> Modifier
                             </button>
                           </div>
-                          <ul className="space-y-1.5">
-                            {selectedMateriaux.map((m, i) => (
-                              <li key={i} className="flex justify-between items-center text-sm">
-                                <span className="text-on-surface">{m.nom}</span>
-                                <span className="font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">{m.quantite} t</span>
-                              </li>
-                            ))}
-                          </ul>
+                          {formValues.typeDemande === 'livraison_decharge' ? (
+                            <div className="space-y-3">
+                              {/* Lignes livraison */}
+                              {selectedMateriaux.filter(m => m.type === 'livraison').length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-primary mb-1.5 flex items-center gap-1">
+                                    <Package className="w-3 h-3" /> À livrer
+                                  </p>
+                                  <ul className="space-y-1.5">
+                                    {selectedMateriaux.filter(m => m.type === 'livraison').map((m, i) => (
+                                      <li key={i} className="flex justify-between items-center text-sm">
+                                        <span className="text-on-surface">{m.nom}</span>
+                                        <span className="font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">{m.quantite} t</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {/* Lignes décharge */}
+                              {selectedMateriaux.filter(m => m.type === 'decharge').length > 0 && (
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-wider text-purple-600 mb-1.5 flex items-center gap-1">
+                                    <Trash2 className="w-3 h-3" /> À récupérer
+                                  </p>
+                                  <ul className="space-y-1.5">
+                                    {selectedMateriaux.filter(m => m.type === 'decharge').map((m, i) => (
+                                      <li key={i} className="flex justify-between items-center text-sm">
+                                        <span className="text-on-surface">{m.nom}</span>
+                                        <span className="font-bold text-purple-600 bg-purple-500/10 px-2.5 py-0.5 rounded-full text-xs">{m.quantite} t</span>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {selectedMateriaux.map((m, i) => (
+                                <li key={i} className="flex justify-between items-center text-sm">
+                                  <span className="text-on-surface">{m.nom}</span>
+                                  <span className="font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full text-xs">{m.quantite} t</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       </div>
 
@@ -545,15 +616,20 @@ export default function FormPage() {
                         </div>
                       )}
 
+                      <div className="flex items-center justify-center gap-4 mb-4 text-xs text-secondary font-body">
+                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Devis gratuit</span>
+                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Sans engagement</span>
+                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Réponse sous 24h</span>
+                      </div>
                       <button
                         type="submit"
                         disabled={isSubmitting}
                         className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold px-12 py-5 rounded-md hover:shadow-xl active:scale-[0.98] transition-all uppercase tracking-tighter text-base md:text-xl"
                       >
-                        {isSubmitting ? 'Envoi...' : 'Envoyer ma demande →'}
+                        {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande →'}
                       </button>
                       <p className="text-xs text-secondary text-center mt-3 max-w-xs mx-auto">
-                        En envoyant ce formulaire, vous acceptez que vos données soient traitées par MIDALI - TVM38 pour l'établissement de votre devis.
+                        Vos données sont traitées uniquement pour l'établissement de votre devis par MIDALI - TVM38.
                       </p>
                     </div>
                   )}
@@ -575,7 +651,9 @@ export default function FormPage() {
                         onClick={handleNext}
                         className="ml-auto bg-primary text-on-primary font-headline font-bold px-8 py-3 rounded-md hover:shadow-md active:scale-[0.98] transition-all uppercase tracking-tight text-sm"
                       >
-                        Continuer →
+                        {currentStep === 1 && 'Mon projet →'}
+                        {currentStep === 2 && 'Choisir les matériaux →'}
+                        {currentStep === 3 && 'Vérifier ma demande →'}
                       </button>
                     </div>
                   )}

@@ -585,14 +585,14 @@ export default function EstimationPage() {
             </div>
 
             <div className="est-header">
-              <h1>Donnez votre avis</h1>
-              <p>Votre satisfaction est notre priorité</p>
+              <h1>Comment s'est passée votre expérience ?</h1>
+              <p>2 minutes pour nous aider à nous améliorer</p>
             </div>
 
             <div className="est-divider" />
 
             <p style={{ textAlign: 'center', fontStyle: 'italic', color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-              Sélectionnez le nombre d'étoiles que vous souhaitez nous attribuer
+              Cliquez sur les étoiles correspondant à votre ressenti
             </p>
 
             {/* Widget étoiles — ordre inversé dans le DOM pour l'effet CSS RTL */}
