@@ -8,13 +8,23 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
-import { supabase } from '@/lib/supabase';
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+
+async function callUpdateClient(client_id: string, operation: string, data: unknown) {
+  await fetch(`${SUPABASE_URL}/functions/v1/update-client`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ client_id, operation, data }),
+  });
+}
 
 interface Props {
   register: UseFormRegister<DevisFormData>;
   errors: FieldErrors<DevisFormData>;
   watch: UseFormWatch<DevisFormData>;
   setValue: UseFormSetValue<DevisFormData>;
+  guestMode?: boolean;
   connectedClient?: {
     id: string;
     nom: string;
@@ -38,7 +48,7 @@ export interface SectionClientHandle {
 }
 
 const SectionClient = forwardRef<SectionClientHandle, Props>(
-  ({ register, errors, watch, setValue, connectedClient }, ref) => {
+  ({ register, errors, watch, setValue, guestMode, connectedClient }, ref) => {
     const typeClient = watch('typeClient');
     const dejaClient = watch('dejaClient');
     const entrepriseAdresse = watch('entrepriseAdresse') || '';
@@ -75,11 +85,6 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     const [editingPhone, setEditingPhone] = useState(false);
     const [editingEmail, setEditingEmail] = useState(false);
     const [editingAdresse, setEditingAdresse] = useState(false);
-
-    // Liste complète clients
-    const [showAllClients, setShowAllClients] = useState(false);
-    const [allClients, setAllClients] = useState<any[]>([]);
-    const [loadingAllClients, setLoadingAllClients] = useState(false);
 
     // Initialisation depuis la session client connecté
     useEffect(() => {
@@ -118,136 +123,52 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     useImperativeHandle(ref, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
         if (!selectedClientId || selectedContactId !== 'nouveau' || dejaClient !== 'oui') return;
-
-        const nouveauContact = {
+        await callUpdateClient(selectedClientId, 'add_contact', {
           id: crypto.randomUUID(),
           nom: formData.nom || '',
           prenom: formData.prenom || '',
           telephone: formData.telephone,
           email: formData.email,
           fonction: formData.fonction || '',
-        };
-
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('contacts')
-          .eq('id', selectedClientId)
-          .single();
-
-        const contactsExistants = clientData?.contacts || [];
-
-        await supabase
-          .from('clients')
-          .update({ contacts: [...contactsExistants, nouveauContact] })
-          .eq('id', selectedClientId);
+        });
       },
 
       saveNewAgenceIfNeeded: async (_formData: DevisFormData) => {
         if (!showNewAgence || !newAgenceNom || !selectedClientId) return;
-
-        const nouvelleAgence = {
+        await callUpdateClient(selectedClientId, 'add_agence', {
           id: crypto.randomUUID(),
           nom: newAgenceNom,
           adresse: newAgenceAdresse,
-        };
-
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('agences')
-          .eq('id', selectedClientId)
-          .single();
-
-        const agencesExistantes = clientData?.agences || [];
-
-        await supabase
-          .from('clients')
-          .update({ agences: [...agencesExistantes, nouvelleAgence] })
-          .eq('id', selectedClientId);
+        });
       },
 
       updateClientInfoIfChanged: async (formData: DevisFormData) => {
-        // Si un contact spécifique est sélectionné, ne pas écraser les infos racine de l'entreprise
-        // avec les valeurs du contact — c'est updateExistingContactIfChanged qui s'en charge.
         if (!selectedClientId || !originalClient || selectedContactId !== null) return;
-
         const adresse = formData.entrepriseAdresse || '';
-
-        const hasChanged = adresse !== originalClient.adresse;
-
-        if (!hasChanged) return;
-
-        await supabase
-          .from('clients')
-          .update({ adresse })
-          .eq('id', selectedClientId);
+        if (adresse === originalClient.adresse) return;
+        await callUpdateClient(selectedClientId, 'update_adresse', { adresse });
       },
 
       updateExistingAgenceIfChanged: async () => {
         if (!selectedClientId || !selectedAgenceId || !originalAgence || !editingAgence) return;
-
-        const hasChanged =
-          editedAgenceNom !== originalAgence.nom ||
-          editedAgenceAdresse !== originalAgence.adresse;
-
+        const hasChanged = editedAgenceNom !== originalAgence.nom || editedAgenceAdresse !== originalAgence.adresse;
         if (!hasChanged) return;
-
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('agences')
-          .eq('id', selectedClientId)
-          .single();
-
-        const agences: any[] = clientData?.agences || [];
-        const updated = agences.map((a: any) =>
-          a.id === selectedAgenceId
-            ? { ...a, nom: editedAgenceNom, adresse: editedAgenceAdresse }
-            : a
-        );
-
-        await supabase
-          .from('clients')
-          .update({ agences: updated })
-          .eq('id', selectedClientId);
+        await callUpdateClient(selectedClientId, 'update_agence', {
+          id: selectedAgenceId,
+          nom: editedAgenceNom,
+          adresse: editedAgenceAdresse,
+        });
       },
 
       updateExistingContactIfChanged: async (formData: DevisFormData) => {
         if (!selectedClientId || !selectedContactId || selectedContactId === 'nouveau' || dejaClient !== 'oui') return;
-
-        const { data: clientData } = await supabase
-          .from('clients')
-          .select('contacts')
-          .eq('id', selectedClientId)
-          .single();
-
-        const contacts: any[] = clientData?.contacts || [];
-        const contact = contacts.find((c: any) => c.id === selectedContactId);
-        if (!contact) return;
-
-        const newNom = formData.nom || '';
-        const newPrenom = formData.prenom || '';
-        // Normaliser null → '' pour la comparaison
-        const contactNom = contact.nom ?? '';
-        const contactPrenom = contact.prenom ?? '';
-        const contactTel = contact.telephone ?? '';
-        const contactEmail = contact.email ?? '';
-        const hasChanged =
-          contactNom !== newNom ||
-          contactPrenom !== newPrenom ||
-          contactTel !== (formData.telephone || '') ||
-          contactEmail !== (formData.email || '');
-
-        if (!hasChanged) return;
-
-        const updated = contacts.map((c: any) =>
-          c.id === selectedContactId
-            ? { ...c, nom: newNom, prenom: newPrenom, telephone: formData.telephone || '', email: formData.email || '' }
-            : c
-        );
-
-        await supabase
-          .from('clients')
-          .update({ contacts: updated })
-          .eq('id', selectedClientId);
+        await callUpdateClient(selectedClientId, 'update_contact', {
+          id: selectedContactId,
+          nom: formData.nom || '',
+          prenom: formData.prenom || '',
+          telephone: formData.telephone || '',
+          email: formData.email || '',
+        });
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [selectedClientId, selectedContactId, dejaClient, originalClient, showNewAgence, newAgenceNom, newAgenceAdresse, selectedAgenceId, originalAgence, editedAgenceNom, editedAgenceAdresse, editingAgence]);
@@ -316,32 +237,36 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
             </RadioGroup>
           </div>
 
-          {/* Compte Existant */}
-          <div>
-            <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block mb-3">Avez-vous déjà un compte chez TVM38 ?</Label>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { val: 'oui', title: 'Oui', desc: "J'ai déjà un compte TVM38" },
-                { val: 'non', title: 'Non', desc: "Je n'ai pas encore de compte" },
-              ].map(({ val, title, desc }) => (
-                <button
-                  key={val}
-                  type="button"
-                  onClick={() => setValue('dejaClient', val as 'oui' | 'non')}
-                  className={cn(
-                    "p-4 rounded-xl border-2 text-left transition-all",
-                    dejaClient === val
-                      ? "border-primary bg-primary/5 shadow-sm"
-                      : "border-border bg-surface-container-highest hover:border-primary/30"
-                  )}
-                >
-                  <div className={cn("font-bold text-sm mb-0.5", dejaClient === val ? "text-primary" : "text-on-surface")}>{title}</div>
-                  <div className="text-xs text-secondary leading-tight">{desc}</div>
-                </button>
-              ))}
-            </div>
+          {/* Compte Existant — masqué totalement pour les invités, question masquée pour les connectés */}
+          <div className={guestMode ? "hidden" : ""}>
+            {!connectedClient && (
+              <>
+                <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block mb-3">Avez-vous déjà un compte chez TVM38 ?</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { val: 'oui', title: 'Oui', desc: "J'ai déjà un compte TVM38" },
+                    { val: 'non', title: 'Non', desc: "Je n'ai pas encore de compte" },
+                  ].map(({ val, title, desc }) => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setValue('dejaClient', val as 'oui' | 'non')}
+                      className={cn(
+                        "p-4 rounded-xl border-2 text-left transition-all",
+                        dejaClient === val
+                          ? "border-primary bg-primary/5 shadow-sm"
+                          : "border-border bg-surface-container-highest hover:border-primary/30"
+                      )}
+                    >
+                      <div className={cn("font-bold text-sm mb-0.5", dejaClient === val ? "text-primary" : "text-on-surface")}>{title}</div>
+                      <div className="text-xs text-secondary leading-tight">{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
 
-            {dejaClient === 'non' && (
+            {dejaClient === 'non' && !connectedClient && (
               <div className="mt-4 animate-fade-in">
                 {!showDemandeCompte && !demandeCompteSent && (
                   <button
@@ -421,65 +346,24 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
             {dejaClient === 'oui' && (
               <div className="mt-4 p-6 bg-surface-container rounded-lg animate-fade-in">
                 <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-1">
-                  {typeClient === 'professionnel' ? 'Recherchez votre entreprise' : 'Recherchez votre compte client'}
+                  {typeClient === 'professionnel' ? 'Votre entreprise' : 'Votre compte client'}
                 </Label>
-                <CompanyAutocomplete
-                  value={watch('entrepriseNom') || ''}
-                  onChange={(val) => setValue('entrepriseNom', val)}
-                  onSelect={(company) => { handleSelectCompany(company); setShowAllClients(false); }}
-                  placeholder={typeClient === 'professionnel' ? "Commencez à taper le nom..." : "Tapez votre nom..."}
-                  className="mt-2"
-                  clientType={typeClient}
-                />
 
-                {/* Liste complète des clients */}
-                <div className="mt-2">
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      if (showAllClients) { setShowAllClients(false); return; }
-                      setLoadingAllClients(true);
-                      try {
-                        let query = supabase
-                          .from('clients')
-                          .select('id, nom, code, type, adresse, adresse_structuree, telephone, email, contacts, agences');
-                          
-                        if (typeClient) {
-                          query = query.eq('type', typeClient);
-                        } else {
-                          query = query.neq('type', 'professionnel_sans_compte');
-                        }
-                        
-                        const { data } = await query.order('nom');
-                        setAllClients(data || []);
-                        setShowAllClients(true);
-                      } finally {
-                        setLoadingAllClients(false);
-                      }
-                    }}
-                    className="text-xs text-primary/60 hover:text-primary underline underline-offset-2 transition-colors"
-                  >
-                    {loadingAllClients ? 'Chargement...' : showAllClients ? '▲ Masquer la liste' : '▼ Voir tous les clients'}
-                  </button>
-
-                  {showAllClients && allClients.length > 0 && (
-                    <div className="mt-2 border border-border rounded-md bg-white max-h-56 overflow-auto shadow-sm animate-fade-in">
-                      {allClients.map((c: any) => (
-                        <div
-                          key={c.id}
-                          className={cn(
-                            "px-4 py-2 cursor-pointer text-sm transition-colors border-b last:border-0 hover:bg-muted",
-                            watch('entrepriseNom') === c.nom ? "bg-primary/5 font-semibold" : ""
-                          )}
-                          onClick={() => { handleSelectCompany(c); setShowAllClients(false); }}
-                        >
-                          <div className="font-medium">{c.nom}</div>
-                          {c.adresse && <div className="text-xs text-muted-foreground">{c.adresse}</div>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                {/* Client connecté : affichage lecture seule — pas de requête DB */}
+                {connectedClient ? (
+                  <div className="mt-2 px-3 py-2.5 rounded-sm border border-border bg-surface text-sm font-bold text-on-surface">
+                    {watch('entrepriseNom') || connectedClient.nom}
+                  </div>
+                ) : (
+                  <CompanyAutocomplete
+                    value={watch('entrepriseNom') || ''}
+                    onChange={(val) => setValue('entrepriseNom', val)}
+                    onSelect={(company) => handleSelectCompany(company)}
+                    placeholder={typeClient === 'professionnel' ? "Commencez à taper le nom..." : "Tapez votre nom..."}
+                    className="mt-2"
+                    clientType={typeClient}
+                  />
+                )}
 
                 {/* Amélioration 2 — Infos entreprise modifiables */}
                 {watch('entrepriseNom') && originalClient && (
@@ -832,8 +716,8 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
             )}
           </div>
 
-          {/* Champs de saisie (Client data) */}
-          <div className={cn(typeClient === 'professionnel' && dejaClient === 'non' ? "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4" : "hidden")}>
+          {/* Champs de saisie (Client data) — pour non-clients professionnels et invités professionnels */}
+          <div className={cn((typeClient === 'professionnel' && (dejaClient === 'non' || guestMode)) && !connectedClient ? "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4" : "hidden")}>
               <div className="space-y-1 md:col-span-1">
                 <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom de l'entreprise <span className="text-destructive">*</span></Label>
                 <Input id="entrepriseNom" placeholder="Ex: TP Isère" {...register('entrepriseNom')} />

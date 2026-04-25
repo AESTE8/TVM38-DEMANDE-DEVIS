@@ -10,7 +10,7 @@ import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDow
 import Header from '@/components/layout/Header';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
-import { getConnectedClient } from '@/lib/auth';
+import { getConnectedClient, isGuestMode } from '@/lib/auth';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
 import { MATERIAUX } from '@/data/materiaux';
@@ -77,7 +77,7 @@ export default function FormPage() {
   const { register, handleSubmit, watch, setValue, trigger, formState: { errors, isSubmitting } } = useForm<DevisFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
-      dejaClient: 'oui',
+      dejaClient: isGuestMode() ? 'non' : 'oui',
       typeClient: 'professionnel',
       typeDemande: 'livraison',
       creneau: 'indifferent',
@@ -89,6 +89,7 @@ export default function FormPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const sectionClientRef = useRef<SectionClientHandle>(null);
   const connectedClient = getConnectedClient();
+  const guestMode = isGuestMode();
 
   useEffect(() => {
     document.title = "Valorisation de matériaux - Devis";
@@ -372,6 +373,7 @@ export default function FormPage() {
                       errors={errors}
                       watch={watch}
                       setValue={setValue}
+                      guestMode={guestMode}
                       connectedClient={connectedClient ?? undefined}
                     />
                   </div>

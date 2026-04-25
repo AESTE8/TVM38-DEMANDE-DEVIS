@@ -199,7 +199,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={handleGuest}
-                  className="w-full text-secondary/70 font-body text-xs py-2 hover:text-secondary transition-colors underline underline-offset-2"
+                  className="w-full border border-secondary/30 text-secondary/70 font-headline font-extrabold py-3 px-6 rounded-sm uppercase tracking-tighter text-sm hover:bg-surface-container active:scale-[0.98] transition-all"
                 >
                   Continuer sans compte
                 </button>
@@ -261,7 +261,7 @@ export default function LoginPage() {
           </div>
 
           <p className="text-center text-xs text-secondary/50 mt-6 font-body">
-            TVM38 — MIDALI Isère & Grésivaudan
+            TVM38 - MIDALI FRERES
           </p>
         </div>
       </main>
