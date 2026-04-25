@@ -8,7 +8,7 @@ import nodemailer from 'npm:nodemailer@6';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const DISPATCH_EMAIL = Deno.env.get('DISPATCH_EMAIL') || 'e.aubree-carceles@midali.fr';
+const DISPATCH_EMAIL = Deno.env.get('DISPATCH_EMAIL') || 'tvm38@midali.fr';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
