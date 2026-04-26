@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { DevisFormData, LigneDevis } from '@/types';
 import { toast, Toaster } from 'sonner';
 import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Pencil, Zap, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
+import { ChevronLeft, Pencil, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import { CAMIONS_CAPACITES } from '@/data/camions';

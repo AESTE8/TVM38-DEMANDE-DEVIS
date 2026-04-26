@@ -1,4 +1,3 @@
-import * as React from "react"
 import { cn } from "@/lib/utils"
 
 interface BadgeProps {
@@ -6,7 +5,7 @@ interface BadgeProps {
   className?: string;
 }
 
-export default function Badge({ children, variant = 'optional', className }: BadgeProps) {
+export default function Badge({ variant = 'optional', className }: BadgeProps) {
   return (
     <span
       className={cn(

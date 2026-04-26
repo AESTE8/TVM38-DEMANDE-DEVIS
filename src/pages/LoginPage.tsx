@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Lock, User, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import { setSession, setGuestMode, hasAccess, ClientData } from '@/lib/auth';
