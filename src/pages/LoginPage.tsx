@@ -94,15 +94,10 @@ export default function LoginPage() {
 
           {/* Titre */}
           <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-sm mb-4">
-              <Building2 className="w-8 h-8 text-primary" />
-            </div>
+            <img src="/logo-tvm38.png" alt="TVM38" className="h-16 md:h-20 mx-auto mb-4" />
             <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
               Votre devis granulats en 3 minutes
             </h1>
-            <p className="text-sm text-secondary mt-1.5 font-body">
-              Livraison sur chantier en Isère — Réponse sous 24h
-            </p>
           </div>
 
           {/* Preuve sociale */}
@@ -114,12 +109,7 @@ export default function LoginPage() {
             <div className="w-px h-8 bg-border/60" />
             <div className="text-center">
               <p className="text-lg font-black text-primary font-headline leading-none">1937</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">implantés en<br/>Grésivaudan</p>
-            </div>
-            <div className="w-px h-8 bg-border/60" />
-            <div className="text-center">
-              <p className="text-lg font-black text-primary font-headline leading-none">24h</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">délai de<br/>réponse</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">présents dans le<br/>Grésivaudan</p>
             </div>
           </div>
 

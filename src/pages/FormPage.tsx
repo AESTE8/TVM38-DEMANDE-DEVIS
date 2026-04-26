@@ -378,15 +378,6 @@ export default function FormPage() {
                   <ul className="space-y-5">
                     <li className="flex items-start gap-4">
                       <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
-                        <Zap className="w-4 h-4 text-primary" strokeWidth={2.5} />
-                      </div>
-                      <div>
-                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Réponse sous 24h</span>
-                        <span className="text-sm text-secondary leading-snug">Devis reçu le jour même pour les demandes urgentes — on ne ralentit pas vos chantiers.</span>
-                      </div>
-                    </li>
-                    <li className="flex items-start gap-4">
-                      <div className="w-9 h-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
                         <MapPin className="w-4 h-4 text-primary" strokeWidth={2.5} />
                       </div>
                       <div>
@@ -619,7 +610,6 @@ export default function FormPage() {
                       <div className="flex items-center justify-center gap-4 mb-4 text-xs text-secondary font-body">
                         <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Devis gratuit</span>
                         <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Sans engagement</span>
-                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Réponse sous 24h</span>
                       </div>
                       <button
                         type="submit"
