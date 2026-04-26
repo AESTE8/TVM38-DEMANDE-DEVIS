@@ -300,7 +300,7 @@ export default function FormPage() {
                     currentStep > n ? "text-primary/50 hover:text-primary" :
                     "text-secondary/40"
                   )}>
-                    {label}
+                    Étape {n}/{STEPS.length} — {label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
@@ -616,11 +616,16 @@ export default function FormPage() {
                         disabled={isSubmitting}
                         className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold px-12 py-5 rounded-md hover:shadow-xl active:scale-[0.98] transition-all uppercase tracking-tighter text-base md:text-xl"
                       >
-                        {isSubmitting ? 'Envoi en cours...' : 'Envoyer ma demande →'}
+                        {isSubmitting ? 'Envoi en cours...' : 'Obtenir mon devis →'}
                       </button>
-                      <p className="text-xs text-secondary text-center mt-3 max-w-xs mx-auto">
-                        Vos données sont traitées uniquement pour l'établissement de votre devis par MIDALI - TVM38.
-                      </p>
+                      <div className="space-y-2 mt-3">
+                        <p className="text-xs text-secondary text-center max-w-xs mx-auto">
+                          Vos données restent confidentielles et servent uniquement à l'établissement de votre devis par MIDALI - TVM38.
+                        </p>
+                        <p className="text-xs text-secondary text-center max-w-xs mx-auto">
+                          Réponse par email : sous 48h (selon disponibilité des stocks).
+                        </p>
+                      </div>
                     </div>
                   )}
 

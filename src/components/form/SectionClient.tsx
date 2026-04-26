@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
+import Badge from '../ui/badge';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
@@ -719,12 +720,16 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           {/* Champs de saisie (Client data) — pour non-clients professionnels et invités professionnels */}
           <div className={cn((typeClient === 'professionnel' && (dejaClient === 'non' || guestMode)) && !connectedClient ? "grid grid-cols-1 md:grid-cols-2 gap-6 pt-4" : "hidden")}>
               <div className="space-y-1 md:col-span-1">
-                <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom de l'entreprise <span className="text-destructive">*</span></Label>
+                <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                  Nom de l'entreprise <Badge variant="required" />
+                </Label>
                 <Input id="entrepriseNom" placeholder="Ex: TP Isère" {...register('entrepriseNom')} />
                 {errors.entrepriseNom && <p className="text-xs text-destructive mt-1">{errors.entrepriseNom.message}</p>}
               </div>
               <div className="space-y-1 md:col-span-1">
-                <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Adresse du siège <span className="text-destructive">*</span></Label>
+                <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                  Adresse du siège <Badge variant="required" />
+                </Label>
                 <AddressAutocomplete
                   value={entrepriseAdresse}
                   onChange={(val) => setValue('entrepriseAdresse', val)}
@@ -744,27 +749,33 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-1">
-              <Label htmlFor="nom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Nom <span className="text-destructive">*</span></Label>
+              <Label htmlFor="nom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                Nom <Badge variant="required" />
+              </Label>
               <Input id="nom" placeholder="Ex: Dupont" {...register('nom')} />
               {errors.nom && <p className="text-xs text-destructive mt-1">{errors.nom.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="prenom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Prénom <span className="text-destructive">*</span></Label>
+              <Label htmlFor="prenom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                Prénom <Badge variant="required" />
+              </Label>
               <Input id="prenom" placeholder="Ex: Jean" {...register('prenom')} />
               {errors.prenom && <p className="text-xs text-destructive mt-1">{errors.prenom.message}</p>}
             </div>
 
             <div className="space-y-1">
               <Label htmlFor="email" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
-                Email <span className="text-destructive">*</span> <span className="text-[10px] text-primary/60 normal-case ml-1">(récepteur du devis)</span>
+                Email <Badge variant="required" /> <span className="text-[10px] text-primary/60 normal-case ml-1">(récepteur du devis)</span>
               </Label>
               <Input id="email" type="email" placeholder="jean.dupont@email.com" {...register('email')} />
               {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="telephone" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Téléphone <span className="text-destructive">*</span></Label>
+              <Label htmlFor="telephone" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                Téléphone <Badge variant="required" />
+              </Label>
               <Input
                 id="telephone"
                 type="tel"

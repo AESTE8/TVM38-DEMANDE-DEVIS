@@ -33,6 +33,23 @@
   body {
     @apply bg-surface font-body text-on-surface antialiased;
   }
+
+  /* Targets tactiles mobile — hauteur minimale 44px */
+  @media (max-width: 640px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="date"],
+    textarea {
+      min-height: 44px;
+      padding: 10px 12px;
+    }
+    button,
+    .btn-glow {
+      min-height: 44px;
+      padding: 10px 16px;
+    }
+  }
 }
 
 .material-symbols-outlined {
