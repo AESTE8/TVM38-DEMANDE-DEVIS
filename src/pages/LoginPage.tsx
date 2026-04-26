@@ -94,7 +94,7 @@ export default function LoginPage() {
 
           {/* Titre */}
           <div className="text-center mb-6">
-            <img src="/logo-tvm38.png" alt="TVM38" className="h-16 md:h-20 mx-auto mb-4" />
+            <img src="/logo-tvm38.png" alt="TVM38" className="h-20 md:h-28 w-32 md:w-48 mx-auto mb-4" />
             <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
               Votre devis granulats en 3 minutes
             </h1>
