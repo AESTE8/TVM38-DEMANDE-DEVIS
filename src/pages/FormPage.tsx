@@ -384,8 +384,8 @@ export default function FormPage() {
                         <MapPin className="w-4 h-4 text-primary" strokeWidth={2.5} />
                       </div>
                       <div>
-                        <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Basés en Isère depuis 1937</span>
-                        <span className="text-sm text-secondary leading-snug">Société familiale à Villard-Bonnot — on connaît vos chantiers et vos contraintes locales.</span>
+                        <span className="text-destructive font-bold uppercase tracking-tighter text-sm block mb-0.5">Basés en Isère dans le Grésivaudan</span>
+                        <span className="text-sm text-secondary leading-snug">Société familiale depuis 1937 — on connaît vos chantiers et vos contraintes locales.</span>
                       </div>
                     </li>
                     <li className="flex items-start gap-4">

@@ -46,8 +46,8 @@ async function broadcastClientUpdate(client_id: string) {
   }
 }
 
-// Opérations autorisées — jamais de lecture globale, jamais de suppression
-const ALLOWED_OPERATIONS = ['add_contact', 'update_contact', 'add_agence', 'update_agence', 'update_adresse'];
+// Opérations autorisées — jamais de lecture globale
+const ALLOWED_OPERATIONS = ['add_contact', 'update_contact', 'delete_contact', 'add_agence', 'update_agence', 'update_adresse'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -85,11 +85,20 @@ Deno.serve(async (req) => {
         await supabase.from('clients').update({ contacts: [...contacts, data] }).eq('id', client_id);
         break;
       }
-      case 'update_contact': {
+      case "update_contact": {
         const contacts = (existing.contacts || []).map((c: any) =>
           c.id === data.id ? { ...c, nom: data.nom, prenom: data.prenom, telephone: data.telephone, email: data.email } : c
         );
-        await supabase.from('clients').update({ contacts }).eq('id', client_id);
+        await supabase.from("clients").update({ contacts }).eq("id", client_id);
+        break;
+      }
+      case "delete_contact": {
+        const { id } = data;
+        if (!id) {
+          return json(400, { error: "ID du contact manquant" });
+        }
+        const contacts = (existing.contacts || []).filter((c: any) => c.id !== id);
+        await supabase.from("clients").update({ contacts }).eq("id", client_id);
         break;
       }
       case 'add_agence': {

@@ -1,4 +1,4 @@
-import { useState, forwardRef, useImperativeHandle, useEffect } from 'react';
+import { useState, forwardRef, useImperativeHandle, useEffect, useRef } from 'react';
 import { UseFormRegister, FieldErrors, UseFormWatch, UseFormSetValue } from 'react-hook-form';
 import { DevisFormData } from '@/types';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
 import { cn } from '@/lib/utils';
+import { Trash2 } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
 import Badge from '../ui/badge';
@@ -46,11 +47,13 @@ export interface SectionClientHandle {
   updateClientInfoIfChanged: (formData: DevisFormData) => Promise<void>;
   updateExistingContactIfChanged: (formData: DevisFormData) => Promise<void>;
   updateExistingAgenceIfChanged: () => Promise<void>;
+  deleteContact: (contactId: string) => Promise<void>;
 }
 
 const SectionClient = forwardRef<SectionClientHandle, Props>(
-  ({ register, errors, watch, setValue, guestMode, connectedClient }, ref) => {
+  ({ register, errors, watch, setValue, guestMode, connectedClient }, deleteContactRef) => {
     const typeClient = watch('typeClient');
+    const handleRef = useRef<SectionClientHandle>(null);
     const dejaClient = watch('dejaClient');
     const entrepriseAdresse = watch('entrepriseAdresse') || '';
 
@@ -121,7 +124,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    useImperativeHandle(ref, () => ({
+    useImperativeHandle(deleteContactRef, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
         if (!selectedClientId || selectedContactId !== 'nouveau' || dejaClient !== 'oui') return;
         await callUpdateClient(selectedClientId, 'add_contact', {
@@ -170,6 +173,19 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           telephone: formData.telephone || '',
           email: formData.email || '',
         });
+      },
+
+      deleteContact: async (contactId: string) => {
+        if (!selectedClientId) return;
+        await callUpdateClient(selectedClientId, 'delete_contact', { id: contactId });
+        setCompanyContacts((prev) => prev.filter((c: any) => c.id !== contactId));
+        if (selectedContactId === contactId) {
+          setSelectedContactId(null);
+          setValue('prenom', '');
+          setValue('nom', '');
+          setValue('email', '');
+          setValue('telephone', '');
+        }
       },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [selectedClientId, selectedContactId, dejaClient, originalClient, showNewAgence, newAgenceNom, newAgenceAdresse, selectedAgenceId, originalAgence, editedAgenceNom, editedAgenceAdresse, editingAgence]);
@@ -657,7 +673,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                         <div
                           key={contact.id}
                           className={cn(
-                            "p-4 rounded-sm border-2 cursor-pointer transition-colors text-sm bg-surface-container-highest",
+                            "p-4 rounded-sm border-2 cursor-pointer transition-colors text-sm bg-surface-container-highest relative",
                             selectedContactId === contact.id ? "border-primary bg-primary/5" : "border-transparent hover:border-primary/30"
                           )}
                           onClick={() => {
@@ -676,6 +692,21 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                             setValue('telephone', contact.telephone || '', { shouldValidate: true });
                           }}
                         >
+                          {/* Bouton poubelle */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Supprimer le contact "${contact.prenom ? `${contact.prenom} ${contact.nom}` : contact.nom}" ?`)) {
+                                (deleteContactRef as any)?.current?.deleteContact(contact.id);
+                              }
+                            }}
+                            className="absolute top-2 right-2 p-1.5 text-secondary hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                            title="Supprimer ce contact"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+
                           <div className="font-bold text-on-surface">
                             {contact.prenom ? `${contact.prenom} ${contact.nom}` : contact.nom}
                           </div>

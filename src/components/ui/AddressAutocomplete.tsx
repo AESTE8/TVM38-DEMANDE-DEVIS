@@ -14,6 +14,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,6 +49,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   return (
     <div className={cn("relative w-full", className)} ref={containerRef}>
       <Input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -63,6 +65,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
               onClick={() => {
                 onSelect(s.properties.label);
                 setIsOpen(false);
+                inputRef.current?.focus();
               }}
             >
               <div className="font-medium">{s.properties.label}</div>
