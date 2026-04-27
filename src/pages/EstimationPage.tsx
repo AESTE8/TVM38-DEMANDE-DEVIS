@@ -525,7 +525,7 @@ export default function EstimationPage() {
 
         .est-btn-submit {
           width: 100%; padding: 14px;
-          background: var(--blue); color: #fff;
+          background: #2c64a3; color: #fff;
           border: none; border-radius: 8px;
           font-family: 'Montserrat', sans-serif;
           font-size: 14px; font-weight: 700;
@@ -533,7 +533,7 @@ export default function EstimationPage() {
           transition: background .2s, transform .15s, box-shadow .2s;
         }
         .est-btn-submit:hover {
-          background: var(--blue-dark);
+          background: #235084;
           box-shadow: 0 4px 18px rgba(46,163,242,.35);
           transform: translateY(-1px);
         }
