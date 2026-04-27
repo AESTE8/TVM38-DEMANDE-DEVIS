@@ -371,14 +371,15 @@ export default function EstimationPage() {
           bottom: 76px; left: 24px;
           background: #0f2940;
           color: #fff !important;
-          padding: 12px;
+          padding: 12px 20px;
           border-radius: 50px;
           text-decoration: none;
-          font-size: 18px;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 13px; font-weight: 700;
           box-shadow: 0 4px 15px rgba(15,41,64,0.3);
           transition: transform .2s, background .2s, box-shadow .2s;
           z-index: 100;
-          display: flex; align-items: center; justify-content: center;
+          display: flex; align-items: center; gap: 8px;
         }
         .est-btn-devis:hover {
           background: #1a3f60;
@@ -598,7 +599,13 @@ export default function EstimationPage() {
           }
           .est-btn-valorisation { bottom: 16px; }
           .est-btn-contact      { bottom: 72px; }
-          .est-btn-devis        { bottom: 128px; left: auto; right: 16px; }
+          .est-btn-devis        {
+            bottom: 128px;
+            left: 16px; right: 16px;
+            text-align: center;
+            justify-content: center;
+            width: calc(100% - 32px);
+          }
         }
       `}</style>
 
@@ -647,7 +654,8 @@ export default function EstimationPage() {
 
         {/* Bouton Demander un devis */}
         <Link to="/" className="est-btn-devis" aria-label="Demander un devis">
-          <FileText size={22} />
+          <FileText size={20} />
+          <span>Demander un devis</span>
         </Link>
 
         {/* Bouton Contact */}
