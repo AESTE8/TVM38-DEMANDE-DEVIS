@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 /* ─── Types ─────────────────────────────────────────────── */
 type ModalView = 'form' | 'success';
@@ -362,6 +363,30 @@ export default function EstimationPage() {
         }
         .est-footer a:hover { color: var(--blue); }
 
+        /* ── BOUTON DEMANDER DEVIS (en haut) ── */
+        .est-btn-devis-top {
+          position: absolute;
+          top: 16px;
+          right: 16px;
+          background: #d13239;
+          color: #fff !important;
+          padding: 8px 16px;
+          border-radius: 20px;
+          text-decoration: none;
+          font-family: 'Montserrat', sans-serif;
+          font-size: 11px; font-weight: 700;
+          box-shadow: 0 2px 8px rgba(209,50,57,0.25);
+          transition: transform .2s, background .2s, box-shadow .2s;
+          z-index: 10;
+          text-transform: uppercase;
+          letter-spacing: 0.3px;
+        }
+        .est-btn-devis-top:hover {
+          background: #b52b31;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(209,50,57,0.35);
+        }
+
         /* ── BOUTON FLOTTANT CARRIÈRE ── */
         .est-btn-valorisation {
           position: fixed;
@@ -582,6 +607,9 @@ export default function EstimationPage() {
           <div className="est-card">
             <div className="est-logo-wrap">
               <img src="/logo-tvm38.png" alt="TVM38 Estimation" />
+              <Link to="/" className="est-btn-devis-top">
+                Demander un devis
+              </Link>
             </div>
 
             <div className="est-header">
