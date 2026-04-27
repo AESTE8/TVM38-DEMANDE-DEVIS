@@ -44,7 +44,8 @@
     textarea,
     select {
       min-height: 44px;
-      padding: 10px 12px;
+      padding-top: 10px;
+      padding-bottom: 10px;
       font-size: 16px !important;
     }
     button,
