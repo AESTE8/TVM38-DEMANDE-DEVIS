@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { FileText } from 'lucide-react';
 
 /* ─── Types ─────────────────────────────────────────────── */
 type ModalView = 'form' | 'success';
@@ -364,28 +365,25 @@ export default function EstimationPage() {
         }
         .est-footer a:hover { color: var(--blue); }
 
-        /* ── BOUTON DEMANDER DEVIS (en haut) ── */
-        .est-btn-devis-top {
-          position: absolute;
-          top: 16px;
-          right: 16px;
-          background: #d13239;
+        /* ── BOUTON DEMANDER DEVIS (bas gauche) ── */
+        .est-btn-devis {
+          position: fixed;
+          bottom: 76px; left: 24px;
+          background: #0f2940;
           color: #fff !important;
-          padding: 8px 16px;
-          border-radius: 20px;
+          padding: 12px;
+          border-radius: 50px;
           text-decoration: none;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 11px; font-weight: 700;
-          box-shadow: 0 2px 8px rgba(209,50,57,0.25);
+          font-size: 18px;
+          box-shadow: 0 4px 15px rgba(15,41,64,0.3);
           transition: transform .2s, background .2s, box-shadow .2s;
-          z-index: 10;
-          text-transform: uppercase;
-          letter-spacing: 0.3px;
+          z-index: 100;
+          display: flex; align-items: center; justify-content: center;
         }
-        .est-btn-devis-top:hover {
-          background: #b52b31;
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(209,50,57,0.35);
+        .est-btn-devis:hover {
+          background: #1a3f60;
+          transform: translateY(-3px);
+          box-shadow: 0 6px 20px rgba(15,41,64,0.4);
         }
 
         /* ── BOUTON FLOTTANT CARRIÈRE ── */
@@ -600,6 +598,7 @@ export default function EstimationPage() {
           }
           .est-btn-valorisation { bottom: 16px; }
           .est-btn-contact      { bottom: 72px; }
+          .est-btn-devis        { bottom: 128px; left: auto; right: 16px; }
         }
       `}</style>
 
@@ -608,9 +607,6 @@ export default function EstimationPage() {
           <div className="est-card">
             <div className="est-logo-wrap">
               <img src="/logo-tvm38.png" alt="TVM38 Estimation" />
-              <Link to="/" className="est-btn-devis-top">
-                Demander un devis
-              </Link>
             </div>
 
             <div className="est-header">
@@ -648,6 +644,11 @@ export default function EstimationPage() {
         >
           Voir la page de la carrière
         </a>
+
+        {/* Bouton Demander un devis */}
+        <Link to="/" className="est-btn-devis" aria-label="Demander un devis">
+          <FileText size={22} />
+        </Link>
 
         {/* Bouton Contact */}
         <button className="est-btn-contact" onClick={() => setContactOpen(true)}>
