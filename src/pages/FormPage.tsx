@@ -12,6 +12,7 @@ import { CAMIONS_CAPACITES } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import { getConnectedClient, isGuestMode } from '@/lib/auth';
+import { supabase } from '@/lib/supabase';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
 import { MATERIAUX } from '@/data/materiaux';
@@ -199,10 +200,18 @@ export default function FormPage() {
     }
 
     try {
+      const { data: sbMateriaux } = await supabase
+        .from('materiaux')
+        .select('id, code_article');
+      const codeArticleMap: Record<string, string> = {};
+      (sbMateriaux || []).forEach((m: any) => { codeArticleMap[m.id] = m.code_article; });
+
       const formatLignes = (lignes: any[]) =>
         lignes.map((l: any) => {
           const mat = MATERIAUX.find(m => m.id === l.materiauId);
-          return `- ${mat?.nom ?? l.materiauId} : ${l.quantiteTonnes}t (${l.quantiteM3}m³)`;
+          const code = codeArticleMap[l.materiauId] || mat?.code || '';
+          const codePrefix = code ? `[${code}] ` : '';
+          return `- ${codePrefix}${mat?.nom ?? l.materiauId} : ${l.quantiteTonnes}t (${l.quantiteM3}m³)`;
         }).join('\n');
 
       let materiaux: string;
