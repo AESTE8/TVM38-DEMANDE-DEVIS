@@ -285,20 +285,22 @@ export default function FormPage() {
     <div className="min-h-screen bg-surface">
       <Header>
         {connectedClient && <ClientBadge />}
-        {guestMode && (
-          <button
-            type="button"
-            onClick={() => { clearGuestMode(); navigate('/'); }}
-            className="text-xs font-bold text-secondary hover:text-primary transition-colors underline underline-offset-2"
-          >
-            ← Retour connexion
-          </button>
-        )}
       </Header>
 
       {/* Barre de progression */}
       <div className="sticky top-[52px] md:top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
+          {guestMode && (
+            <div className="mb-2">
+              <button
+                type="button"
+                onClick={() => { clearGuestMode(); navigate('/'); }}
+                className="text-xs font-bold text-secondary hover:text-primary transition-colors underline underline-offset-2"
+              >
+                ← Retour à la page de connexion
+              </button>
+            </div>
+          )}
           <div className="flex items-center">
             {STEPS.map(({ n, label }, i) => (
               <div key={n} className="flex items-center flex-1 min-w-0">

@@ -130,7 +130,7 @@ export default function LoginPage() {
                     placeholder="Ex : TVM-001"
                     autoComplete="username"
                     required
-                    className="w-full pl-12 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="w-full pl-9 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                 </div>
               </div>
