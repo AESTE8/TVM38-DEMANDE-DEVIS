@@ -200,11 +200,15 @@ export default function FormPage() {
     }
 
     try {
-      const { data: sbMateriaux } = await supabase
-        .from('materiaux')
-        .select('id, code_article');
       const codeArticleMap: Record<string, string> = {};
-      (sbMateriaux || []).forEach((m: any) => { codeArticleMap[m.id] = m.code_article; });
+      try {
+        const { data: sbMateriaux } = await supabase
+          .from('materiaux')
+          .select('id, code_article');
+        (sbMateriaux || []).forEach((m: any) => { if (m.code_article) codeArticleMap[m.id] = m.code_article; });
+      } catch {
+        // fallback silencieux — on continue sans code_article
+      }
 
       const formatLignes = (lignes: any[]) =>
         lignes.map((l: any) => {
