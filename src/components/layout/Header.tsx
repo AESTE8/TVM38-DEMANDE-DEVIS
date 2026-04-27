@@ -8,16 +8,16 @@ interface HeaderProps {
 export default function Header({ children }: HeaderProps) {
   return (
     <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm border-b border-border/30">
-      <div className="flex justify-between items-center w-full px-4 md:px-8 py-3 max-w-screen-2xl mx-auto">
-        <div className="flex items-center gap-3">
-          <img src="/logo-tvm38.png" alt="Logo TVM38" className="h-10 md:h-12 w-auto" />
+      <div className="flex justify-between items-center w-full px-4 md:px-8 py-2 md:py-3 max-w-screen-2xl mx-auto">
+        <div className="flex items-center gap-2 md:gap-3">
+          <img src="/logo-tvm38.png" alt="Logo TVM38" className="h-8 md:h-12 w-auto" />
           <div className="flex flex-col">
-            <span className="text-xl md:text-2xl font-black tracking-tighter text-on-surface uppercase font-headline -mb-1">MIDALI - TVM38</span>
-            <span className="text-[10px] font-bold text-primary tracking-[0.2em] uppercase opacity-80">Isère & Grésivaudan</span>
+            <span className="text-base md:text-2xl font-black tracking-tighter text-on-surface uppercase font-headline -mb-0.5 whitespace-nowrap">MIDALI - TVM38</span>
+            <span className="text-[9px] md:text-[10px] font-bold text-primary tracking-[0.2em] uppercase opacity-80 whitespace-nowrap">Isère & Grésivaudan</span>
           </div>
         </div>
 
-        <div className="flex gap-4 items-center">
+        <div className="flex gap-2 md:gap-4 items-center">
           {children}
 
           <Link
@@ -29,7 +29,7 @@ export default function Header({ children }: HeaderProps) {
 
           <button
             onClick={() => document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-industrial-gradient text-on-primary font-headline font-extrabold py-2 px-6 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-sm md:text-base shadow-lg shadow-primary/20"
+            className="bg-industrial-gradient text-on-primary font-headline font-extrabold py-1.5 px-4 md:py-2 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-xs md:text-base shadow-lg shadow-primary/20 whitespace-nowrap"
           >
             DEMANDER UN DEVIS
           </button>
