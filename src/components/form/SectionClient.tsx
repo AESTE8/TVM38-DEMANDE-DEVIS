@@ -219,24 +219,26 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
         </div>
 
         <div className="space-y-8">
-          {/* Type de client */}
-          <div>
-            <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block mb-3">Vous êtes</Label>
-            <RadioGroup
-              value={typeClient}
-              onValueChange={(val: 'professionnel' | 'particulier') => setValue('typeClient', val, { shouldValidate: true })}
-              className="flex gap-6"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="professionnel" id="pro" className="border-primary text-primary" />
-                <Label htmlFor="pro" className="font-medium cursor-pointer text-sm font-body">Professionnel</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="particulier" id="part" className="border-primary text-primary" />
-                <Label htmlFor="part" className="font-medium cursor-pointer text-sm font-body">Particulier</Label>
-              </div>
-            </RadioGroup>
-          </div>
+          {/* Type de client — masqué pour les clients connectés */}
+          {!connectedClient && (
+            <div>
+              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block mb-3">Vous êtes</Label>
+              <RadioGroup
+                value={typeClient}
+                onValueChange={(val: 'professionnel' | 'particulier') => setValue('typeClient', val, { shouldValidate: true })}
+                className="flex gap-6"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="professionnel" id="pro" className="border-primary text-primary" />
+                  <Label htmlFor="pro" className="font-medium cursor-pointer text-sm font-body">Professionnel</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="particulier" id="part" className="border-primary text-primary" />
+                  <Label htmlFor="part" className="font-medium cursor-pointer text-sm font-body">Particulier</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          )}
 
           {/* Compte Existant — masqué totalement pour les invités, question masquée pour les connectés */}
           <div className={guestMode ? "hidden" : ""}>
