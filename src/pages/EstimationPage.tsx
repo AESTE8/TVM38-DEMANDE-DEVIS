@@ -284,6 +284,7 @@ export default function EstimationPage() {
 
         /* ── LOGO ── */
         .est-logo-wrap {
+          position: relative;
           text-align: center;
           margin-bottom: 32px;
           animation: estFadeDown .6s ease both;
