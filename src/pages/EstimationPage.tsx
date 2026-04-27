@@ -453,6 +453,7 @@ export default function EstimationPage() {
           box-shadow: 0 20px 60px rgba(0,0,0,0.25);
           padding: 44px 40px;
           max-width: 480px; width: 100%;
+          max-height: 90vh; overflow-y: auto;
           position: relative;
           border: none;
           transform: translateY(30px) scale(.95);
