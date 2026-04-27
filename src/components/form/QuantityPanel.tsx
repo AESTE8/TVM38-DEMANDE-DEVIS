@@ -104,6 +104,7 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
               type="number"
               step="1"
               min="0"
+              inputMode="numeric"
               value={isTonnes ? (ligne.quantiteTonnes || '') : (ligne.quantiteM3 || '')}
               onChange={(e) => updateInput(parseFloat(e.target.value))}
               className="w-full text-center text-2xl font-black font-headline border-none outline-none focus:ring-0 bg-transparent p-0 text-on-surface"

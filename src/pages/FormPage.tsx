@@ -184,6 +184,9 @@ export default function FormPage() {
   const onSubmit = async (data: DevisFormData) => {
     setSubmitError(null);
 
+    // Synchroniser les lignes dans le formulaire avant soumission
+    setValue('lignes', lignes);
+
     try {
       await sectionClientRef.current?.saveNewContactIfNeeded(data);
       await sectionClientRef.current?.updateExistingContactIfChanged(data);
@@ -204,11 +207,11 @@ export default function FormPage() {
 
       let materiaux: string;
       if (data.typeDemande === 'livraison_decharge') {
-        const livraisonLignes = (data.lignes || []).filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0);
-        const dischargeLignes = (data.lignes || []).filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0);
+        const livraisonLignes = lignes.filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0);
+        const dischargeLignes = lignes.filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0);
         materiaux = `Matériaux à livrer :\n${formatLignes(livraisonLignes)}\n\nDéblais à récupérer :\n${formatLignes(dischargeLignes)}`;
       } else {
-        materiaux = formatLignes((data.lignes || []).filter((l: any) => l.quantiteTonnes > 0));
+        materiaux = formatLignes(lignes.filter((l: any) => l.quantiteTonnes > 0));
       }
 
       const payload = {
@@ -272,7 +275,7 @@ export default function FormPage() {
       </Header>
 
       {/* Barre de progression */}
-      <div className="sticky top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
+      <div className="sticky top-[56px] md:top-0 z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
           <div className="flex items-center">
             {STEPS.map(({ n, label }, i) => (
@@ -322,7 +325,7 @@ export default function FormPage() {
         </div>
       </div>
 
-      <main className="pt-8 pb-16">
+      <main className="pt-8 md:pt-8 pb-16">
         <section className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className={cn(
             "grid gap-12",

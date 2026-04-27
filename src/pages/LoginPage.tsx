@@ -94,7 +94,7 @@ export default function LoginPage() {
 
           {/* Titre */}
           <div className="text-center mb-6">
-            <img src="/logo-tvm38.png" alt="TVM38" className="h-20 md:h-28 w-32 md:w-48 mx-auto mb-4" />
+            <img src="/logo-tvm38.png" alt="TVM38" className="h-16 md:h-24 mx-auto mb-4 object-contain" />
             <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
               Votre devis granulats en 3 minutes
             </h1>
@@ -109,7 +109,7 @@ export default function LoginPage() {
             <div className="w-px h-8 bg-border/60" />
             <div className="text-center">
               <p className="text-lg font-black text-primary font-headline leading-none">1937</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">présents dans le<br/>Grésivaudan</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">années<br/>d'expérience</p>
             </div>
           </div>
 
@@ -130,7 +130,7 @@ export default function LoginPage() {
                     placeholder="Ex : TVM-001"
                     autoComplete="username"
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="w-full pl-12 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                 </div>
               </div>
