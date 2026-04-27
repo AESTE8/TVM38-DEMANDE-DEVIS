@@ -388,8 +388,8 @@ export default function FormPage() {
 
             {/* Colonne gauche — étape 1 uniquement */}
             {currentStep === 1 && (
-              <div className="lg:col-span-1 space-y-8">
-                <div className="relative overflow-hidden rounded-xl aspect-[4/3] shadow-2xl">
+              <div className="lg:col-span-1 space-y-8 lg:pt-6">
+                <div className="relative overflow-hidden rounded-xl aspect-[4/5] shadow-2xl">
                   <img
                     alt="Centre de valorisation TVM38"
                     className="absolute inset-0 w-full h-full object-cover transition-all duration-700 hover:scale-105"
