@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
-import { setSession, setGuestMode, hasAccess, ClientData } from '@/lib/auth';
+import { setSession, setGuestMode, isSessionValid, ClientData } from '@/lib/auth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
@@ -12,7 +12,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (hasAccess()) navigate('/formulaire', { replace: true });
+    if (isSessionValid()) navigate('/formulaire', { replace: true });
   }, []);
   const [identifiant, setIdentifiant] = useState('');
   const [password, setPassword] = useState('');
