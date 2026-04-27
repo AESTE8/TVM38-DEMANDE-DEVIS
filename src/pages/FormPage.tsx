@@ -327,7 +327,7 @@ export default function FormPage() {
                     currentStep > n ? "text-primary/50 hover:text-primary" :
                     "text-secondary/40"
                   )}>
-                    Étape {n}/{STEPS.length} — {label}
+                    {label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
