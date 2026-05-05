@@ -109,8 +109,8 @@ export default function LoginPage() {
             </div>
             <div className="w-px h-8 bg-border/60" />
             <div className="text-center">
-              <p className="text-lg font-black text-primary font-headline leading-none">1937</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">années<br/>d'expérience</p>
+              <p className="text-lg font-black text-primary font-headline leading-none">{new Date().getFullYear() - 1937}</p>
+              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">ans<br/>d'expertise</p>
             </div>
           </div>
 
