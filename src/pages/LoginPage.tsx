@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { setSession, setGuestMode, isSessionValid, ClientData } from '@/lib/auth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -127,10 +128,10 @@ export default function LoginPage() {
                     type="text"
                     value={identifiant}
                     onChange={e => { setIdentifiant(e.target.value); setError(null); }}
-                    placeholder="Ex : TVM-001"
+                    placeholder="Ex : CTVM01"
                     autoComplete="username"
                     required
-                    className="w-full pl-9 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                 </div>
               </div>
@@ -274,14 +275,9 @@ export default function LoginPage() {
             )}
           </div>
 
-          <div className="text-center mt-6 space-y-1">
-            <p className="text-xs text-secondary/50 font-body">TVM38 - MIDALI FRERES</p>
-            <a href="tel:0476714211" className="text-xs text-primary font-bold font-body hover:underline">
-              📞 04 76 71 42 11
-            </a>
-          </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }

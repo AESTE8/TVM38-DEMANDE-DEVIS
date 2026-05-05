@@ -50,8 +50,8 @@ function ContactModal({ open, onClose }: { open: boolean; onClose: () => void })
             <a href="mailto:tvm38@midali.fr" className="est-contact-link">
               <span>✉️</span> tvm38@midali.fr
             </a>
-            <a href="tel:0476456865" className="est-contact-link">
-              <span>📞</span> 04 76 45 68 65
+            <a href="tel:0620721960" className="est-contact-link">
+              <span>📞</span> 06 20 72 19 60
             </a>
           </div>
         </div>
