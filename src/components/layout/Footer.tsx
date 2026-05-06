@@ -33,7 +33,7 @@ export default function Footer() {
         </div>
       </div>
       <div className="px-12 py-6 border-t border-border/40 text-center bg-surface-container-low">
-        <p className="font-body text-sm text-secondary italic opacity-80">© 2026 MIDALI - TVM38 Materials & Delivery. Tous droits réservés.</p>
+        <p className="font-body text-sm text-secondary italic opacity-80">© 2026 MIDALI - TVM38. Carrière et centre de valorisation en Isère. Tous droits réservés.</p>
       </div>
     </footer>
   );
