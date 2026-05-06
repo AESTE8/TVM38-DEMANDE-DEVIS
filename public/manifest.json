@@ -8,7 +8,11 @@
   "theme_color": "#2c64a3",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["business", "construction", "utilities"],
+  "categories": [
+    "business",
+    "construction",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/logo-tvm38.png",
@@ -29,7 +33,6 @@
       "purpose": "any"
     }
   ],
-  "screenshots": [],
   "shortcuts": [
     {
       "name": "Nouveau devis",
@@ -43,5 +46,6 @@
         }
       ]
     }
-  ]
+  ],
+  "id": "com.midali.tvm38"
 }
