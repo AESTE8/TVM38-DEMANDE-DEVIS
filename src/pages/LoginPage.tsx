@@ -184,7 +184,7 @@ export default function LoginPage() {
                   to="/identifiants-oublies"
                   className="text-xs text-primary hover:underline font-body"
                 >
-                  Identifiants oubliés ?
+                  Vous ne connaissez pas encore vos identifiants / Identifiants oubliés ?
                 </Link>
               </div>
             </form>
