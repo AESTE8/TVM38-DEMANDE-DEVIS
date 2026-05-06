@@ -2,17 +2,47 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KeyRound } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import { cn } from '@/lib/utils';
 
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
 
 export default function CredentialsContactPage() {
-  const [form, setForm] = useState({ codeClient: '', email: '', nom: '' });
+  const [form, setForm] = useState({ codeClient: '', email: '', nom: '', telephone: '' });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sansEmail, setSansEmail] = useState(false);
+  const [savedEmail, setSavedEmail] = useState('');
+
+  const handleSansEmailToggle = () => {
+    if (!sansEmail) {
+      // Sauvegarder l'email actuel avant de désactiver
+      if (form.email && form.email !== 'Contact sans adresse email') {
+        setSavedEmail(form.email);
+      }
+      setSansEmail(true);
+      setForm(f => ({ ...f, email: 'Contact sans adresse email' }));
+    } else {
+      setSansEmail(false);
+      setForm(f => ({ ...f, email: savedEmail || '' }));
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // Validation téléphone si sans email
+    if (sansEmail && !form.telephone) {
+      setError('Veuillez renseigner votre numéro de téléphone pour être recontacté.');
+      return;
+    }
+
+    // Validation téléphone format français
+    if (form.telephone && !/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/.test(form.telephone)) {
+      setError('Numéro de téléphone français invalide (ex : 06 12 34 56 78).');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -21,8 +51,18 @@ export default function CredentialsContactPage() {
       body.append('access_key', WEB3FORMS_KEY);
       body.append('subject', 'Récupération identifiants TVM38 — ' + form.codeClient);
       body.append('from_name', form.nom);
-      body.append('email', form.email);
-      body.append('message', `Demande de récupération d'identifiants\n\nNom : ${form.nom}\nCode client : ${form.codeClient}\nEmail de réponse : ${form.email}`);
+      body.append('email', sansEmail ? 'tvm38@midali.fr' : form.email);
+      const messageParts = [`Demande de récupération d'identifiants\n\nNom : ${form.nom}`, `Code client : ${form.codeClient}`];
+      if (sansEmail) {
+        messageParts.push(`Téléphone : ${form.telephone}`);
+        messageParts.push(`Email de réponse : non renseigné (contact par téléphone)`);
+      } else {
+        messageParts.push(`Email de réponse : ${form.email}`);
+        if (form.telephone) {
+          messageParts.push(`Téléphone : ${form.telephone}`);
+        }
+      }
+      body.append('message', messageParts.join('\n'));
 
       const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body });
       if (res.ok) {
@@ -56,7 +96,7 @@ export default function CredentialsContactPage() {
             </p>
           </div>
 
-          <div className="bg-white border border-border/40 rounded-sm shadow-xl shadow-primary/5 p-8">
+          <div className="bg-surface-container-lowest border border-border/40 rounded-sm shadow-xl shadow-primary/5 p-8">
             {sent ? (
               <div className="text-center py-6 space-y-3">
                 <div className="text-4xl">✓</div>
@@ -64,7 +104,10 @@ export default function CredentialsContactPage() {
                   Demande envoyée !
                 </p>
                 <p className="text-sm text-secondary font-body">
-                  Notre équipe vous recontactera à l'adresse <strong>{form.email}</strong> dans les meilleurs délais.
+                  {sansEmail
+                    ? `Notre équipe vous recontactera par téléphone au <strong>${form.telephone}</strong> dans les meilleurs délais.`
+                    : `Notre équipe vous recontactera à l'adresse <strong>${form.email}</strong> dans les meilleurs délais.`
+                  }
                 </p>
                 <Link
                   to="/"
@@ -97,7 +140,7 @@ export default function CredentialsContactPage() {
                     type="text"
                     value={form.codeClient}
                     onChange={e => setForm(f => ({ ...f, codeClient: e.target.value }))}
-                    placeholder="Ex : TVM-001"
+                    placeholder="CTVM01. Identifier un client"
                     required
                     className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
@@ -108,14 +151,57 @@ export default function CredentialsContactPage() {
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                    Email de contact *
+                    Email de contact {!sansEmail && '*'}
                   </label>
                   <input
                     type="email"
                     value={form.email}
                     onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                     placeholder="jean.dupont@entreprise.fr"
-                    required
+                    required={!sansEmail}
+                    disabled={sansEmail}
+                    className={cn(
+                      "w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors",
+                      sansEmail && "bg-surface-container-lowest opacity-60"
+                    )}
+                  />
+
+                  {/* Bouton pour continuer sans email */}
+                  <button
+                    type="button"
+                    onClick={handleSansEmailToggle}
+                    className={cn(
+                      "w-full text-left text-xs font-medium transition-all rounded-lg px-3 py-2.5 flex items-center gap-2 border mt-2",
+                      sansEmail
+                        ? "bg-primary/5 border-primary text-primary"
+                        : "bg-transparent border-border hover:border-primary/30 text-secondary hover:text-primary"
+                    )}
+                  >
+                    {sansEmail ? (
+                      <>
+                        <span className="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center text-white text-xs">✓</span>
+                        <span>Contact sans adresse email</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="w-5 h-5 rounded-full border-2 border-secondary/40"></span>
+                        <span>Pas d'adresse email ? Continuer</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Téléphone affiché si sans email ou optionnel */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
+                    Numéro de téléphone {sansEmail && '*'}
+                  </label>
+                  <input
+                    type="tel"
+                    value={form.telephone}
+                    onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
+                    placeholder={sansEmail ? "06 12 34 56 78" : "(optionnel) 06 12 34 56 78"}
+                    required={sansEmail}
                     className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                   />
                 </div>
