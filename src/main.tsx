@@ -3,16 +3,33 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 
-// Service Worker Registration - Cleanup SW to remove cached version
-if ('serviceWorker' in navigator) {
+// ============================================
+// SERVICE WORKER REGISTRATION
+// ============================================
+// Activé uniquement en PRODUCTION pour éviter les problèmes en développement
+// ============================================
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
     navigator.serviceWorker
       .register('/sw.js')
       .then((registration) => {
-        console.log('Cleanup SW registered:', registration.scope);
+        console.log('[SW] Enregistré avec succès:', registration.scope);
+
+        // Écouter les mises à jour du service worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // Un nouveau SW est prêt : on peut demander à l'utilisateur de recharger
+                console.log('[SW] Nouvelle version disponible, rechargement conseillé');
+              }
+            });
+          }
+        });
       })
       .catch((error) => {
-        console.log('SW registration failed:', error);
+        console.error('[SW] Erreur d\'enregistrement:', error);
       });
   });
 }
