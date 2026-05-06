@@ -82,6 +82,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
     // Option sans email
     const [sansEmail, setSansEmail] = useState(false);
+    const [savedEmail, setSavedEmail] = useState(''); // Sauvegarde de l'email avant activation
 
     // Amélioration 2 — Snapshot infos client + mode édition
     const [originalClient, setOriginalClient] = useState<{
@@ -131,9 +132,17 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     useEffect(() => {
       setValue('sansEmail', sansEmail);
       if (sansEmail) {
+        // Sauvegarder l'email actuel avant de le remplacer
+        const currentEmail = watch('email');
+        if (currentEmail && currentEmail !== 'Contact sans adresse email') {
+          setSavedEmail(currentEmail);
+        }
         setValue('email', 'Contact sans adresse email');
+      } else {
+        // Restaurer l'email sauvegardé ou vider
+        setValue('email', savedEmail || '');
       }
-    }, [sansEmail, setValue]);
+    }, [sansEmail, setValue, watch, savedEmail]);
 
     useImperativeHandle(deleteContactRef, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
