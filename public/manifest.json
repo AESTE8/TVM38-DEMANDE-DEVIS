@@ -1,0 +1,47 @@
+{
+  "name": "MIDALI - TVM38 Devis en ligne",
+  "short_name": "TVM38",
+  "description": "Demande de devis en ligne pour granulats, matériaux et valorisation en Isère",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2c64a3",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "construction", "utilities"],
+  "icons": [
+    {
+      "src": "/logo-tvm38.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo-tvm38.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo-tvm38.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nouveau devis",
+      "short_name": "Nouveau devis",
+      "description": "Créer une nouvelle demande de devis",
+      "url": "/formulaire",
+      "icons": [
+        {
+          "src": "/logo-tvm38.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

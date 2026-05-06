@@ -362,7 +362,7 @@ export default function FormPage() {
         </div>
       </div>
 
-      <main className="pt-8 md:pt-8 pb-16">
+      <main className="pt-24 md:pt-28 pb-16">
         <section className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className={cn(
             "grid gap-12",
