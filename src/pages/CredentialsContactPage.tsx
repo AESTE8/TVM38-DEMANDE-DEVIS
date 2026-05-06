@@ -191,20 +191,22 @@ export default function CredentialsContactPage() {
                   </button>
                 </div>
 
-                {/* Téléphone affiché si sans email ou optionnel */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                    Numéro de téléphone {sansEmail && '*'}
-                  </label>
-                  <input
-                    type="tel"
-                    value={form.telephone}
-                    onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
-                    placeholder={sansEmail ? "06 12 34 56 78" : "(optionnel) 06 12 34 56 78"}
-                    required={sansEmail}
-                    className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                  />
-                </div>
+                {/* Téléphone affiché uniquement si sans email */}
+                {sansEmail && (
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
+                      Numéro de téléphone *
+                    </label>
+                    <input
+                      type="tel"
+                      value={form.telephone}
+                      onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
+                      placeholder="06 12 34 56 78"
+                      required
+                      className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    />
+                  </div>
+                )}
 
                 {error && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-sm p-3 text-sm text-destructive font-body">
