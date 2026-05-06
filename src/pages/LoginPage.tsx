@@ -4,6 +4,7 @@ import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { toast } from 'sonner';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import PWAInstallButton from '@/components/PWAInstallButton';
 import { setSession, setGuestMode, isSessionValid, ClientData } from '@/lib/auth';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -217,6 +218,9 @@ export default function LoginPage() {
                   >
                     Pas encore client TVM ? Demander l'ouverture d'un compte →
                   </button>
+                </div>
+                <div className="pt-2">
+                  <PWAInstallButton />
                 </div>
               </div>
             ) : accountRequestSent ? (
