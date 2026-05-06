@@ -215,7 +215,7 @@ export default function LoginPage() {
                     onClick={() => setShowAccountRequest(true)}
                     className="text-xs text-primary hover:underline font-body"
                   >
-                    Pas encore client ? Demander l'ouverture d'un compte →
+                    Pas encore client TVM ? Demander l'ouverture d'un compte →
                   </button>
                 </div>
               </div>
