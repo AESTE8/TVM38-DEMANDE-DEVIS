@@ -192,7 +192,12 @@ export default function CredentialsContactPage() {
                 </div>
 
                 {/* Téléphone affiché uniquement si sans email */}
-                {sansEmail && (
+                <div
+                  className={cn(
+                    "overflow-hidden transition-all duration-300 ease-out",
+                    sansEmail ? "max-h-32 opacity-100 mt-5" : "max-h-0 opacity-0"
+                  )}
+                >
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
                       Numéro de téléphone *
@@ -206,7 +211,7 @@ export default function CredentialsContactPage() {
                       className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
                     />
                   </div>
-                )}
+                </div>
 
                 {error && (
                   <div className="bg-destructive/10 border border-destructive/20 rounded-sm p-3 text-sm text-destructive font-body">
