@@ -33,7 +33,7 @@ const schema = z.object({
   prenom: z.string().min(2, 'Prénom requis'),
   telephone: z.string()
     .regex(/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
-  email: z.string().email('Adresse email invalide').optional(),
+  email: z.string().optional(),
   sansEmail: z.boolean().optional(),
   typeDemande: z.enum(['livraison', 'fourniture', 'decharge', 'livraison_decharge']),
   adresseLivraison: z.string().optional(),
@@ -62,8 +62,14 @@ const schema = z.object({
   if (!data.lignes.some(l => l.quantiteTonnes > 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Veuillez sélectionner au moins un matériau', path: ['lignes'] });
   }
-  if (!data.sansEmail && (!data.email || data.email.trim().length === 0)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Adresse email requise', path: ['email'] });
+  // Email requis et valide SEULEMENT si l'option "sans email" n'est pas activée
+  if (!data.sansEmail) {
+    if (!data.email || data.email.trim().length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Adresse email requise', path: ['email'] });
+    }
+    if (data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Adresse email invalide', path: ['email'] });
+    }
   }
   if (data.typeDemande === 'livraison_decharge') {
     if (!data.lignes.some(l => l.quantiteTonnes > 0 && l.type === 'livraison')) {
