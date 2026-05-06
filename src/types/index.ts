@@ -21,17 +21,19 @@ export type CreneauLivraison = 'matin' | 'apres_midi' | 'indifferent';
 export interface DevisFormData {
   dejaClient: 'oui' | 'non';
   typeClient: TypeClient;
-  
+
   // Pro uniquement
   entrepriseNom?: string;
   entrepriseAdresse?: string;
-  
+
   // Contact (commun)
   nom: string;
   prenom: string;
   telephone: string;
-  email: string;
-  
+  email?: string;
+
+  // Options
+  sansEmail?: boolean; // Continuer sans adresse email
   fonction?: string;
   agenceNom?: string;
   typeDemande: TypeDemande;

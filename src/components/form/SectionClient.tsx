@@ -80,6 +80,9 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     const [sendingDemandeCompte, setSendingDemandeCompte] = useState(false);
     const [demandeCompteSent, setDemandeCompteSent] = useState(false);
 
+    // Option sans email
+    const [sansEmail, setSansEmail] = useState(false);
+
     // Amélioration 2 — Snapshot infos client + mode édition
     const [originalClient, setOriginalClient] = useState<{
       telephone: string;
@@ -124,6 +127,14 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Sync sansEmail state with form
+    useEffect(() => {
+      setValue('sansEmail', sansEmail);
+      if (sansEmail) {
+        setValue('email', 'Contact sans adresse email');
+      }
+    }, [sansEmail, setValue]);
+
     useImperativeHandle(deleteContactRef, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
         if (!selectedClientId || selectedContactId !== 'nouveau' || dejaClient !== 'oui') return;
@@ -132,7 +143,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           nom: formData.nom || '',
           prenom: formData.prenom || '',
           telephone: formData.telephone,
-          email: formData.email,
+          email: formData.email === 'Contact sans adresse email' ? '' : (formData.email || ''),
           fonction: formData.fonction || '',
         });
       },
@@ -171,7 +182,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           nom: formData.nom || '',
           prenom: formData.prenom || '',
           telephone: formData.telephone || '',
-          email: formData.email || '',
+          email: formData.email === 'Contact sans adresse email' ? '' : (formData.email || ''),
         });
       },
 
@@ -801,8 +812,39 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
               <Label htmlFor="email" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
                 Email <Badge variant="required" /> <span className="text-[10px] text-primary/60 normal-case ml-1">(récepteur du devis)</span>
               </Label>
-              <Input id="email" type="email" placeholder="jean.dupont@email.com" {...register('email')} />
+              <Input
+                id="email"
+                type="email"
+                placeholder="jean.dupont@email.com"
+                {...register('email')}
+                disabled={sansEmail}
+                className={sansEmail ? "bg-surface-container-lowest opacity-60" : ""}
+              />
               {errors.email && <p className="text-xs text-destructive mt-1">{errors.email.message}</p>}
+
+              {/* Bouton pour continuer sans email */}
+              <button
+                type="button"
+                onClick={() => setSansEmail(!sansEmail)}
+                className={cn(
+                  "w-full text-left text-xs font-medium transition-all rounded-lg px-3 py-2.5 flex items-center gap-2 border",
+                  sansEmail
+                    ? "bg-primary/5 border-primary text-primary"
+                    : "bg-transparent border-border hover:border-primary/30 text-secondary hover:text-primary"
+                )}
+              >
+                {sansEmail ? (
+                  <>
+                    <span className="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center text-white text-xs">✓</span>
+                    <span>Contact sans adresse email</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-5 h-5 rounded-full border-2 border-secondary/40"></span>
+                    <span>Pas d'adresse email ? Continuer</span>
+                  </>
+                )}
+              </button>
             </div>
 
             <div className="space-y-1">
