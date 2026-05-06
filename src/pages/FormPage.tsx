@@ -374,7 +374,7 @@ export default function FormPage() {
             {/* Sidebar étape 3 — capacités camions (sticky) */}
             {currentStep === 3 && (
               <div className="lg:col-span-1">
-                <div className="sticky top-24 bg-surface-container-low border-l-4 border-primary p-6 rounded-sm">
+                <div className="sticky top-[130px] bg-surface-container-low border-l-4 border-primary p-6 rounded-sm">
                   <h3 className="font-headline font-bold text-sm uppercase tracking-tight mb-4 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-primary" />
                     Infos pratiques

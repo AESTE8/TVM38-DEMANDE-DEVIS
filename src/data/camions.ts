@@ -1,6 +1,6 @@
 export const CAMIONS_CAPACITES = [
-  { nom: '4x2',        capacite: 12 },
-  { nom: '6x4',        capacite: 16 },
+  { nom: '4x2',        capacite: 9 },
+  { nom: '6x4',        capacite: 13 },
   { nom: '8x4',        capacite: 16 },
-  { nom: 'Semi-benne', capacite: 25 },
+  { nom: 'Semi-benne', capacite: 28 },
 ];
