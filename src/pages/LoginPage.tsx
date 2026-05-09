@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import PWAInstallButton from '@/components/PWAInstallButton';
 import { setSession, setGuestMode, isSessionValid, ClientData } from '@/lib/auth';
+import bgLogin from '@/assets/bg-login.jpg';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
@@ -88,7 +89,15 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div 
+      className="min-h-screen flex flex-col relative"
+      style={{
+        backgroundImage: `linear-gradient(rgba(243, 250, 255, 0.8), rgba(243, 250, 255, 0.8)), url(${bgLogin})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed'
+      }}
+    >
       <Header />
 
       <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-12">

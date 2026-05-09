@@ -870,8 +870,8 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
               {errors.telephone && <p className="text-xs text-destructive mt-1">{errors.telephone.message}</p>}
             </div>
 
-            {/* Fonction — visible uniquement pour un nouveau contact sur un client existant */}
-            {dejaClient === 'oui' && selectedContactId === 'nouveau' && (
+            {/* Fonction — visible pour un nouveau contact sur un client existant, sauf particuliers */}
+            {dejaClient === 'oui' && selectedContactId === 'nouveau' && typeClient !== 'particulier' && (
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="fonction" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Fonction <span className="text-xs normal-case font-normal text-secondary/60">(optionnel)</span></Label>
                 <Input id="fonction" placeholder="Ex: Conducteur de travaux" {...register('fonction')} />

@@ -47,6 +47,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
   const creneau = watch('creneau');
   const adresseLivraison = watch('adresseLivraison') || '';
   const entrepriseAdresse = watch('entrepriseAdresse') || '';
+  const isParticulier = watch('typeClient') === 'particulier';
 
   const showCreneauSection = (typeDemande === 'livraison' || typeDemande === 'decharge' || typeDemande === 'livraison_decharge') && watch('dateSouhaitee');
 
@@ -154,7 +155,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-fade-in">
             <div className="md:col-span-2 space-y-1">
               <Label htmlFor="adresseLivraison" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center">
-                <div>Adresse de livraison (chantier) <span className="text-destructive">*</span></div>
+                <div>{isParticulier ? 'Adresse de livraison' : 'Adresse de livraison (chantier)'} <span className="text-destructive">*</span></div>
                 {entrepriseAdresse && (
                   <label className="flex items-center gap-1.5 cursor-pointer normal-case text-xs font-medium text-secondary hover:text-primary transition-colors">
                     <input
@@ -173,7 +174,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
                 value={adresseLivraison}
                 onChange={(val) => setValue('adresseLivraison', val)}
                 onSelect={(val) => setValue('adresseLivraison', val, { shouldValidate: true })}
-                placeholder="Rechercher l'adresse du chantier..."
+                placeholder={isParticulier ? "Rechercher votre adresse de livraison..." : "Rechercher l'adresse du chantier..."}
               />
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>
@@ -220,7 +221,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-fade-in">
             <div className="md:col-span-2 space-y-1">
               <Label htmlFor="adresseLivraisonCombi" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center">
-                <div>Adresse du chantier <span className="text-destructive">*</span></div>
+                <div>{isParticulier ? 'Adresse de livraison' : 'Adresse du chantier'} <span className="text-destructive">*</span></div>
                 {entrepriseAdresse && (
                   <label className="flex items-center gap-1.5 cursor-pointer normal-case text-xs font-medium text-secondary hover:text-primary transition-colors">
                     <input
@@ -239,7 +240,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
                 value={adresseLivraison}
                 onChange={(val) => setValue('adresseLivraison', val)}
                 onSelect={(val) => setValue('adresseLivraison', val, { shouldValidate: true })}
-                placeholder="Rechercher l'adresse du chantier..."
+                placeholder={isParticulier ? "Rechercher votre adresse de livraison..." : "Rechercher l'adresse du chantier..."}
               />
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>

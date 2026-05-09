@@ -123,15 +123,25 @@ export default function FormPage() {
     if (!connectedClient) return;
     setValue('dejaClient', 'oui');
     setValue('typeClient', connectedClient.type === 'particulier' ? 'particulier' : 'professionnel');
-    if (connectedClient.nom) setValue('entrepriseNom', connectedClient.nom);
-    if (connectedClient.adresse) setValue('entrepriseAdresse', connectedClient.adresse);
-    const principal = connectedClient.contacts?.find((c: any) => c.principal) ?? connectedClient.contacts?.[0];
-    if (principal) {
-      if (principal.nom) setValue('nom', principal.nom);
-      if (principal.prenom) setValue('prenom', principal.prenom);
-      if (principal.telephone) setValue('telephone', principal.telephone);
-      if (principal.email) setValue('email', principal.email);
-      if (principal.fonction) setValue('fonction', principal.fonction);
+
+    if (connectedClient.type === 'particulier') {
+      // Particulier : nom/prénom directement comme contact, pas comme entreprise
+      if (connectedClient.nom) setValue('nom', connectedClient.nom);
+      if (connectedClient.prenom) setValue('prenom', connectedClient.prenom);
+      if (connectedClient.telephone) setValue('telephone', connectedClient.telephone);
+      if (connectedClient.email) setValue('email', connectedClient.email);
+    } else {
+      // Professionnel (classique ou sans compte) : pré-remplissage entreprise
+      if (connectedClient.nom) setValue('entrepriseNom', connectedClient.nom);
+      if (connectedClient.adresse) setValue('entrepriseAdresse', connectedClient.adresse);
+      const principal = connectedClient.contacts?.find((c: any) => c.principal) ?? connectedClient.contacts?.[0];
+      if (principal) {
+        if (principal.nom) setValue('nom', principal.nom);
+        if (principal.prenom) setValue('prenom', principal.prenom);
+        if (principal.telephone) setValue('telephone', principal.telephone);
+        if (principal.email) setValue('email', principal.email);
+        if (principal.fonction) setValue('fonction', principal.fonction);
+      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -447,6 +457,15 @@ export default function FormPage() {
             }>
               <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl border-t-4 border-primary/80">
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
+
+                  {/* Message d'accueil personnalisé — particuliers et pros sans compte */}
+                  {currentStep === 1 && connectedClient && (
+                    <div className="mb-4 text-sm font-medium text-on-surface">
+                      {connectedClient.type === 'particulier'
+                        ? `Bonjour ${connectedClient.prenom || connectedClient.nom} !`
+                        : `Bienvenue, ${connectedClient.nom} !`}
+                    </div>
+                  )}
 
                   {/* Bandeau rassurance — étape 1 uniquement */}
                   {currentStep === 1 && (

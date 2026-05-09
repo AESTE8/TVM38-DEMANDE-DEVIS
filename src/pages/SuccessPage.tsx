@@ -27,10 +27,13 @@ export default function SuccessPage() {
           </div>
         </div>
 
-        {/* Message principal — ton humain (prop. 4) */}
+        {/* Message principal — ton humain */}
         <h2 className="text-2xl font-bold mb-2">Merci, on s'occupe de tout.</h2>
         <p className="text-muted-foreground mb-8">
           Votre demande a bien été transmise à notre équipe.
+          {!isPro && (
+            <> Vous serez recontacté rapidement.</>
+          )}
         </p>
 
         {/* Bloc preuve sociale — adapté pro/particulier */}
