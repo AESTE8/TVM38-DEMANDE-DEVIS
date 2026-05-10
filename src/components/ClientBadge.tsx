@@ -18,7 +18,7 @@ export default function ClientBadge() {
     : `${client.prenom ?? ''} ${client.nom}`.trim();
 
   return (
-    <div className="flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-sm px-3 py-2 text-sm">
+    <div className="flex items-center gap-2 sm:bg-primary/8 sm:border sm:border-primary/20 sm:rounded-sm sm:px-3 sm:py-2 text-sm">
       <UserCheck className="w-4 h-4 text-primary shrink-0" />
       <div className="hidden sm:flex flex-col min-w-0">
         <span className="font-bold text-on-surface text-xs font-headline truncate max-w-[160px]">
