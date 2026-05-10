@@ -29,7 +29,7 @@ export default function Header({ children }: HeaderProps) {
 
           <button
             onClick={() => document.getElementById('devis-form')?.scrollIntoView({ behavior: 'smooth' })}
-            className="bg-industrial-gradient text-on-primary font-headline font-extrabold py-1.5 px-4 md:py-2 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-xs md:text-base shadow-lg shadow-primary/20 whitespace-nowrap"
+            className="hidden sm:block bg-industrial-gradient text-on-primary font-headline font-extrabold py-1.5 px-4 md:py-2 md:px-8 rounded-sm scale-100 active:scale-95 transition-all uppercase tracking-tighter text-xs md:text-base shadow-lg shadow-primary/20 whitespace-nowrap"
           >
             DEMANDER UN DEVIS
           </button>

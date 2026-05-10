@@ -20,7 +20,7 @@ export default function ClientBadge() {
   return (
     <div className="flex items-center gap-2 bg-primary/8 border border-primary/20 rounded-sm px-3 py-2 text-sm">
       <UserCheck className="w-4 h-4 text-primary shrink-0" />
-      <div className="flex flex-col min-w-0">
+      <div className="hidden sm:flex flex-col min-w-0">
         <span className="font-bold text-on-surface text-xs font-headline truncate max-w-[160px]">
           {displayName}
         </span>
