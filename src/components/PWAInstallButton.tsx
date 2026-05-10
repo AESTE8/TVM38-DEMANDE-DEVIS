@@ -6,6 +6,7 @@ import { Download } from 'lucide-react';
 export default function PWAInstallButton() {
   const pwaRef = useRef<PWAInstallElement>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const isMobile = window.matchMedia('(max-width: 767px)').matches;
 
   useEffect(() => {
     if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -32,6 +33,8 @@ export default function PWAInstallButton() {
         description="Devis & Estimation - MIDALI"
         icon="/android/launchericon-192x192.png"
         styles={{ '--tint-color': '#2c64a3' }}
+        manualApple={isMobile}
+        manualChrome={isMobile}
       />
       <button
         type="button"
