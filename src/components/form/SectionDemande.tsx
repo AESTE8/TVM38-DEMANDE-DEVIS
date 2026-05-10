@@ -182,9 +182,17 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
             <div className="space-y-1">
               <Label htmlFor="dateSouhaitee" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
-                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel)</span>
+                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee')} />
+              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee', {
+                onChange: (e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    const day = new Date(val + 'T00:00:00').getDay();
+                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
+                  }
+                }
+              })} />
             </div>
 
             {showCreneauSection && (
@@ -248,9 +256,17 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
             <div className="space-y-1">
               <Label htmlFor="dateSouhaiteeCombi" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
-                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel)</span>
+                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaiteeCombi" type="date" {...register('dateSouhaitee')} />
+              <Input id="dateSouhaiteeCombi" type="date" {...register('dateSouhaitee', {
+                onChange: (e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    const day = new Date(val + 'T00:00:00').getDay();
+                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
+                  }
+                }
+              })} />
             </div>
 
             {showCreneauSection && (
@@ -288,9 +304,17 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
             <div className="space-y-1">
               <Label htmlFor="dateSouhaitee" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
-                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel)</span>
+                <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee')} />
+              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee', {
+                onChange: (e) => {
+                  const val = e.target.value;
+                  if (val) {
+                    const day = new Date(val + 'T00:00:00').getDay();
+                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
+                  }
+                }
+              })} />
             </div>
 
             {showCreneauSection && (

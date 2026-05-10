@@ -107,6 +107,7 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
               inputMode="numeric"
               value={isTonnes ? (ligne.quantiteTonnes || '') : (ligne.quantiteM3 || '')}
               onChange={(e) => updateInput(parseFloat(e.target.value))}
+              onWheel={(e) => (e.target as HTMLElement).blur()}
               className="w-full text-center text-2xl font-black font-headline border-none outline-none focus:ring-0 bg-transparent p-0 text-on-surface"
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary font-bold">

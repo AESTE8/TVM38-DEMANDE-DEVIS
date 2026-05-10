@@ -15,6 +15,7 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const skipNextFetchRef = useRef(false);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -29,6 +30,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
   useEffect(() => {
     if (value.length < 3) {
       setSuggestions([]);
+      return;
+    }
+
+    if (skipNextFetchRef.current) {
+      skipNextFetchRef.current = false;
       return;
     }
 
@@ -63,9 +69,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
               key={idx}
               className="px-4 py-2 hover:bg-muted cursor-pointer text-sm transition-colors border-b last:border-0"
               onClick={() => {
+                skipNextFetchRef.current = true;
+                setSuggestions([]);
                 onSelect(s.properties.label);
                 setIsOpen(false);
-                inputRef.current?.focus();
               }}
             >
               <div className="font-medium">{s.properties.label}</div>
