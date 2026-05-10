@@ -310,7 +310,7 @@ export default function FormPage() {
       </Header>
 
       {/* Barre de progression */}
-      <div className="sticky top-[52px] md:top-[72px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
+      <div className="sticky top-[48px] md:top-[72px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
           {guestMode && (
             <div className="mb-2">
