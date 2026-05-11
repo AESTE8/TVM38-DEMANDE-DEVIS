@@ -526,7 +526,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                       Choisir une agence
                     </Label>
                     <select
-                      className="w-full border border-border rounded-md px-3 py-2 text-sm bg-surface-container-highest focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      className="w-full border border-border rounded-md px-3 py-2 text-base md:text-sm bg-surface-container-highest focus:outline-none focus:ring-2 focus:ring-primary/30"
                       defaultValue=""
                       onChange={(e) => {
                         const agence = companyAgences.find(a => a.id === e.target.value);

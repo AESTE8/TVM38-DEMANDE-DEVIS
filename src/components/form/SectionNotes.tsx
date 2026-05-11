@@ -23,7 +23,7 @@ export default function SectionNotes({ register }: Props) {
             {...register('notes')}
             placeholder="Précisez ici les contraintes d'accès, les horaires souhaités, d'autres types de matériaux... Votre agence n'apparaît pas dans la liste ? Indiquez-la ici."
             rows={5}
-            className="w-full bg-surface-container-highest border-none rounded-sm px-4 py-3 focus:ring-0 focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all placeholder-on-surface-variant/40 resize-none text-sm font-body"
+            className="w-full bg-surface-container-highest border-none rounded-sm px-4 py-3 focus:ring-0 focus:outline-none focus:bg-surface-container-lowest focus:ring-2 focus:ring-primary/40 transition-all placeholder-on-surface-variant/40 resize-none text-base md:text-sm font-body"
           />
         </div>
       </div>
