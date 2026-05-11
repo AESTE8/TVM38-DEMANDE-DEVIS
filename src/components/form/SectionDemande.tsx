@@ -127,27 +127,51 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
 
         {/* Bannière info — fourniture */}
         {typeDemande === 'fourniture' && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-surface-container-highest border border-border animate-fade-in">
-            <span className="text-primary text-lg shrink-0">ℹ️</span>
-            <div>
-              <p className="text-sm font-medium text-on-surface">
-                Vous récupérez les matériaux directement à notre carrière :
-              </p>
-              <p className="text-sm text-secondary mt-0.5">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
+          <div className="flex flex-col gap-3 p-4 rounded-xl bg-surface-container-highest border border-border animate-fade-in">
+            <div className="flex items-start gap-3">
+              <span className="text-primary text-lg shrink-0">ℹ️</span>
+              <div>
+                <p className="text-sm font-medium text-on-surface">
+                  Vous récupérez les matériaux directement à notre carrière :
+                </p>
+                <p className="text-sm text-secondary mt-0.5">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
+              </div>
             </div>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3332.7396267289387!2d5.860429276596819!3d45.23569334865559!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478a593af8abec27%3A0x742bbff2ccb2041a!2s489%20Rue%20de%20l&#39;Isle%2C%2038190%20Villard-Bonnot!5e1!3m2!1sfr!2sfr!4v1778479794674!5m2!1sfr!2sfr"
+              width="100%"
+              height="220"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="rounded-lg"
+            />
           </div>
         )}
 
         {/* Bannière info — décharge */}
         {typeDemande === 'decharge' && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-surface-container-highest border border-border animate-fade-in">
-            <span className="text-lg shrink-0">🏗️</span>
-            <div>
-              <p className="text-sm font-medium text-on-surface">
-                Vous déposez vos matériaux directement à notre carrière :
-              </p>
-              <p className="text-sm text-secondary mt-0.5">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
+          <div className="flex flex-col gap-3 p-4 rounded-xl bg-surface-container-highest border border-border animate-fade-in">
+            <div className="flex items-start gap-3">
+              <span className="text-lg shrink-0">🏗️</span>
+              <div>
+                <p className="text-sm font-medium text-on-surface">
+                  Vous déposez vos matériaux directement à notre carrière :
+                </p>
+                <p className="text-sm text-secondary mt-0.5">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
+              </div>
             </div>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3332.7396267289387!2d5.860429276596819!3d45.23569334865559!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x478a593af8abec27%3A0x742bbff2ccb2041a!2s489%20Rue%20de%20l&#39;Isle%2C%2038190%20Villard-Bonnot!5e1!3m2!1sfr!2sfr!4v1778479794674!5m2!1sfr!2sfr"
+              width="100%"
+              height="220"
+              style={{ border: 0 }}
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="rounded-lg"
+            />
           </div>
         )}
 
