@@ -81,12 +81,12 @@ const schema = z.object({
   }
 });
 
-const STEPS = [
-  { n: 1, label: 'Coordonnées' },
-  { n: 2, label: 'Projet' },
-  { n: 3, label: 'Matériaux' },
-  { n: 4, label: 'Récapitulatif' },
-];
+const STEP3_LABELS: Record<string, string> = {
+  livraison: 'Matériaux',
+  fourniture: 'Matériaux',
+  decharge: 'Déblais',
+  livraison_decharge: 'Matériaux & Déblais',
+};
 
 const CRENEAU_LABELS: Record<string, string> = {
   matin: 'Matin',
@@ -296,6 +296,12 @@ export default function FormPage() {
 
   // Recap data
   const formValues = watch();
+  const steps = [
+    { n: 1, label: 'Coordonnées' },
+    { n: 2, label: 'Votre demande' },
+    { n: 3, label: STEP3_LABELS[formValues.typeDemande] ?? 'Produits' },
+    { n: 4, label: 'Récapitulatif' },
+  ];
   const selectedMateriaux = lignes
     .filter(l => l.quantiteTonnes > 0)
     .map(l => {
@@ -325,7 +331,7 @@ export default function FormPage() {
             </div>
           )}
           <div className="flex items-center">
-            {STEPS.map(({ n, label }, i) => (
+            {steps.map(({ n, label }, i) => (
               <div key={n} className="flex items-center flex-1 min-w-0">
                 <button
                   type="button"
@@ -353,7 +359,7 @@ export default function FormPage() {
                     {label}
                   </span>
                 </button>
-                {i < STEPS.length - 1 && (
+                {i < steps.length - 1 && (
                   <div className={cn(
                     "flex-1 h-0.5 mx-2 transition-colors",
                     currentStep > n ? "bg-primary/40" : "bg-border"
@@ -366,7 +372,7 @@ export default function FormPage() {
           <div className="mt-3 h-1 bg-border/50 rounded-full overflow-hidden">
             <div
               className="h-full bg-primary transition-all duration-500 ease-out rounded-full"
-              style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
+              style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
             />
           </div>
         </div>
