@@ -13,6 +13,7 @@ interface Props {
   errors: FieldErrors<DevisFormData>;
   watch: UseFormWatch<DevisFormData>;
   setValue: UseFormSetValue<DevisFormData>;
+  onTypeSelect?: () => void;
 }
 
 const TYPE_DEMANDE_OPTIONS: { val: TypeDemande; Icon: LucideIcon; title: string; desc: string }[] = [
@@ -42,7 +43,7 @@ const LIVRAISON_DECHARGE_OPTION = {
   desc: 'On vous livre ET on repart avec vos déblais — aller-retour optimisé',
 };
 
-export default function SectionDemande({ register, errors, watch, setValue }: Props) {
+export default function SectionDemande({ register, errors, watch, setValue, onTypeSelect }: Props) {
   const typeDemande = watch('typeDemande');
   const creneau = watch('creneau');
   const adresseLivraison = watch('adresseLivraison') || '';
@@ -67,7 +68,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
               <button
                 key={val}
                 type="button"
-                onClick={() => setValue('typeDemande', val, { shouldValidate: true })}
+                onClick={() => { setValue('typeDemande', val, { shouldValidate: true }); onTypeSelect?.(); }}
                 className={cn(
                   "p-5 rounded-xl border-2 text-left transition-all",
                   typeDemande === val
@@ -86,7 +87,7 @@ export default function SectionDemande({ register, errors, watch, setValue }: Pr
             {/* Carte Livraison + Décharge — icône double */}
             <button
               type="button"
-              onClick={() => setValue('typeDemande', LIVRAISON_DECHARGE_OPTION.val, { shouldValidate: true })}
+              onClick={() => { setValue('typeDemande', LIVRAISON_DECHARGE_OPTION.val, { shouldValidate: true }); onTypeSelect?.(); }}
               className={cn(
                 "p-5 rounded-xl border-2 text-left transition-all sm:col-span-2",
                 typeDemande === 'livraison_decharge'

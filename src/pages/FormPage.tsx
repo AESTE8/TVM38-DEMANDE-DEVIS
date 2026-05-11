@@ -110,6 +110,7 @@ export default function FormPage() {
   const [lignes, setLignes] = useState<LigneDevis[]>([]);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
+  const [typeDemandeChosen, setTypeDemandeChosen] = useState(false);
   const sectionClientRef = useRef<SectionClientHandle>(null);
   const connectedClient = getConnectedClient();
   const guestMode = isGuestMode();
@@ -299,7 +300,7 @@ export default function FormPage() {
   const steps = [
     { n: 1, label: 'Coordonnées' },
     { n: 2, label: 'Votre demande' },
-    { n: 3, label: STEP3_LABELS[formValues.typeDemande] ?? 'Produits' },
+    { n: 3, label: typeDemandeChosen ? (STEP3_LABELS[formValues.typeDemande] ?? 'Produits') : 'Produits' },
     { n: 4, label: 'Récapitulatif' },
   ];
   const selectedMateriaux = lignes
@@ -501,6 +502,7 @@ export default function FormPage() {
                       errors={errors}
                       watch={watch}
                       setValue={setValue}
+                      onTypeSelect={() => setTypeDemandeChosen(true)}
                     />
                   )}
 
