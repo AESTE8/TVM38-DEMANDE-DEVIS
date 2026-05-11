@@ -77,7 +77,7 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
       <div className="flex items-center gap-4 mb-8">
         <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">03</span>
         <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">
-          {isDecharge ? 'Déblais à déposer' : isCombi ? 'Matériaux & Déblais' : 'Matériaux'}
+          {isDecharge ? 'Choix des matériaux que vous souhaitez déposer' : isCombi ? 'Livraison & Décharge' : typeDemande === 'fourniture' ? 'Choix des matériaux que vous souhaitez récupérer' : 'Choix des matériaux à livrer'}
         </h2>
       </div>
 
