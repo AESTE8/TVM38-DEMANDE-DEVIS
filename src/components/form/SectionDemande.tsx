@@ -120,7 +120,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             <span className="text-lg shrink-0">🔄</span>
             <div>
               <p className="text-sm font-medium text-on-surface">Aller-retour optimisé :</p>
-              <p className="text-sm text-secondary mt-0.5">Notre camion vous livre vos matériaux sur chantier, puis repart avec vos déblais vers notre carrière.</p>
+              <p className="text-sm text-secondary mt-0.5">Notre camion vous livre vos matériaux sur chantier, puis repart chargé de vos déblais vers notre carrière — <span className="font-medium text-on-surface">le chargement du camion est réalisé par vos soins</span>, avec votre engin de chantier.</p>
             </div>
           </div>
         )}
