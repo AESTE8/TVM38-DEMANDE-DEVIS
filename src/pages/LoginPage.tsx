@@ -7,6 +7,7 @@ import Footer from '@/components/layout/Footer';
 import PWAInstallButton from '@/components/PWAInstallButton';
 import { setSession, setGuestMode, isSessionValid, ClientData } from '@/lib/auth';
 import bgLogin from '@/assets/bg-login.jpg';
+import { formatPhoneInput } from '@/lib/utils';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
@@ -263,7 +264,7 @@ export default function LoginPage() {
                     <input
                       type={key === 'email' ? 'email' : 'text'}
                       value={accountForm[key as keyof typeof accountForm]}
-                      onChange={e => setAccountForm(f => ({ ...f, [key]: e.target.value }))}
+                      onChange={e => setAccountForm(f => ({ ...f, [key]: key === 'telephone' ? formatPhoneInput(e.target.value) : e.target.value }))}
                       placeholder={placeholder}
                       required={required}
                       className="w-full px-3 py-2.5 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"

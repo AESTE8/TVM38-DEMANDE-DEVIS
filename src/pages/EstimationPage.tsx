@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText } from 'lucide-react';
+import { formatPhoneInput } from '@/lib/utils';
 
 /* ─── Types ─────────────────────────────────────────────── */
 type ModalView = 'form' | 'success';
@@ -187,7 +188,7 @@ function ReviewModal({
                 <label htmlFor="est-phone">
                   Téléphone <span style={{ fontWeight: 400, color: '#bbb', textTransform: 'none', letterSpacing: 0 }}>(optionnel)</span>
                 </label>
-                <input type="tel" inputMode="tel" id="est-phone" name="Numéro de téléphone" placeholder="06 12 34 56 78" pattern="[0-9 \.\-\+\(\)]*" />
+                <input type="tel" inputMode="tel" id="est-phone" name="Numéro de téléphone" placeholder="06 12 34 56 78" pattern="[0-9 \.\-\+\(\)]*" onInput={e => { const t = e.currentTarget; t.value = formatPhoneInput(t.value); }} />
               </div>
               <div className="est-form-group">
                 <label htmlFor="est-message">Votre message</label>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { KeyRound } from 'lucide-react';
 import Header from '@/components/layout/Header';
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneInput } from '@/lib/utils';
 
 const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
 
@@ -205,7 +205,7 @@ export default function CredentialsContactPage() {
                     <input
                       type="tel"
                       value={form.telephone}
-                      onChange={e => setForm(f => ({ ...f, telephone: e.target.value }))}
+                      onChange={e => setForm(f => ({ ...f, telephone: formatPhoneInput(e.target.value) }))}
                       placeholder="06 12 34 56 78"
                       required
                       className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"

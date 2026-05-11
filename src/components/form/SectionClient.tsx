@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
-import { cn } from '@/lib/utils';
+import { cn, formatPhoneInput } from '@/lib/utils';
 import { Trash2 } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
@@ -428,7 +428,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                           <Input
                             className="h-7 text-sm flex-1"
                             value={watch('telephone') || ''}
-                            onChange={(e) => setValue('telephone', e.target.value)}
+                            onChange={(e) => setValue('telephone', formatPhoneInput(e.target.value))}
                             onBlur={() => setEditingPhone(false)}
                             autoFocus
                           />
@@ -865,7 +865,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 type="tel"
                 inputMode="tel"
                 placeholder="06 00 00 00 00"
-                {...register('telephone')}
+                {...(() => { const { onChange, ...rest } = register('telephone'); return { ...rest, onChange: (e: React.ChangeEvent<HTMLInputElement>) => { e.target.value = formatPhoneInput(e.target.value); onChange(e); } }; })()}
               />
               {errors.telephone && <p className="text-xs text-destructive mt-1">{errors.telephone.message}</p>}
             </div>
