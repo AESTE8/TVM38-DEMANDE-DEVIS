@@ -1,18 +1,15 @@
 import { Link } from 'react-router-dom';
 import { ReactNode } from 'react';
-import { hasAccess } from '@/lib/auth';
 
 interface HeaderProps {
   children?: ReactNode;
 }
 
 export default function Header({ children }: HeaderProps) {
-  const logoTarget = hasAccess() ? '/formulaire' : '/';
-
   return (
     <nav className="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-sm border-b border-border/30">
       <div className="flex justify-between items-center w-full px-4 md:px-8 py-2 md:py-3 max-w-screen-2xl mx-auto">
-        <Link to={logoTarget} className="flex items-center gap-2 md:gap-3">
+        <Link to="/" className="flex items-center gap-2 md:gap-3">
           <img src="/logo-tvm38.png" alt="Logo TVM38" className="h-8 md:h-12 w-auto" />
           <div className="flex flex-col">
             <span className="text-base md:text-2xl font-black tracking-tighter text-on-surface uppercase font-headline -mb-0.5 whitespace-nowrap">MIDALI - TVM38</span>
