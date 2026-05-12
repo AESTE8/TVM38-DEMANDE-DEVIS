@@ -14,7 +14,7 @@ const RATING_LABELS: Record<number, string> = {
   5: 'Très satisfait',
 };
 
-const GOOGLE_URL = 'https://share.google/0ZlR5lS2znXTftMKB';
+const GOOGLE_URL = 'https://g.page/r/CcJfc4onmZFmEAE/review';
 
 function buildStars(n: number) {
   return '★'.repeat(n) + '☆'.repeat(5 - n);
