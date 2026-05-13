@@ -126,7 +126,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             </div>
             <div className="space-y-1">
               <Label htmlFor="enginChantier" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
-                Engin prévu pour recharger le camion <span className="text-destructive">*</span>
+                Quel engin avez-vous prévu pour recharger le camion sur votre chantier ? <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="enginChantier"
