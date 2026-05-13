@@ -68,7 +68,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               <button
                 key={val}
                 type="button"
-                onClick={() => { setValue('typeDemande', val, { shouldValidate: true }); onTypeSelect?.(); }}
+                onClick={() => { setValue('typeDemande', val, { shouldValidate: true }); setValue('enginChantier', ''); onTypeSelect?.(); }}
                 className={cn(
                   "p-5 rounded-xl border-2 text-left transition-all",
                   typeDemande === val
@@ -114,13 +114,28 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
           </div>
         </div>
 
-        {/* Bannière info — livraison_decharge */}
+        {/* Bannière info + engin — livraison_decharge */}
         {typeDemande === 'livraison_decharge' && (
-          <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-purple-500/5 border border-purple-200 animate-fade-in">
-            <span className="text-lg shrink-0">🔄</span>
-            <div>
-              <p className="text-sm font-medium text-on-surface">Aller-retour optimisé :</p>
-              <p className="text-sm text-secondary mt-0.5">Notre camion vous livre vos matériaux sur chantier, puis repart chargé de vos déblais vers notre carrière — <span className="font-medium text-on-surface">le chargement du camion est réalisé par vos soins</span>, avec votre engin de chantier.</p>
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-purple-500/5 border border-purple-200">
+              <span className="text-lg shrink-0">🔄</span>
+              <div>
+                <p className="text-sm font-medium text-on-surface">Aller-retour optimisé :</p>
+                <p className="text-sm text-secondary mt-0.5">Notre camion vous livre vos matériaux sur chantier, puis repart chargé de vos déblais vers notre carrière — <span className="font-medium text-on-surface">le chargement du camion est réalisé par vos soins</span>, avec votre engin de chantier.</p>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="enginChantier" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
+                Engin prévu pour recharger le camion <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="enginChantier"
+                placeholder="Pelle 1t5, Chargeuse 3000L, ..."
+                {...register('enginChantier')}
+              />
+              {errors.enginChantier && (
+                <p className="text-xs text-destructive mt-1">{errors.enginChantier.message}</p>
+              )}
             </div>
           </div>
         )}

@@ -37,6 +37,7 @@ const TYPE_DEMANDE_LABELS: Record<string, string> = {
   livraison: '🚛 Livraison avec transport',
   fourniture: '📦 Fourniture uniquement (enlèvement carrière)',
   decharge: '♻️ Mise en décharge',
+  livraison_decharge: '📦♻️ Livraison + Décharge (aller-retour)',
 };
 
 function safe(val: unknown, max = 300): string {
@@ -50,19 +51,75 @@ function formatDate(iso: string): string {
   return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
+interface MateriauxItem { code: string; nom: string; tonnes: number; }
+interface MateriauxSection { label: string; type?: string; items: MateriauxItem[]; }
+interface MateriauxData { sections: MateriauxSection[]; enginChantier?: string; }
+
+function renderMateriauxHtml(raw: string): string {
+  let data: MateriauxData;
+  try { data = JSON.parse(raw); } catch { return `<div class="mat">${raw || 'Aucun matériau renseigné'}</div>`; }
+
+  const palette: Record<string, { header: string; bg: string }> = {
+    livraison: { header: '#1565c0', bg: '#e3f0fb' },
+    decharge:  { header: '#6a1b9a', bg: '#f3e5f5' },
+    default:   { header: '#0f2940', bg: '#f0f4f8' },
+  };
+  const emojis: Record<string, string> = { livraison: '📦', decharge: '♻️' };
+
+  let html = '';
+  for (const section of data.sections) {
+    const c = palette[section.type || 'default'] || palette.default;
+    const emoji = emojis[section.type || ''] || '';
+    const total = section.items.reduce((s, i) => s + i.tonnes, 0);
+    html += `
+    <div style="margin-bottom:18px">
+      <div style="font-size:11px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:${c.header};margin-bottom:8px">${emoji} ${section.label}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead>
+          <tr style="background:${c.bg}">
+            <th style="text-align:left;padding:6px 10px;font-size:10px;color:#666;font-weight:bold;width:50px">Code</th>
+            <th style="text-align:left;padding:6px 10px;font-size:10px;color:#666;font-weight:bold">Désignation</th>
+            <th style="text-align:right;padding:6px 10px;font-size:10px;color:#666;font-weight:bold;width:60px">Qté</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${section.items.map((item, i) => `
+          <tr style="border-top:1px solid #eee;background:${i % 2 === 0 ? '#fff' : '#fafafa'}">
+            <td style="padding:7px 10px;font-family:monospace;font-size:11px;color:#888">${item.code || '—'}</td>
+            <td style="padding:7px 10px;color:#111">${item.nom}</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:bold;color:${c.header}">${item.tonnes}t</td>
+          </tr>`).join('')}
+        </tbody>
+        <tfoot>
+          <tr style="border-top:2px solid ${c.header};background:${c.bg}">
+            <td colspan="2" style="padding:7px 10px;font-weight:bold;font-size:12px;color:${c.header}">Total</td>
+            <td style="padding:7px 10px;text-align:right;font-weight:bold;font-size:13px;color:${c.header}">${total}t</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>`;
+  }
+
+  if (data.enginChantier) {
+    html += `<div style="margin-top:12px;padding:10px 14px;background:#fff8e1;border-left:3px solid #f9a825;border-radius:4px;font-size:12px;color:#444">🔧 <strong>Engin de rechargement prévu :</strong> ${data.enginChantier}</div>`;
+  }
+
+  return html || '<em style="color:#999">Aucun matériau renseigné</em>';
+}
+
 function buildHtml(fields: {
   prenom: string; nom: string; fonction: string; email: string; telephone: string;
   typeClient: string; dejaClient: string;
   entrepriseNom: string; entrepriseAdresse: string; agenceNom: string;
   typeDemande: string; adresseLivraison: string; dateSouhaitee: string; creneau: string;
-  materiaux: string; notes: string;
+  materiauxData: string; notes: string;
 }): string {
   const {
     prenom, nom, fonction, email, telephone,
     typeClient, dejaClient,
     entrepriseNom, entrepriseAdresse, agenceNom,
     typeDemande, adresseLivraison, dateSouhaitee, creneau,
-    materiaux, notes,
+    materiauxData, notes,
   } = fields;
 
   const isParticulier = typeClient === 'particulier';
@@ -77,9 +134,7 @@ function buildHtml(fields: {
   if (typeDemande === 'decharge') adresseInterv = "Carrière TVM38 — 489 Rue de l'Isle, 38190 Villard-Bonnot";
   if (typeDemande === 'fourniture') adresseInterv = '';
 
-  const materiauxLines = (materiaux || '').split('\n').filter(Boolean).map(l =>
-    `- ${l.replace(/^-\s*/, '')}`
-  ).join('\n');
+  const materiauxHtml = renderMateriauxHtml(materiauxData);
 
   return `<!DOCTYPE html>
 <html lang="fr">
@@ -147,7 +202,7 @@ function buildHtml(fields: {
 
   <div class="card">
     <div class="section-label">Matériaux</div>
-    <div class="mat">${materiauxLines || 'Aucun matériau renseigné'}</div>
+    ${materiauxHtml}
   </div>
 
   ${notes ? `
@@ -201,7 +256,7 @@ Deno.serve(async (req) => {
       adresseLivraison: safe(body.adresseLivraison, 300),
       dateSouhaitee: safe(body.dateSouhaitee),
       creneau: safe(body.creneau),
-      materiaux: String(body.materiaux || '').slice(0, 2000),
+      materiauxData: String(body.materiauxData || '').slice(0, 5000),
       notes: String(body.notes || '').slice(0, 1000),
     };
 

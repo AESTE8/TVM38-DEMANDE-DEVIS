@@ -36,6 +36,7 @@ const schema = z.object({
   email: z.string().optional(),
   sansEmail: z.boolean().optional(),
   typeDemande: z.enum(['livraison', 'fourniture', 'decharge', 'livraison_decharge']),
+  enginChantier: z.string().optional(),
   adresseLivraison: z.string().optional(),
   dateSouhaitee: z.string().optional(),
   creneau: z.enum(['matin', 'apres_midi', 'indifferent']).optional(),
@@ -72,6 +73,9 @@ const schema = z.object({
     }
   }
   if (data.typeDemande === 'livraison_decharge') {
+    if (!data.enginChantier || data.enginChantier.trim().length === 0) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Type d'engin requis", path: ['enginChantier'] });
+    }
     if (!data.lignes.some(l => l.quantiteTonnes > 0 && l.type === 'livraison')) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Ajoutez au moins un matériau à livrer (onglet Livraison)', path: ['lignes'] });
     }
@@ -111,6 +115,7 @@ export default function FormPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(1);
   const [typeDemandeChosen, setTypeDemandeChosen] = useState(false);
+  const [combiTab, setCombiTab] = useState<'livraison' | 'decharge'>('livraison');
   const sectionClientRef = useRef<SectionClientHandle>(null);
   const connectedClient = getConnectedClient();
   const guestMode = isGuestMode();
@@ -178,6 +183,21 @@ export default function FormPage() {
   };
 
   const handleNext = async () => {
+    // Réinitialiser l'onglet combi quand on arrive à l'étape 3
+    if (currentStep === 2) setCombiTab('livraison');
+
+    // Mode Livraison+Décharge : sur l'onglet Livraison → basculer vers Décharge
+    if (currentStep === 3 && watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison') {
+      const hasLivraisonItems = lignes.some(l => l.type === 'livraison' && l.quantiteTonnes > 0);
+      if (!hasLivraisonItems) {
+        const ok = window.confirm("Vous n'avez sélectionné aucun matériau à livrer. Continuer quand même vers la décharge ?");
+        if (!ok) return;
+      }
+      setCombiTab('decharge');
+      scrollTop();
+      return;
+    }
+
     const valid = await validateStep(currentStep);
     if (valid) {
       setCurrentStep(s => s + 1);
@@ -186,6 +206,12 @@ export default function FormPage() {
   };
 
   const handleBack = () => {
+    // Mode Livraison+Décharge : sur l'onglet Décharge → revenir sur Livraison
+    if (currentStep === 3 && watch('typeDemande') === 'livraison_decharge' && combiTab === 'decharge') {
+      setCombiTab('livraison');
+      scrollTop();
+      return;
+    }
     setCurrentStep(s => s - 1);
     scrollTop();
   };
@@ -233,21 +259,30 @@ export default function FormPage() {
         // fallback silencieux — on continue sans code_article
       }
 
-      const formatLignes = (lignes: any[]) =>
-        lignes.map((l: any) => {
-          const mat = MATERIAUX.find(m => m.id === l.materiauId);
-          const code = codeArticleMap[l.materiauId] || mat?.code || '';
-          const codePrefix = code ? `[${code}] ` : '';
-          return `- ${codePrefix}${mat?.nom ?? l.materiauId} : ${l.quantiteTonnes}t (${l.quantiteM3}m³)`;
-        }).join('\n');
+      const buildItem = (l: any) => {
+        const mat = MATERIAUX.find(m => m.id === l.materiauId);
+        return {
+          code: codeArticleMap[l.materiauId] || mat?.code || '',
+          nom: mat?.nom ?? l.materiauId,
+          tonnes: l.quantiteTonnes,
+        };
+      };
 
-      let materiaux: string;
+      type MateriauxSection = { label: string; type?: string; items: { code: string; nom: string; tonnes: number }[] };
+      let materiauxData: { sections: MateriauxSection[]; enginChantier?: string };
+
       if (data.typeDemande === 'livraison_decharge') {
-        const livraisonLignes = lignes.filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0);
-        const dischargeLignes = lignes.filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0);
-        materiaux = `Matériaux à livrer :\n${formatLignes(livraisonLignes)}\n\nDéblais à récupérer :\n${formatLignes(dischargeLignes)}`;
+        materiauxData = {
+          sections: [
+            { label: 'Matériaux à livrer', type: 'livraison', items: lignes.filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0).map(buildItem) },
+            { label: 'Déblais à récupérer', type: 'decharge', items: lignes.filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0).map(buildItem) },
+          ],
+          enginChantier: data.enginChantier,
+        };
       } else {
-        materiaux = formatLignes(lignes.filter((l: any) => l.quantiteTonnes > 0));
+        materiauxData = {
+          sections: [{ label: 'Matériaux', items: lignes.filter((l: any) => l.quantiteTonnes > 0).map(buildItem) }],
+        };
       }
 
       const payload = {
@@ -269,7 +304,7 @@ export default function FormPage() {
         dateSouhaitee: data.dateSouhaitee,
         creneau: data.creneau,
         // Matériaux & notes
-        materiaux,
+        materiauxData: JSON.stringify(materiauxData),
         notes: data.notes,
       };
 
@@ -511,7 +546,7 @@ export default function FormPage() {
                   {/* Étape 3 — Matériaux */}
                   {currentStep === 3 && (
                     <>
-                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} />
+                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} activeTab={combiTab} onActiveTabChange={setCombiTab} />
                       {errors.lignes && (
                         <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
                           {errors.lignes.message as string}
@@ -577,6 +612,9 @@ export default function FormPage() {
                             </p>
                             {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.adresseLivraison && (
                               <p className="text-secondary text-xs">{formValues.adresseLivraison}</p>
+                            )}
+                            {formValues.typeDemande === 'livraison_decharge' && formValues.enginChantier && (
+                              <p className="text-secondary text-xs">Engin : {formValues.enginChantier}</p>
                             )}
                             {formValues.typeDemande === 'decharge' && (
                               <p className="text-secondary text-xs">489 Rue de l'Isle, 38190 Villard-Bonnot</p>
@@ -715,9 +753,9 @@ export default function FormPage() {
                         onClick={handleNext}
                         className="ml-auto bg-primary text-on-primary font-headline font-bold px-8 py-3 rounded-md hover:shadow-md active:scale-[0.98] transition-all uppercase tracking-tight text-sm"
                       >
-                        {currentStep === 1 && 'Mon projet →'}
+                        {currentStep === 1 && 'Votre demande →'}
                         {currentStep === 2 && 'Choisir les matériaux →'}
-                        {currentStep === 3 && 'Vérifier ma demande →'}
+                        {currentStep === 3 && (watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison' ? 'Passer à la décharge →' : 'Vérifier ma demande →')}
                       </button>
                     </div>
                   )}

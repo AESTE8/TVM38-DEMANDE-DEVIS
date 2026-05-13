@@ -13,12 +13,16 @@ interface Props {
   setLignes: React.Dispatch<React.SetStateAction<LigneDevis[]>>;
   typeDemande?: TypeDemande;
   onNext?: () => void;
+  activeTab?: 'livraison' | 'decharge';
+  onActiveTabChange?: (tab: 'livraison' | 'decharge') => void;
 }
 
-export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNext }: Props) {
+export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNext, activeTab: activeTabProp, onActiveTabChange }: Props) {
   const [search, setSearch] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'livraison' | 'decharge'>('livraison');
+  const [localTab, setLocalTab] = useState<'livraison' | 'decharge'>('livraison');
+  const activeTab = activeTabProp ?? localTab;
+  const setActiveTab = (tab: 'livraison' | 'decharge') => { setLocalTab(tab); onActiveTabChange?.(tab); };
 
   const isDecharge = typeDemande === 'decharge';
   const isCombi = typeDemande === 'livraison_decharge';
