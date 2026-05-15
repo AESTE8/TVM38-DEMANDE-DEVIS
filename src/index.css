@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;700;800;900&family=Manrope:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&family=Inter:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @tailwind base;
@@ -7,25 +7,25 @@
 
 @layer base {
   :root {
-    --background: 206 100% 97%; /* #f3faff */
-    --foreground: 200 70% 9%; /* #071e27 */
+    --background: 213 100% 97%; /* #f4f8ff */
+    --foreground: 213 70% 9%; /* #071627 */
     --card: 0 0% 100%;
-    --card-foreground: 200 70% 9%;
+    --card-foreground: 213 70% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 200 70% 9%;
-    --primary: 20 100% 32%; /* #a43700 */
+    --popover-foreground: 213 70% 9%;
+    --primary: 209 100% 32%; /* #0053a1 — bleu Midali */
     --primary-foreground: 0 0% 100%;
-    --secondary: 200 10% 37%; /* #546067 */
+    --secondary: 209 12% 40%; /* #546a7a */
     --secondary-foreground: 0 0% 100%;
-    --muted: 200 100% 95%; /* #e6f6ff */
-    --muted-foreground: 200 10% 45%; 
-    --accent: 200 50% 88%; /* #cfe6f2 */
-    --accent-foreground: 200 70% 9%;
-    --destructive: 0 84% 60%;
+    --muted: 210 60% 95%; /* #e8f2fc */
+    --muted-foreground: 209 12% 45%;
+    --accent: 209 45% 88%; /* #c8ddf0 */
+    --accent-foreground: 213 70% 9%;
+    --destructive: 351 100% 42%; /* #d8002b — rouge Midali (erreurs) */
     --destructive-foreground: 0 0% 100%;
-    --border: 20 30% 80%; /* outline-variant: #e3bfb2 - softened */
-    --input: 200 50% 88%; /* surface-variant: #cfe6f2 */
-    --ring: 20 100% 32%;
+    --border: 209 25% 82%; /* #bdd4ea — bleu clair */
+    --input: 209 45% 88%; /* #c8ddf0 */
+    --ring: 209 100% 32%;
     --radius: 0.125rem;
   }
 
@@ -61,7 +61,7 @@
 }
 
 .bg-industrial-gradient {
-  background: linear-gradient(135deg, #a43700 0%, #cd4700 100%);
+  background: linear-gradient(135deg, #d8002b 0%, #b8001f 100%);
 }
 
 /* Suppression des flèches (spinners) par défaut sur Chrome, Safari, Edge, Opera */

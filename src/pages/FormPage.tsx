@@ -119,6 +119,9 @@ export default function FormPage() {
   const sectionClientRef = useRef<SectionClientHandle>(null);
   const connectedClient = getConnectedClient();
   const guestMode = isGuestMode();
+  const [stepAnimKey, setStepAnimKey] = useState(0);
+  const [stepDirection, setStepDirection] = useState<'forward' | 'backward'>('forward');
+  const [recapOpen, setRecapOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Valorisation de matériaux - Devis";
@@ -183,10 +186,8 @@ export default function FormPage() {
   };
 
   const handleNext = async () => {
-    // Réinitialiser l'onglet combi quand on arrive à l'étape 3
     if (currentStep === 2) setCombiTab('livraison');
 
-    // Mode Livraison+Décharge : sur l'onglet Livraison → basculer vers Décharge
     if (currentStep === 3 && watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison') {
       const hasLivraisonItems = lignes.some(l => l.type === 'livraison' && l.quantiteTonnes > 0);
       if (!hasLivraisonItems) {
@@ -200,24 +201,40 @@ export default function FormPage() {
 
     const valid = await validateStep(currentStep);
     if (valid) {
-      setCurrentStep(s => s + 1);
+      const nextStep = currentStep + 1;
+      setStepDirection('forward');
+      setStepAnimKey(k => k + 1);
+      setRecapOpen(false);
+      setCurrentStep(nextStep);
       scrollTop();
+      if (nextStep === 4) {
+        toast.success('Presque terminé — vérifiez votre demande');
+      } else if (nextStep === 3) {
+        toast.success(`Étape 3 sur 4 — ${STEP3_LABELS[watch('typeDemande')] ?? 'Produits'}`);
+      } else if (nextStep === 2) {
+        toast.success('Étape 2 sur 4 — Votre demande');
+      }
     }
   };
 
   const handleBack = () => {
-    // Mode Livraison+Décharge : sur l'onglet Décharge → revenir sur Livraison
     if (currentStep === 3 && watch('typeDemande') === 'livraison_decharge' && combiTab === 'decharge') {
       setCombiTab('livraison');
       scrollTop();
       return;
     }
+    setStepDirection('backward');
+    setStepAnimKey(k => k + 1);
+    setRecapOpen(false);
     setCurrentStep(s => s - 1);
     scrollTop();
   };
 
   const goToStep = (n: number) => {
     if (n < currentStep) {
+      setStepDirection('backward');
+      setStepAnimKey(k => k + 1);
+      setRecapOpen(false);
       setCurrentStep(n);
       scrollTop();
     }
@@ -353,7 +370,7 @@ export default function FormPage() {
 
       {/* Barre de progression */}
       <div className="sticky top-[48px] md:top-[72px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 pt-3 pb-2">
+        <div className="max-w-screen-xl mx-auto px-4 md:px-8 pt-3 pb-2">
           {guestMode && (
             <div className="mb-2">
               <button
@@ -387,7 +404,7 @@ export default function FormPage() {
                     {currentStep > n ? '✓' : n}
                   </div>
                   <span className={cn(
-                    "text-xs font-bold uppercase tracking-tight hidden sm:block transition-colors leading-tight max-w-[5rem]",
+                    "text-xs font-bold uppercase tracking-tight hidden sm:block transition-colors leading-tight whitespace-nowrap",
                     currentStep === n ? "text-primary" :
                     currentStep > n ? "text-primary/50 hover:text-primary" :
                     "text-secondary/40"
@@ -426,25 +443,33 @@ export default function FormPage() {
             {/* Sidebar étape 3 — capacités camions (sticky) */}
             {currentStep === 3 && (
               <div className="hidden lg:block">
-              <div className="sticky top-[130px] self-start">
+              <div className="sticky top-[160px] self-start">
                 <div className="bg-surface-container-low border-l-4 border-primary p-6 rounded-sm">
                   <h3 className="font-headline font-bold text-sm uppercase tracking-tight mb-4 flex items-center gap-2">
                     <Truck className="w-4 h-4 text-primary" />
                     Infos pratiques
                   </h3>
                   <p className="text-xs text-secondary font-body mb-4 leading-snug">
-                    Capacités par type de camion — pour vous aider à estimer vos quantités :
+                    Gabarits et capacités par type de camion :
                   </p>
-                  <ul className="space-y-2.5">
-                    {CAMIONS_CAPACITES.map(c => (
-                      <li key={c.nom} className="flex justify-between items-center text-sm">
-                        <span className="text-on-surface font-body">{c.nom}</span>
-                        <span className="font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full text-xs shrink-0 ml-2">
-                          {c.capacite} t
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="w-full">
+                    <div className="grid grid-cols-4 gap-x-2 mb-2 pb-1.5 border-b border-border/40">
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-secondary/60 font-body">Type</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-secondary/60 font-body text-center">Charge</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-secondary/60 font-body text-center">Hauteur</span>
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-secondary/60 font-body text-center">Largeur</span>
+                    </div>
+                    <ul className="divide-y divide-border/30">
+                      {CAMIONS_CAPACITES.map(c => (
+                        <li key={c.nom} className="grid grid-cols-4 gap-x-2 py-2 items-center">
+                          <span className="text-xs font-bold text-on-surface font-body">{c.nom}</span>
+                          <span className="font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full text-[10px] text-center">{c.capacite} t</span>
+                          <span className="text-[10px] text-secondary font-body text-center leading-tight">{c.hauteur}</span>
+                          <span className="text-[10px] text-secondary font-body text-center leading-tight">{c.largeur}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                   <p className="text-[10px] text-secondary/60 font-body mt-4 italic leading-snug">
                     Vous n'êtes pas sûr de la quantité ? Contactez-nous, nous vous guidons.
                   </p>
@@ -499,7 +524,7 @@ export default function FormPage() {
               currentStep === 3 ? "w-full" :
               "max-w-2xl mx-auto w-full"
             }>
-              <div className="bg-surface-container-lowest p-6 md:p-10 shadow-sm rounded-xl border-t-4 border-primary/80">
+              <div className={cn("bg-surface-container-lowest shadow-sm rounded-xl border-t-4 border-primary/80", "px-6 pt-6 md:p-10", currentStep < 4 ? "pb-24" : "pb-6")}>
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
                   {/* Message d'accueil personnalisé — particuliers et pros sans compte */}
@@ -532,28 +557,98 @@ export default function FormPage() {
                     />
                   </div>
 
-                  {/* Étape 2 — Projet */}
-                  {currentStep === 2 && (
-                    <SectionDemande
-                      register={register}
-                      errors={errors}
-                      watch={watch}
-                      setValue={setValue}
-                      onTypeSelect={() => setTypeDemandeChosen(true)}
-                    />
-                  )}
+                  {currentStep > 1 && (
+                    <div key={stepAnimKey} className={stepDirection === 'forward' ? 'animate-step-forward' : 'animate-step-backward'}>
 
-                  {/* Étape 3 — Matériaux */}
-                  {currentStep === 3 && (
-                    <>
-                      <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} activeTab={combiTab} onActiveTabChange={setCombiTab} />
-                      {errors.lignes && (
-                        <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
-                          {errors.lignes.message as string}
-                        </p>
+                      {/* Récap étape 1 — visible en étape 2 */}
+                      {currentStep === 2 && (
+                        <div className="mb-6 rounded-sm border border-border overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setRecapOpen(o => !o)}
+                            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-container hover:bg-surface-container-high transition-colors text-left"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70 shrink-0">Étape 1</span>
+                              <span className="text-xs text-secondary font-medium truncate">
+                                {formValues.typeClient === 'professionnel' && formValues.entrepriseNom ? `${formValues.entrepriseNom} — ` : ''}{formValues.prenom} {formValues.nom} · {formValues.telephone}
+                              </span>
+                            </div>
+                            <ChevronLeft className={cn("w-3.5 h-3.5 text-secondary shrink-0 ml-2 transition-transform", recapOpen ? "-rotate-90" : "rotate-90")} />
+                          </button>
+                          {recapOpen && (
+                            <div className="px-4 py-3 bg-surface-container/40 text-xs text-secondary space-y-1 animate-fade-in border-t border-border/30">
+                              {formValues.email && <p>Email : <span className="text-on-surface">{formValues.email}</span></p>}
+                              {formValues.fonction && <p>Fonction : <span className="text-on-surface">{formValues.fonction}</span></p>}
+                              <button type="button" onClick={() => goToStep(1)} className="text-primary hover:underline font-medium flex items-center gap-1 mt-0.5">
+                                <Pencil className="w-3 h-3" /> Modifier
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       )}
-                    </>
-                  )}
+
+                      {/* Récap étapes 1–2 — visible en étape 3 */}
+                      {currentStep === 3 && (
+                        <div className="mb-6 rounded-sm border border-border overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setRecapOpen(o => !o)}
+                            className="w-full flex items-center justify-between px-4 py-2.5 bg-surface-container hover:bg-surface-container-high transition-colors text-left"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary/70 shrink-0">Étapes 1–2</span>
+                              <span className="text-xs text-secondary font-medium truncate">
+                                {formValues.prenom} {formValues.nom} · {STEP3_LABELS[formValues.typeDemande] ?? formValues.typeDemande}
+                                {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.adresseLivraison ? ` · ${formValues.adresseLivraison}` : ''}
+                              </span>
+                            </div>
+                            <ChevronLeft className={cn("w-3.5 h-3.5 text-secondary shrink-0 ml-2 transition-transform", recapOpen ? "-rotate-90" : "rotate-90")} />
+                          </button>
+                          {recapOpen && (
+                            <div className="px-4 py-3 bg-surface-container/40 text-xs text-secondary space-y-1.5 animate-fade-in border-t border-border/30">
+                              <div className="flex items-start justify-between gap-2">
+                                <p>Contact : <span className="text-on-surface">{formValues.typeClient === 'professionnel' && formValues.entrepriseNom ? `${formValues.entrepriseNom}, ` : ''}{formValues.prenom} {formValues.nom}</span></p>
+                                <button type="button" onClick={() => goToStep(1)} className="text-primary hover:underline font-medium flex items-center gap-1 shrink-0">
+                                  <Pencil className="w-3 h-3" /> Modifier
+                                </button>
+                              </div>
+                              <div className="flex items-start justify-between gap-2">
+                                <p>Demande : <span className="text-on-surface">{STEP3_LABELS[formValues.typeDemande] ?? formValues.typeDemande}</span>
+                                  {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.adresseLivraison && <span> · {formValues.adresseLivraison}</span>}
+                                  {formValues.dateSouhaitee && <span> · {formatDate(formValues.dateSouhaitee)}</span>}
+                                </p>
+                                <button type="button" onClick={() => goToStep(2)} className="text-primary hover:underline font-medium flex items-center gap-1 shrink-0">
+                                  <Pencil className="w-3 h-3" /> Modifier
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Étape 2 — Projet */}
+                      {currentStep === 2 && (
+                        <SectionDemande
+                          register={register}
+                          errors={errors}
+                          watch={watch}
+                          setValue={setValue}
+                          onTypeSelect={() => setTypeDemandeChosen(true)}
+                        />
+                      )}
+
+                      {/* Étape 3 — Matériaux */}
+                      {currentStep === 3 && (
+                        <>
+                          <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} activeTab={combiTab} onActiveTabChange={setCombiTab} />
+                          {errors.lignes && (
+                            <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
+                              {errors.lignes.message as string}
+                            </p>
+                          )}
+                        </>
+                      )}
 
                   {/* Étape 4 — Récapitulatif */}
                   {currentStep === 4 && (
@@ -736,9 +831,12 @@ export default function FormPage() {
                     </div>
                   )}
 
+                    </div>
+                  )}
+
                   {/* Boutons de navigation */}
                   {currentStep < 4 && (
-                    <div className="flex items-center justify-between mt-10 pt-6 border-t border-border">
+                    <div className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 border-t border-border bg-surface/95 backdrop-blur-sm md:static md:inset-auto md:z-auto md:mt-10 md:pt-6 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
                       {currentStep > 1 ? (
                         <button
                           type="button"

@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function Footer() {
   return (
-    <footer className="bg-surface-container border-t border-border/20">
+    <footer className="bg-surface-container border-t-4 border-primary">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 px-12 py-16 w-full max-w-screen-2xl mx-auto">
         <div className="space-y-4">
           <div className="text-lg font-bold text-on-surface uppercase font-headline">MIDALI - TVM38</div>
@@ -32,8 +32,8 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="px-12 py-6 border-t border-border/40 text-center bg-surface-container-low">
-        <p className="font-body text-sm text-secondary italic opacity-80">© 2026 MIDALI - TVM38. Carrière et centre de valorisation en Isère. Tous droits réservés.</p>
+      <div className="px-12 py-5 border-t border-white/20 text-center bg-primary">
+        <p className="font-body text-sm text-white/80 italic">© 2026 MIDALI - TVM38. Carrière et centre de valorisation en Isère. Tous droits réservés.</p>
       </div>
     </footer>
   );

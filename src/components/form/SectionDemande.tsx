@@ -224,7 +224,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee', {
+              <Input id="dateSouhaitee" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
                 onChange: (e) => {
                   const val = e.target.value;
                   if (val) {
@@ -298,7 +298,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaiteeCombi" type="date" {...register('dateSouhaitee', {
+              <Input id="dateSouhaiteeCombi" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
                 onChange: (e) => {
                   const val = e.target.value;
                   if (val) {
@@ -346,7 +346,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" {...register('dateSouhaitee', {
+              <Input id="dateSouhaitee" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
                 onChange: (e) => {
                   const val = e.target.value;
                   if (val) {

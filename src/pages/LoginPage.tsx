@@ -93,7 +93,7 @@ export default function LoginPage() {
     <div 
       className="min-h-screen flex flex-col relative"
       style={{
-        backgroundImage: `linear-gradient(rgba(243, 250, 255, 0.8), rgba(243, 250, 255, 0.8)), url(${bgLogin})`,
+        backgroundImage: `linear-gradient(160deg, rgba(0, 83, 161, 0.18) 0%, rgba(0, 83, 161, 0.06) 100%), url(${bgLogin})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed'
@@ -107,21 +107,21 @@ export default function LoginPage() {
           {/* Titre */}
           <div className="text-center mb-6">
             <img src="/logo-tvm38.png" alt="TVM38" className="h-16 md:h-24 mx-auto mb-4 object-contain" />
-            <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
+            <h1 className="text-3xl font-black tracking-tighter text-white uppercase font-headline">
               Votre devis granulats en 3 minutes
             </h1>
           </div>
 
           {/* Preuve sociale */}
-          <div className="flex items-center justify-center gap-6 mb-6 py-3 px-4 bg-primary/5 border border-primary/10 rounded-sm">
+          <div className="flex items-center justify-center gap-6 mb-6 py-4 px-4 rounded-sm shadow-md backdrop-blur-md" style={{ backgroundColor: 'rgba(0, 83, 161, 0.65)' }}>
             <div className="text-center">
-              <p className="text-lg font-black text-primary font-headline leading-none">350+</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">professionnels<br/>du BTP</p>
+              <p className="text-xl font-black text-white font-headline leading-none">350+</p>
+              <p className="text-[10px] text-white/70 font-body mt-0.5 leading-tight">professionnels<br/>du BTP</p>
             </div>
-            <div className="w-px h-8 bg-border/60" />
+            <div className="w-px h-8 bg-white/20" />
             <div className="text-center">
-              <p className="text-lg font-black text-primary font-headline leading-none">{new Date().getFullYear() - 1937}</p>
-              <p className="text-[10px] text-secondary font-body mt-0.5 leading-tight">ans<br/>d'expertise</p>
+              <p className="text-xl font-black text-white font-headline leading-none">{new Date().getFullYear() - 1937}</p>
+              <p className="text-[10px] text-white/70 font-body mt-0.5 leading-tight">ans<br/>d'expertise</p>
             </div>
           </div>
 
