@@ -371,19 +371,17 @@ export default function FormPage() {
       {/* Barre de progression */}
       <div className="sticky top-[48px] md:top-[72px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-screen-xl mx-auto px-4 md:px-8 pt-3 pb-2">
-          {guestMode && (
-            <div className="mb-2">
+          <div className="flex items-center gap-3">
+            {guestMode && (
               <button
                 type="button"
                 onClick={() => { clearGuestMode(); navigate('/'); }}
-                className="flex items-center gap-1 text-xs font-bold text-secondary hover:text-primary transition-colors underline underline-offset-2"
+                className="flex items-center gap-1 text-xs font-bold text-secondary hover:text-primary transition-colors shrink-0 pr-3 border-r border-border/50"
               >
                 <ChevronLeft className="w-4 h-4 shrink-0" />
-                <span className="hidden sm:inline">Retour à la page de connexion</span>
+                <span className="hidden sm:inline whitespace-nowrap">Connexion</span>
               </button>
-            </div>
-          )}
-          <div className="flex items-center">
+            )}
             {steps.map(({ n, label }, i) => (
               <div key={n} className="flex items-center flex-1 min-w-0">
                 <button

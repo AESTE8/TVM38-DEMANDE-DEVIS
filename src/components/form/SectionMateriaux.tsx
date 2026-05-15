@@ -189,7 +189,7 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
 
       {/* Bandeau flottant récapitulatif */}
       {selectedLignes.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-primary text-on-primary rounded-full px-2 py-2 shadow-xl flex items-center gap-3 text-sm font-bold animate-fade-in">
+        <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-primary text-on-primary rounded-full px-2 py-2 shadow-xl items-center gap-3 text-sm font-bold animate-fade-in">
           {isCombi ? (
             <>
               <span className="pl-4 flex items-center gap-2">
