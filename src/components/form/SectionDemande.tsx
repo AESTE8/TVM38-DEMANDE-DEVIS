@@ -91,6 +91,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               {c.nom}
             </div>
             <div className="text-xs text-secondary mt-0.5">{c.capacite} t</div>
+            <div className="text-[10px] text-secondary/70 mt-0.5">{c.hauteur} · {c.largeur}</div>
           </button>
         ))}
       </div>

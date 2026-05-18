@@ -33,6 +33,17 @@ const CRENEAU_LABELS: Record<string, string> = {
   indifferent: 'Indifférent',
 };
 
+const CAMIONS_LIVRAISON_LABELS: Record<string, string> = {
+  auto: 'Laissé au choix de MIDALI',
+  A1: '4×2 — 9 t · 3,5 m · 2,50 m',
+  A2: '4×2 Grue — 6 t · 3,5 m · 2,50 m',
+  A3: '6×4 — 13 t · 3,5 m · 2,55 m',
+  A4: '6×6 + Grue — 10 t · 3,5 m · 2,55 m',
+  A5: '8×4 — 16 t · 3,5 m · 2,55 m',
+  A6: '8×4 + Grue — 12 t · 3,5 m · 2,55 m',
+  A7: 'Semi-benne — 28 t · 4,0 m · 2,55 m',
+};
+
 const TYPE_DEMANDE_LABELS: Record<string, string> = {
   livraison: '🚛 Livraison avec transport',
   fourniture: '📦 Fourniture uniquement (enlèvement carrière)',
@@ -111,14 +122,14 @@ function buildHtml(fields: {
   prenom: string; nom: string; fonction: string; email: string; telephone: string;
   typeClient: string; dejaClient: string;
   entrepriseNom: string; entrepriseAdresse: string; agenceNom: string;
-  typeDemande: string; adresseLivraison: string; dateSouhaitee: string; creneau: string;
+  typeDemande: string; adresseLivraison: string; camionLivraison: string; dateSouhaitee: string; creneau: string;
   materiauxData: string; notes: string;
 }): string {
   const {
     prenom, nom, fonction, email, telephone,
     typeClient, dejaClient,
     entrepriseNom, entrepriseAdresse, agenceNom,
-    typeDemande, adresseLivraison, dateSouhaitee, creneau,
+    typeDemande, adresseLivraison, camionLivraison, dateSouhaitee, creneau,
     materiauxData, notes,
   } = fields;
 
@@ -127,6 +138,7 @@ function buildHtml(fields: {
   const isNouveauClient = dejaClient !== 'oui';
   const typeDemandeLabel = TYPE_DEMANDE_LABELS[typeDemande] || typeDemande;
   const creneauLabel = CRENEAU_LABELS[creneau] || creneau;
+  const camionLabel = camionLivraison ? (CAMIONS_LIVRAISON_LABELS[camionLivraison] || camionLivraison) : '';
   const dateLabel = formatDate(dateSouhaitee);
   const entrepriseLabel = entrepriseNom || (isParticulier ? `${prenom} ${nom}` : '');
 
@@ -196,6 +208,7 @@ function buildHtml(fields: {
     <div class="section-label">Demande</div>
     <div class="demande-box">${typeDemandeLabel}</div>
     ${adresseInterv ? `<div class="row"><span class="lbl">Adresse chantier</span><span class="val">${adresseInterv}</span></div>` : ''}
+    ${camionLabel ? `<div class="row"><span class="lbl">Camion souhaité</span><span class="val">🚛 ${camionLabel}</span></div>` : ''}
     ${dateLabel ? `<div class="row"><span class="lbl">Date souhaitée</span><span class="val">${dateLabel}</span></div>` : ''}
     ${creneauLabel ? `<div class="row"><span class="lbl">Créneau</span><span class="val">${creneauLabel}</span></div>` : ''}
   </div>
@@ -254,6 +267,7 @@ Deno.serve(async (req) => {
       agenceNom: safe(body.agenceNom, 200),
       typeDemande: safe(body.typeDemande),
       adresseLivraison: safe(body.adresseLivraison, 300),
+      camionLivraison: safe(body.camionLivraison, 10),
       dateSouhaitee: safe(body.dateSouhaitee),
       creneau: safe(body.creneau),
       materiauxData: String(body.materiauxData || '').slice(0, 5000),

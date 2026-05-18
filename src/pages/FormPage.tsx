@@ -324,6 +324,7 @@ export default function FormPage() {
         // Demande
         typeDemande: data.typeDemande,
         adresseLivraison: data.adresseLivraison,
+        camionLivraison: data.camionLivraison,
         dateSouhaitee: data.dateSouhaitee,
         creneau: data.creneau,
         // Matériaux & notes
