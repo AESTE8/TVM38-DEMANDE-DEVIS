@@ -7,6 +7,7 @@ import AddressAutocomplete from '../ui/AddressAutocomplete';
 import { cn } from '@/lib/utils';
 import { Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { CAMIONS_LIVRAISON } from '@/data/camions';
 
 interface Props {
   register: UseFormRegister<DevisFormData>;
@@ -46,11 +47,56 @@ const LIVRAISON_DECHARGE_OPTION = {
 export default function SectionDemande({ register, errors, watch, setValue, onTypeSelect }: Props) {
   const typeDemande = watch('typeDemande');
   const creneau = watch('creneau');
+  const camionLivraison = watch('camionLivraison');
   const adresseLivraison = watch('adresseLivraison') || '';
   const entrepriseAdresse = watch('entrepriseAdresse') || '';
   const isParticulier = watch('typeClient') === 'particulier';
 
   const showCreneauSection = (typeDemande === 'livraison' || typeDemande === 'decharge' || typeDemande === 'livraison_decharge') && watch('dateSouhaitee');
+
+  const CamionSelector = () => (
+    <div className="md:col-span-2 space-y-2">
+      <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block">
+        Choix du camion <span className="text-destructive">*</span>
+      </Label>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <button
+          type="button"
+          onClick={() => setValue('camionLivraison', 'auto', { shouldValidate: true })}
+          className={cn(
+            "p-3 rounded-xl border-2 text-left transition-all",
+            camionLivraison === 'auto'
+              ? "border-primary bg-primary/5"
+              : "border-border bg-surface-container-highest hover:border-primary/30"
+          )}
+        >
+          <div className={cn("font-bold text-sm", camionLivraison === 'auto' ? "text-primary" : "text-on-surface")}>
+            Au choix MIDALI
+          </div>
+          <div className="text-xs text-secondary mt-0.5">Le plus adapté</div>
+        </button>
+        {CAMIONS_LIVRAISON.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            onClick={() => setValue('camionLivraison', c.id, { shouldValidate: true })}
+            className={cn(
+              "p-3 rounded-xl border-2 text-left transition-all",
+              camionLivraison === c.id
+                ? "border-primary bg-primary/5"
+                : "border-border bg-surface-container-highest hover:border-primary/30"
+            )}
+          >
+            <div className={cn("font-bold text-sm", camionLivraison === c.id ? "text-primary" : "text-on-surface")}>
+              {c.nom}
+            </div>
+            <div className="text-xs text-secondary mt-0.5">{c.capacite} t</div>
+          </button>
+        ))}
+      </div>
+      {errors.camionLivraison && <p className="text-xs text-destructive">{errors.camionLivraison.message}</p>}
+    </div>
+  );
 
   return (
     <div>
@@ -68,7 +114,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               <button
                 key={val}
                 type="button"
-                onClick={() => { setValue('typeDemande', val, { shouldValidate: true }); setValue('enginChantier', ''); onTypeSelect?.(); }}
+                onClick={() => { setValue('typeDemande', val, { shouldValidate: true }); setValue('enginChantier', ''); setValue('camionLivraison', undefined); onTypeSelect?.(); }}
                 className={cn(
                   "p-5 rounded-xl border-2 text-left transition-all",
                   typeDemande === val
@@ -87,7 +133,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             {/* Carte Livraison + Décharge — icône double */}
             <button
               type="button"
-              onClick={() => { setValue('typeDemande', LIVRAISON_DECHARGE_OPTION.val, { shouldValidate: true }); onTypeSelect?.(); }}
+              onClick={() => { setValue('typeDemande', LIVRAISON_DECHARGE_OPTION.val, { shouldValidate: true }); setValue('camionLivraison', undefined); onTypeSelect?.(); }}
               className={cn(
                 "p-5 rounded-xl border-2 text-left transition-all sm:col-span-2",
                 typeDemande === 'livraison_decharge'
@@ -219,6 +265,8 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>
 
+            <CamionSelector />
+
             <div className="space-y-1">
               <Label htmlFor="dateSouhaitee" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
@@ -292,6 +340,8 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               />
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>
+
+            <CamionSelector />
 
             <div className="space-y-1">
               <Label htmlFor="dateSouhaiteeCombi" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">

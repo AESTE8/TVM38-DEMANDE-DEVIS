@@ -38,6 +38,7 @@ export interface DevisFormData {
   agenceNom?: string;
   typeDemande: TypeDemande;
   enginChantier?: string;
+  camionLivraison?: string;
   adresseLivraison?: string;
   dateSouhaitee?: string;
   creneau?: CreneauLivraison;

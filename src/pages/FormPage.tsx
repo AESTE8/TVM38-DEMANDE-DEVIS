@@ -9,7 +9,7 @@ import { ChevronLeft, Pencil, MapPin, ShieldCheck, Truck, Package, ArrowDownToLi
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { CAMIONS_CAPACITES } from '@/data/camions';
+import { CAMIONS_CAPACITES, CAMIONS_LIVRAISON } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import { getConnectedClient, isGuestMode, clearGuestMode } from '@/lib/auth';
@@ -37,6 +37,7 @@ const schema = z.object({
   sansEmail: z.boolean().optional(),
   typeDemande: z.enum(['livraison', 'fourniture', 'decharge', 'livraison_decharge']),
   enginChantier: z.string().optional(),
+  camionLivraison: z.string().optional(),
   adresseLivraison: z.string().optional(),
   dateSouhaitee: z.string().optional(),
   creneau: z.enum(['matin', 'apres_midi', 'indifferent']).optional(),
@@ -59,6 +60,11 @@ const schema = z.object({
   }
   if ((data.typeDemande === 'livraison' || data.typeDemande === 'livraison_decharge') && (!data.adresseLivraison || data.adresseLivraison.trim().length < 5)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Adresse de livraison requise", path: ['adresseLivraison'] });
+  }
+  if (data.typeDemande === 'livraison' || data.typeDemande === 'livraison_decharge') {
+    if (!data.camionLivraison) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Veuillez choisir un camion', path: ['camionLivraison'] });
+    }
   }
   if (!data.lignes.some(l => l.quantiteTonnes > 0)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Veuillez sélectionner au moins un matériau', path: ['lignes'] });
@@ -705,6 +711,11 @@ export default function FormPage() {
                             </p>
                             {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.adresseLivraison && (
                               <p className="text-secondary text-xs">{formValues.adresseLivraison}</p>
+                            )}
+                            {(formValues.typeDemande === 'livraison' || formValues.typeDemande === 'livraison_decharge') && formValues.camionLivraison && (
+                              <p className="text-secondary text-xs">
+                                Camion : {formValues.camionLivraison === 'auto' ? 'Laissé au choix de MIDALI' : (CAMIONS_LIVRAISON.find(c => c.id === formValues.camionLivraison)?.nom ?? formValues.camionLivraison)}
+                              </p>
                             )}
                             {formValues.typeDemande === 'livraison_decharge' && formValues.enginChantier && (
                               <p className="text-secondary text-xs">Engin : {formValues.enginChantier}</p>
