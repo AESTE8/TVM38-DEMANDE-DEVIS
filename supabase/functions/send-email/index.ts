@@ -156,8 +156,6 @@ function buildHtml(fields: {
   // Référence et horodatage
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
-  const dateStr = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}`;
-  const ref = `TVM-${dateStr}-${String(Math.floor(Math.random()*9000)+1000)}`;
   const receivedAt = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} à ${pad(now.getHours())}h${pad(now.getMinutes())}`;
 
   // Couleurs par type
@@ -252,7 +250,6 @@ function buildHtml(fields: {
 <div style="background:#0053a1;color:white">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 28px 14px;border-bottom:1px solid rgba(255,255,255,.15)">
     <img src="https://tvm-38-demande-devis.vercel.app/logo-tvm38.png" alt="TVM38" style="height:34px;display:block">
-    <span style="font-size:11px;opacity:.6;font-family:'Courier New',monospace">${ref}</span>
   </div>
   <div style="padding:14px 28px 18px">
     <div style="font-size:21px;font-weight:bold;margin-bottom:5px">${typeDemandeLabel}</div>
@@ -333,7 +330,7 @@ ${notes ? `
 <!-- FOOTER -->
 <div style="background:#f5f7fa;padding:14px 28px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #dde3ea">
   <div style="font-size:11px;color:#aaa;line-height:1.6">TVM38 &mdash; Carrière de matériaux<br>489 Rue de l'Isle, 38190 Villard-Bonnot</div>
-  <div style="font-size:11px;color:#888;font-family:'Courier New',monospace;text-align:right">${ref}<br>Reçu le ${receivedAt}</div>
+  <div style="font-size:11px;color:#888;text-align:right">Reçu le ${receivedAt}</div>
 </div>
 
 </div>
