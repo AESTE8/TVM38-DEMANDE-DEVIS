@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Template — Enlèvement carrière</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; background: #e8edf2; padding: 32px 16px; color: #111; }
+    .wrap { max-width: 620px; margin: 0 auto; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,.12); }
+
+    .header { background: #0053a1; color: white; padding: 0; }
+    .header-top { display: flex; align-items: center; justify-content: space-between; padding: 20px 28px 16px; border-bottom: 1px solid rgba(255,255,255,.15); }
+    .header-ref { font-size: 11px; opacity: .6; font-family: 'Courier New', monospace; }
+    .header-body { padding: 16px 28px 20px; }
+    .header-type { font-size: 22px; font-weight: bold; margin-bottom: 6px; letter-spacing: -.3px; }
+    .header-sub { font-size: 13px; opacity: .75; }
+
+    .summary-bar { display: flex; background: #003e7e; }
+    .summary-item { flex: 1; padding: 12px 16px; border-right: 1px solid rgba(255,255,255,.1); color: white; }
+    .summary-item:last-child { border-right: none; }
+    .summary-lbl { font-size: 9px; text-transform: uppercase; letter-spacing: 1.2px; opacity: .55; margin-bottom: 3px; }
+    .summary-val { font-size: 14px; font-weight: bold; }
+    .summary-val.urgent { color: #ffc107; }
+    .summary-val.nouveau { color: #ff7043; }
+
+    .actions { background: #f5f7fa; padding: 14px 28px; display: flex; gap: 10px; border-bottom: 1px solid #dde3ea; }
+    .btn { display: inline-block; padding: 8px 18px; border-radius: 6px; font-size: 12px; font-weight: bold; text-decoration: none; }
+    .btn-primary { background: #0053a1; color: white; }
+    .btn-secondary { background: white; color: #0053a1; border: 1.5px solid #0053a1; }
+
+    .card { background: white; padding: 22px 28px; border-bottom: 1px solid #eaecf0; }
+    .card:last-of-type { border-bottom: none; }
+    .section-label { font-size: 9.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #0053a1; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 2px solid #e8f0fb; }
+
+    .row { display: flex; margin-bottom: 9px; align-items: baseline; gap: 8px; }
+    .lbl { font-size: 11px; color: #888; width: 140px; flex-shrink: 0; padding-top: 1px; }
+    .val { font-size: 13px; color: #111; font-weight: 600; flex: 1; }
+    .val a { color: #0053a1; text-decoration: none; }
+    .val-light { font-weight: 400; color: #555; }
+
+    .badges { display: flex; gap: 6px; flex-wrap: wrap; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; }
+    .b-pro { background: #e3f0fb; color: #0053a1; }
+    .b-new { background: #fff0ee; color: #d8002b; border: 1px solid #f9bdb7; }
+    .b-existing { background: #e8f5e9; color: #2e7d32; }
+
+    .demande-header { display: flex; align-items: center; gap: 10px; padding: 12px 16px; background: #f0f6ff; border-left: 4px solid #0053a1; border-radius: 0 6px 6px 0; margin-bottom: 16px; }
+    .demande-icon { font-size: 20px; }
+    .demande-title { font-size: 15px; font-weight: bold; color: #0053a1; }
+
+    /* Adresse carrière fixe — style différent car pas de Maps dynamique */
+    .carriere-block { background: #f0f6ff; border: 1.5px solid #b3d0f0; border-radius: 6px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+    .carriere-text { font-size: 13px; font-weight: 600; color: #0053a1; }
+    .carriere-sub { font-size: 11px; color: #666; margin-top: 2px; }
+    .maps-link { font-size: 11px; color: #0053a1; text-decoration: none; white-space: nowrap; font-weight: bold; }
+
+    table.mat { width: 100%; border-collapse: collapse; font-size: 12px; }
+    table.mat thead tr { background: #f5f7fa; }
+    table.mat th { text-align: left; padding: 7px 10px; font-size: 10px; color: #888; font-weight: bold; text-transform: uppercase; letter-spacing: .8px; border-bottom: 1px solid #e0e4ea; }
+    table.mat td { padding: 8px 10px; border-bottom: 1px solid #f0f0f0; vertical-align: middle; }
+    table.mat tr:last-child td { border-bottom: none; }
+    table.mat tr:nth-child(even) td { background: #fafbfc; }
+    .mat-code { font-family: 'Courier New', monospace; font-size: 11px; color: #999; }
+    .mat-nom { color: #111; font-weight: 500; }
+    .mat-qty { text-align: right; font-weight: bold; color: #0053a1; }
+    .mat-total { display: flex; justify-content: space-between; padding: 8px 10px; background: #f0f6ff; border-top: 2px solid #0053a1; font-weight: bold; font-size: 13px; color: #0053a1; border-radius: 0 0 6px 6px; }
+
+    /* Info box : client charge lui-même */
+    .info-box { padding: 10px 14px; background: #fff8e1; border-left: 3px solid #f9a825; border-radius: 0 6px 6px 0; font-size: 12px; color: #444; margin-top: 14px; }
+
+    .notes-box { font-size: 13px; color: #444; padding: 12px 16px; background: #fffde7; border-radius: 6px; border-left: 3px solid #f9a825; font-style: italic; line-height: 1.6; }
+
+    .footer { background: #f5f7fa; padding: 16px 28px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #dde3ea; }
+    .footer-left { font-size: 11px; color: #aaa; line-height: 1.6; }
+    .footer-ref { font-family: 'Courier New', monospace; color: #888; font-size: 11px; text-align: right; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-top">
+      <img src="https://tvm-38-demande-devis.vercel.app/logo-tvm38.png" alt="TVM38" style="height:36px;display:block;">
+      <div class="header-ref">TVM-20260518-0028</div>
+    </div>
+    <div class="header-body">
+      <div class="header-type">📦 Enlèvement carrière</div>
+      <div class="header-sub">Constructions Moreau SARL — reçu le 18/05/2026 à 07h52</div>
+    </div>
+    <div class="summary-bar">
+      <div class="summary-item">
+        <div class="summary-lbl">Tonnage</div>
+        <div class="summary-val">40 t</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-lbl">Date souhaitée</div>
+        <div class="summary-val urgent">19/05/2026</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-lbl">Lieu</div>
+        <div class="summary-val">Carrière TVM38</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-lbl">Statut client</div>
+        <div class="summary-val nouveau">Nouveau client</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIONS — pas de Maps chantier, le client vient à la carrière -->
+  <div class="actions">
+    <a href="tel:+33476112233" class="btn btn-primary">📞 Appeler</a>
+    <a href="mailto:contact@constructions-moreau.fr" class="btn btn-secondary">✉️ Répondre</a>
+  </div>
+
+  <!-- CLIENT & CONTACT -->
+  <div class="card">
+    <div class="section-label">Client &amp; Contact</div>
+    <div class="row">
+      <span class="lbl">Statut</span>
+      <span class="val">
+        <div class="badges">
+          <span class="badge b-pro">Professionnel</span>
+          <span class="badge b-new">Nouveau client</span>
+        </div>
+      </span>
+    </div>
+    <div class="row">
+      <span class="lbl">Contact</span>
+      <span class="val">Frédéric Moreau <span class="val-light">(Gérant)</span></span>
+    </div>
+    <div class="row">
+      <span class="lbl">Téléphone</span>
+      <span class="val"><a href="tel:+33476112233">04 76 11 22 33</a></span>
+    </div>
+    <div class="row">
+      <span class="lbl">Email</span>
+      <span class="val"><a href="mailto:contact@constructions-moreau.fr">contact@constructions-moreau.fr</a></span>
+    </div>
+    <div class="row">
+      <span class="lbl">Société</span>
+      <span class="val">Constructions Moreau SARL</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Adresse siège</span>
+      <span class="val val-light">22 Rue de la République, 38100 Grenoble</span>
+    </div>
+  </div>
+
+  <!-- INTERVENTION -->
+  <div class="card">
+    <div class="section-label">Intervention</div>
+    <div class="demande-header">
+      <div class="demande-icon">📦</div>
+      <div>
+        <div class="demande-title">Enlèvement carrière</div>
+        <div style="font-size:11px;color:#555;margin-top:2px">Le client vient récupérer les matériaux directement à la carrière avec ses propres véhicules</div>
+      </div>
+    </div>
+
+    <!-- Adresse fixe carrière -->
+    <div class="row">
+      <span class="lbl">Lieu d'enlèvement</span>
+      <span class="val" style="padding:0">
+        <div class="carriere-block">
+          <div>
+            <div class="carriere-text">Carrière TVM38</div>
+            <div class="carriere-sub">489 Rue de l'Isle, 38190 Villard-Bonnot</div>
+          </div>
+          <a href="https://maps.google.com/?q=489+Rue+de+l'Isle+38190+Villard-Bonnot" class="maps-link" target="_blank">🗺️ Google Maps</a>
+        </div>
+      </span>
+    </div>
+
+    <div class="row">
+      <span class="lbl">Date souhaitée</span>
+      <span class="val" style="color:#d8002b;">19/05/2026</span>
+    </div>
+    <div class="row">
+      <span class="lbl">Créneau</span>
+      <span class="val">Indifférent</span>
+    </div>
+  </div>
+
+  <!-- MATÉRIAUX -->
+  <div class="card">
+    <div class="section-label">Matériaux à enlever</div>
+    <div style="font-size:10px;font-weight:bold;text-transform:uppercase;letter-spacing:1px;color:#0053a1;background:#e3f0fb;padding:5px 10px;border-radius:4px;margin-bottom:8px;">📦 Fournitures demandées</div>
+    <table class="mat">
+      <thead>
+        <tr>
+          <th style="width:55px">Code</th>
+          <th>Désignation</th>
+          <th style="text-align:right;width:65px">Quantité</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="mat-code">SA.03</td>
+          <td class="mat-nom">Sable de carrière 0/4</td>
+          <td class="mat-qty">30 t</td>
+        </tr>
+        <tr>
+          <td class="mat-code">GR.01</td>
+          <td class="mat-nom">Gravette 4/6</td>
+          <td class="mat-qty">10 t</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="mat-total">
+      <span>Total</span>
+      <span>40 t</span>
+    </div>
+    <div class="info-box">
+      ℹ️ <strong>Enlèvement client :</strong> le client assure lui-même le chargement et le transport depuis la carrière. Vérifier disponibilité des matériaux avant confirmation.
+    </div>
+  </div>
+
+  <!-- NOTES -->
+  <div class="card">
+    <div class="section-label">Notes client</div>
+    <div class="notes-box">
+      Passage avec 2 camions benne de 20t. Prévoir un chargeur sur place. Arrivée prévue entre 7h et 9h.
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <div class="footer-left">TVM38 — Carrière de matériaux<br>489 Rue de l'Isle, 38190 Villard-Bonnot</div>
+    <div class="footer-ref">Réf. TVM-20260518-0028<br>Reçu le 18/05/2026 à 07:52</div>
+  </div>
+
+</div>
+</body>
+</html>
