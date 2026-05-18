@@ -210,7 +210,7 @@ function buildHtml(fields: {
 
   // Bouton Maps dans actions
   const mapsBtn = (hasLivraison && adresseLivraison)
-    ? `<a href="https://maps.google.com/?q=${encodeURIComponent(adresseLivraison)}" style="display:inline-block;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:white;color:#333;border:1.5px solid #ccc" target="_blank">📍 Voir le chantier</a>`
+    ? `<a href="https://maps.google.com/?q=${encodeURIComponent(adresseLivraison)}" style="display:inline-block;flex:1;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:white;color:#333;border:1.5px solid #ccc;text-align:center" target="_blank">📍 Voir le chantier</a>`
     : '';
 
   // 3e colonne de la bande résumé
@@ -277,8 +277,8 @@ function buildHtml(fields: {
 
 <!-- ACTIONS RAPIDES -->
 <div style="background:#f5f7fa;padding:13px 28px;display:flex;gap:10px;border-bottom:1px solid #dde3ea">
-  <a href="tel:${telephone.replace(/\s/g,'')}" style="display:inline-block;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:#0053a1;color:white">📞 Appeler</a>
-  ${email ? `<a href="mailto:${email}" style="display:inline-block;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:white;color:#0053a1;border:1.5px solid #0053a1">✉️ Répondre</a>` : ''}
+  <a href="tel:${telephone.replace(/\s/g,'')}" style="display:inline-block;flex:1;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:#0053a1;color:white;text-align:center">📞 Appeler</a>
+  ${email ? `<a href="mailto:${email}" style="display:inline-block;flex:1;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:bold;text-decoration:none;background:white;color:#0053a1;border:1.5px solid #0053a1;text-align:center">✉️ Répondre</a>` : ''}
   ${mapsBtn}
 </div>
 
