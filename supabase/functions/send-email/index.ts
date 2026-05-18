@@ -155,8 +155,9 @@ function buildHtml(fields: {
 
   // Référence et horodatage
   const now = new Date();
-  const pad = (n: number) => String(n).padStart(2, '0');
-  const receivedAt = `${pad(now.getDate())}/${pad(now.getMonth()+1)}/${now.getFullYear()} à ${pad(now.getHours())}h${pad(now.getMinutes())}`;
+  const parisDate = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: 'numeric' }).format(now);
+  const parisTime = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hour12: false }).format(now);
+  const receivedAt = `${parisDate} à ${parisTime.replace(':', 'h')}`;
 
   // Couleurs par type
   const tc = typeDemande === 'decharge'
