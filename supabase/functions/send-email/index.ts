@@ -270,7 +270,7 @@ function buildHtml(fields: {
     </div>
     <div style="flex:1;padding:11px 16px">
       <div style="font-size:9px;text-transform:uppercase;letter-spacing:1.2px;opacity:.55;margin-bottom:3px;color:white">Statut client</div>
-      <div style="font-size:13px;font-weight:bold;color:${isNouveauClient ? '#ff7043' : 'white'}">${isNouveauClient ? 'Nouveau client' : 'Client existant'}</div>
+      <div style="font-size:13px;font-weight:bold;color:${isNouveauClient ? '#ff7043' : 'white'}">${isNouveauClient ? 'Accès sans compte' : 'Accès authentifié'}</div>
     </div>
   </div>
 </div>
@@ -289,7 +289,7 @@ function buildHtml(fields: {
     <span class="lbl">Statut</span>
     <span class="val">
       <span class="badge ${isPro ? 'b-pro' : 'b-part'}">${isPro ? 'Professionnel' : 'Particulier'}</span>
-      <span class="badge ${isNouveauClient ? 'b-new' : 'b-ok'}">${isNouveauClient ? 'Nouveau client' : 'Client existant'}</span>
+      <span class="badge ${isNouveauClient ? 'b-new' : 'b-ok'}">${isNouveauClient ? 'Accès sans compte' : 'Accès authentifié'}</span>
     </span>
   </div>
   <div class="row"><span class="lbl">Contact</span><span class="val">${prenom} ${nom}${fonction ? ` <span style="font-weight:400;color:#888">(${fonction})</span>` : ''}</span></div>
