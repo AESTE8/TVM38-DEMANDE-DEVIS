@@ -13,6 +13,7 @@ import { CAMIONS_CAPACITES, CAMIONS_LIVRAISON } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import { getConnectedClient, isGuestMode, clearGuestMode } from '@/lib/auth';
+import { saveDraft, loadDraft, clearDraft, hasDraft } from '@/lib/formDraft';
 import { supabase } from '@/lib/supabase';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
@@ -106,7 +107,7 @@ const CRENEAU_LABELS: Record<string, string> = {
 
 export default function FormPage() {
   const navigate = useNavigate();
-  const { register, handleSubmit, watch, setValue, trigger, formState: { errors, isSubmitting } } = useForm<DevisFormData>({
+  const { register, handleSubmit, watch, setValue, reset, trigger, formState: { errors, isSubmitting } } = useForm<DevisFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       dejaClient: isGuestMode() ? 'non' : 'oui',
@@ -123,6 +124,7 @@ export default function FormPage() {
   const [typeDemandeChosen, setTypeDemandeChosen] = useState(false);
   const [combiTab, setCombiTab] = useState<'livraison' | 'decharge'>('livraison');
   const sectionClientRef = useRef<SectionClientHandle>(null);
+  const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectedClient = getConnectedClient();
   const guestMode = isGuestMode();
   const [stepAnimKey, setStepAnimKey] = useState(0);
@@ -163,6 +165,42 @@ export default function FormPage() {
   useEffect(() => {
     setValue('lignes', lignes);
   }, [lignes, setValue]);
+
+  // Sauvegarde automatique du brouillon à chaque modification (debouncé 1s)
+  useEffect(() => {
+    const subscription = watch((data) => {
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+      draftTimerRef.current = setTimeout(() => {
+        saveDraft(data as Partial<DevisFormData>, lignes);
+      }, 1000);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
+    };
+  }, [watch, lignes]);
+
+  // Proposition de reprise si un brouillon existe au chargement
+  useEffect(() => {
+    if (!hasDraft()) return;
+    toast('Formulaire en cours — reprendre où vous en étiez ?', {
+      duration: 10000,
+      action: {
+        label: 'Reprendre',
+        onClick: () => {
+          const draft = loadDraft();
+          if (!draft) return;
+          const { lignes: draftLignes, ...formValues } = draft;
+          reset(formValues as DevisFormData);
+          if (draftLignes?.length) setLignes(draftLignes);
+        },
+      },
+      cancel: {
+        label: 'Nouveau',
+        onClick: clearDraft,
+      },
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -343,6 +381,7 @@ export default function FormPage() {
 
       const result = await res.json();
       if (result.success) {
+        clearDraft();
         navigate('/merci', { state: { typeClient: data.typeClient } });
       } else {
         throw new Error(result.error || 'Erreur lors de l\'envoi');

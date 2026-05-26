@@ -1,18 +1,19 @@
 // ============================================
-// SERVICE WORKER TVM38 - Version 1.0
+// SERVICE WORKER TVM38 - Version 2.0
 // ============================================
-// Stratégie : Network-First (réseau d'abord, cache en fallback)
-// Cache : Seulement les fichiers statiques (images, CSS, manifest)
-// Ne PAS cacher : JS, HTML, fichiers dynamiques
+// Stratégies par type de ressource :
+//   - Assets hachés (/assets/*.js, /assets/*.css) → Cache-First (hachés = auto-invalidés)
+//   - HTML / navigation → Network-First (toujours la dernière version)
+//   - Images / manifest → Cache-First
+//   - API Supabase / Resend → Network-Only (jamais cacher)
 // ============================================
 
-// Version du cache (changez ce numéro pour forcer une mise à jour)
-const CACHE_VERSION = 'tvm38-v1.0.0';
+const CACHE_VERSION = 'tvm38-v2.0.0';
 const CACHE_NAME = CACHE_VERSION;
 
-// Liste des fichiers statiques à mettre en cache
-// IMPORTANT : NE PAS inclure les fichiers JS ou HTML
-const STATIC_ASSETS = [
+// Assets statiques pré-cachés à l'installation
+const PRECACHE_ASSETS = [
+  '/',
   '/manifest.json',
   '/logo-tvm38.png',
   '/bg-login.jpg',
@@ -21,18 +22,16 @@ const STATIC_ASSETS = [
 ];
 
 // ============================================
-// INSTALL : Mise en cache des assets statiques
+// INSTALL : Pré-cache des assets critiques
 // ============================================
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installation en cours...');
-  self.skipWaiting(); // Activer le nouveau SW immédiatement
+  self.skipWaiting();
 
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Mise en cache des assets statiques');
-      return cache.addAll(STATIC_ASSETS);
+      return cache.addAll(PRECACHE_ASSETS);
     }).catch((error) => {
-      console.error('[SW] Erreur lors de la mise en cache:', error);
+      console.error('[SW] Erreur pré-cache:', error);
     })
   );
 });
@@ -41,68 +40,95 @@ self.addEventListener('install', (event) => {
 // ACTIVATE : Nettoyage des anciens caches
 // ============================================
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activation...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          // Supprimer tous les caches qui ne correspondent pas à la version actuelle
           if (cacheName !== CACHE_NAME && cacheName.startsWith('tvm38-')) {
-            console.log('[SW] Suppression de l\'ancien cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
     })
   );
-  // Prendre le contrôle immédiatement de tous les clients
   return self.clients.claim();
 });
 
 // ============================================
-// FETCH : Stratégie Network-First
+// FETCH : Stratégie selon le type de ressource
 // ============================================
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
 
-  // NE PAS intercepter les requêtes pour :
-  // - Fichiers JS (on veut toujours la dernière version)
-  // - Fichiers HTML (on veut toujours la dernière version)
-  // - Requêtes API (données dynamiques)
-  const isJS = url.pathname.endsWith('.js');
-  const isHTML = url.pathname.endsWith('.html') || url.pathname === '/';
-  const isAPI = url.pathname.startsWith('/api/');
-  const isVite = url.host.includes('localhost') && url.port === '5173';
+  // Ne pas intercepter : dev Vite, extensions navigateur, autres origines que le site
+  const isVite = url.hostname === 'localhost' && url.port === '5173';
+  const isChrome = url.protocol === 'chrome-extension:';
+  if (isVite || isChrome) return;
 
-  // Si c'est un fichier JS, HTML ou API : laisser passer directement (pas de cache)
-  if (isJS || isHTML || isAPI || isVite) {
+  // Ne jamais cacher les appels API externes (Supabase, Resend)
+  const isExternalAPI = !url.origin.includes(self.location.origin) &&
+    (url.hostname.includes('supabase.co') || url.hostname.includes('web3forms.com') || url.hostname.includes('resend.com'));
+  if (isExternalAPI) return;
+
+  // Assets hachés Vite (/assets/nom-[hash].js ou .css) → Cache-First
+  // Ces fichiers ont des noms uniques par build : si le contenu change, le nom change
+  const isHashedAsset = url.pathname.startsWith('/assets/') &&
+    (url.pathname.endsWith('.js') || url.pathname.endsWith('.css'));
+
+  if (isHashedAsset) {
+    event.respondWith(cacheFirst(request));
     return;
   }
 
-  // Pour les fichiers statiques (images, CSS, manifest, etc.) : Network-First
-  event.respondWith(
-    fetch(request)
-      .then((response) => {
-        // Si la réponse est valide, on la met en cache et on la renvoie
-        if (response && response.status === 200) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseClone);
-          });
-        }
-        return response;
-      })
-      .catch(() => {
-        // Si le réseau échoue, on essaie le cache
-        return caches.match(request).then((cachedResponse) => {
-          if (cachedResponse) {
-            console.log('[SW] Récupération depuis le cache:', request.url);
-            return cachedResponse;
-          }
-          // Si rien dans le cache, on renvoie une erreur
-          return new Response('Hors ligne', { status: 503, statusText: 'Service Unavailable' });
-        });
-      })
-  );
+  // Images et manifest → Cache-First
+  const isStaticAsset = /\.(png|jpg|jpeg|gif|svg|ico|webp|woff2?|ttf)$/i.test(url.pathname) ||
+    url.pathname === '/manifest.json';
+
+  if (isStaticAsset) {
+    event.respondWith(cacheFirst(request));
+    return;
+  }
+
+  // Tout le reste (HTML, navigation) → Network-First
+  event.respondWith(networkFirst(request));
 });
+
+// ============================================
+// Stratégie Cache-First
+// ============================================
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    return new Response('Ressource indisponible hors ligne', { status: 503 });
+  }
+}
+
+// ============================================
+// Stratégie Network-First
+// ============================================
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, response.clone());
+    }
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    // Fallback hors ligne : renvoyer la page d'accueil depuis le cache
+    const fallback = await caches.match('/');
+    return fallback || new Response('Hors ligne', { status: 503, statusText: 'Service Unavailable' });
+  }
+}
