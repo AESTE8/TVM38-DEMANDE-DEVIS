@@ -214,11 +214,23 @@ export default function FormPage() {
     if (step === 2) {
       const typeDemande = watch('typeDemande');
       if (typeDemande === 'livraison' || typeDemande === 'livraison_decharge') {
-        return await trigger(['adresseLivraison', 'camionLivraison']);
+        const fields: (keyof DevisFormData)[] = ['adresseLivraison', 'camionLivraison'];
+        if (typeDemande === 'livraison_decharge') fields.push('enginChantier');
+        return await trigger(fields);
       }
       return true;
     }
     if (step === 3) {
+      const typeDemande = watch('typeDemande');
+      if (typeDemande === 'livraison_decharge') {
+        // On est sur l'onglet décharge : exiger au moins un déblai
+        const hasDecharge = lignes.some(l => l.quantiteTonnes > 0 && l.type === 'decharge');
+        if (!hasDecharge) {
+          await trigger(['lignes']);
+          return false;
+        }
+        return true;
+      }
       const hasMateriaux = lignes.some(l => l.quantiteTonnes > 0);
       if (!hasMateriaux) {
         await trigger(['lignes']);
