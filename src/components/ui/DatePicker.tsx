@@ -22,7 +22,7 @@ function toISO(date: Date): string {
 }
 
 function formatFR(date: Date): string {
-  return date.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
 }
 
 const today = new Date();
