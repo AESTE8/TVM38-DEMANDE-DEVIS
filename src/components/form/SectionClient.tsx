@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
 import { cn, formatPhoneInput } from '@/lib/utils';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Pencil } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
 import Badge from '../ui/badge';
@@ -524,7 +524,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                             setEditingAgence(false);
                           }}
                           className={cn(
-                            "p-4 rounded-sm border-2 text-left transition-all",
+                            "p-4 pr-20 rounded-sm border-2 text-left transition-all relative",
                             selectedAgenceId === agence.id
                               ? "border-primary bg-primary/5 shadow-sm"
                               : "border-border bg-surface-container-highest hover:border-primary/30"
@@ -538,6 +538,50 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                               {agence.adresse || agence.adresseStructuree?.rue}
                             </div>
                           )}
+                          {/* Boutons modifier / supprimer */}
+                          <div className="absolute top-1/2 -translate-y-1/2 right-2 flex gap-1">
+                            <button
+                              type="button"
+                              title="Modifier"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const adresse = agence.adresse || agence.adresseStructuree?.rue || '';
+                                setSelectedAgenceId(agence.id);
+                                setOriginalAgence({ nom: agence.nom || '', adresse });
+                                setEditedAgenceNom(agence.nom || '');
+                                setEditedAgenceAdresse(adresse);
+                                setValue('agenceNom', agence.nom || '');
+                                setValue('adresseLivraison', adresse, { shouldValidate: true });
+                                setEditingAgence(true);
+                                setShowNewAgence(false);
+                              }}
+                              className="p-1.5 text-secondary hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              title="Supprimer"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm(`Supprimer l'agence "${agence.nom}" ?`)) return;
+                                if (selectedClientId) {
+                                  await callUpdateClient(selectedClientId, 'delete_agence', { id: agence.id });
+                                }
+                                setCompanyAgences((prev: any[]) => prev.filter((a: any) => a.id !== agence.id));
+                                if (selectedAgenceId === agence.id) {
+                                  setSelectedAgenceId(null);
+                                  setOriginalAgence(null);
+                                  setEditingAgence(false);
+                                  setValue('agenceNom', '');
+                                  setValue('adresseLivraison', '');
+                                }
+                              }}
+                              className="p-1.5 text-secondary hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -545,15 +589,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                     {/* Édition agence sélectionnée */}
                     {selectedAgenceId && !showNewAgence && (
                       <div className="mt-2">
-                        {!editingAgence ? (
-                          <button
-                            type="button"
-                            onClick={() => setEditingAgence(true)}
-                            className="text-xs text-primary/60 hover:text-primary underline underline-offset-2 transition-colors"
-                          >
-                            ✏️ Modifier les infos de cette agence
-                          </button>
-                        ) : (
+                        {editingAgence && (
                           <div className="mt-2 p-4 border border-primary/20 rounded-lg bg-surface-container-highest space-y-3 animate-fade-in">
                             <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block">
                               Modifier l'agence

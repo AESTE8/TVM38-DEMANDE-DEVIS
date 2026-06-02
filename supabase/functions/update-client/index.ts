@@ -47,7 +47,7 @@ async function broadcastClientUpdate(client_id: string) {
 }
 
 // Opérations autorisées — jamais de lecture globale
-const ALLOWED_OPERATIONS = ['add_contact', 'update_contact', 'delete_contact', 'add_agence', 'update_agence', 'update_adresse'];
+const ALLOWED_OPERATIONS = ['add_contact', 'update_contact', 'delete_contact', 'add_agence', 'update_agence', 'delete_agence', 'update_adresse'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
@@ -110,6 +110,13 @@ Deno.serve(async (req) => {
         const agences = (existing.agences || []).map((a: any) =>
           a.id === data.id ? { ...a, nom: data.nom, adresse: data.adresse } : a
         );
+        await supabase.from('clients').update({ agences }).eq('id', client_id);
+        break;
+      }
+      case 'delete_agence': {
+        const { id } = data;
+        if (!id) return json(400, { error: 'ID de l\'agence manquant' });
+        const agences = (existing.agences || []).filter((a: any) => a.id !== id);
         await supabase.from('clients').update({ agences }).eq('id', client_id);
         break;
       }
