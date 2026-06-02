@@ -609,6 +609,11 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                       adresse: editedAgenceAdresse,
                                     });
                                     setOriginalAgence({ nom: editedAgenceNom, adresse: editedAgenceAdresse });
+                                    setCompanyAgences(prev => prev.map((a: any) =>
+                                      a.id === selectedAgenceId
+                                        ? { ...a, nom: editedAgenceNom, adresse: editedAgenceAdresse }
+                                        : a
+                                    ));
                                   }
                                   setEditingAgence(false);
                                 }}
