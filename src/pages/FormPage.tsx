@@ -212,8 +212,9 @@ export default function FormPage() {
       return await trigger(fields);
     }
     if (step === 2) {
-      if (watch('typeDemande') === 'livraison') {
-        return await trigger(['adresseLivraison']);
+      const typeDemande = watch('typeDemande');
+      if (typeDemande === 'livraison' || typeDemande === 'livraison_decharge') {
+        return await trigger(['adresseLivraison', 'camionLivraison']);
       }
       return true;
     }
