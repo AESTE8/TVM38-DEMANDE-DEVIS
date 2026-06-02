@@ -207,7 +207,7 @@ export default function FormPage() {
   const validateStep = async (step: number): Promise<boolean> => {
     if (step === 1) {
       const fields: (keyof DevisFormData)[] = ['nom', 'prenom', 'telephone', 'email'];
-      if (watch('typeClient') === 'professionnel') {
+      if (watch('typeClient') === 'professionnel' && !connectedClient) {
         fields.push('entrepriseNom', 'entrepriseAdresse');
       }
       return await trigger(fields);
@@ -243,7 +243,16 @@ export default function FormPage() {
       return;
     }
 
+    if (currentStep === 1 && connectedClient && (connectedClient.agences?.length ?? 0) > 0 && !watch('agenceNom')) {
+      toast.error('Veuillez sélectionner une agence / un site de livraison avant de continuer.');
+      return;
+    }
+
     const valid = await validateStep(currentStep);
+    if (!valid) {
+      toast.error('Veuillez remplir tous les champs obligatoires avant de continuer.');
+      return;
+    }
     if (valid) {
       const nextStep = currentStep + 1;
       setStepDirection('forward');

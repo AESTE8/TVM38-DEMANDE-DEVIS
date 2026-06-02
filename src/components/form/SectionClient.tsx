@@ -589,22 +589,40 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                 placeholder="Rechercher l'adresse..."
                               />
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                // Remettre les valeurs d'origine dans le formulaire
-                                if (originalAgence) {
-                                  setEditedAgenceNom(originalAgence.nom);
-                                  setEditedAgenceAdresse(originalAgence.adresse);
-                                  setValue('agenceNom', originalAgence.nom);
-                                  setValue('adresseLivraison', originalAgence.adresse, { shouldValidate: true });
-                                }
-                                setEditingAgence(false);
-                              }}
-                              className="text-xs text-secondary hover:text-destructive transition-colors"
-                            >
-                              Annuler
-                            </button>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (selectedClientId && selectedAgenceId) {
+                                    await callUpdateClient(selectedClientId, 'update_agence', {
+                                      id: selectedAgenceId,
+                                      nom: editedAgenceNom,
+                                      adresse: editedAgenceAdresse,
+                                    });
+                                    setOriginalAgence({ nom: editedAgenceNom, adresse: editedAgenceAdresse });
+                                  }
+                                  setEditingAgence(false);
+                                }}
+                                className="flex-1 py-2 px-4 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
+                              >
+                                Enregistrer
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (originalAgence) {
+                                    setEditedAgenceNom(originalAgence.nom);
+                                    setEditedAgenceAdresse(originalAgence.adresse);
+                                    setValue('agenceNom', originalAgence.nom);
+                                    setValue('adresseLivraison', originalAgence.adresse, { shouldValidate: true });
+                                  }
+                                  setEditingAgence(false);
+                                }}
+                                className="py-2 px-3 rounded-lg text-xs text-secondary hover:text-destructive transition-colors"
+                              >
+                                Annuler
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
