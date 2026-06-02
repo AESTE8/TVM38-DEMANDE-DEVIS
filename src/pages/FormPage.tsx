@@ -55,9 +55,8 @@ const schema = z.object({
     if (!data.entrepriseNom || data.entrepriseNom.length < 2) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Nom d'entreprise requis", path: ['entrepriseNom'] });
     }
-    if (!data.entrepriseAdresse || data.entrepriseAdresse.length < 5) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Adresse d'entreprise requise", path: ['entrepriseAdresse'] });
-    }
+    // entrepriseAdresse non requise : les clients connectés n'ont pas forcément
+    // d'adresse en base, et l'adresse de livraison vient de l'agence sélectionnée.
   }
   if ((data.typeDemande === 'livraison' || data.typeDemande === 'livraison_decharge') && (!data.adresseLivraison || data.adresseLivraison.trim().length < 5)) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Adresse de livraison requise", path: ['adresseLivraison'] });
