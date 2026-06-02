@@ -90,9 +90,8 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
       email: string;
       adresse: string;
     } | null>(null);
-    const [editingPhone, setEditingPhone] = useState(false);
-    const [editingEmail, setEditingEmail] = useState(false);
     const [editingAdresse, setEditingAdresse] = useState(false);
+    const contactsSectionRef = useRef<HTMLDivElement>(null);
 
     // Initialisation depuis la session client connecté
     useEffect(() => {
@@ -404,14 +403,13 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                   />
                 )}
 
-                {/* Amélioration 2 — Infos entreprise modifiables */}
+                {/* Bloc 1 — Infos entreprise (nom + adresse siège uniquement) */}
                 {watch('entrepriseNom') && originalClient && (
                   <div className="mt-4 p-4 bg-surface-container-highest rounded-lg border border-border/40">
                     <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-2">
-                       Infos principales Entreprise — cliquez sur ✏️ pour corriger
+                      Infos entreprise
                     </Label>
                     <div className="space-y-2">
-                      {/* Nom de l'entreprise */}
                       <div className="flex items-center gap-2 py-1 border-b border-border/20">
                         <span className="text-xs text-secondary w-20 shrink-0">
                           {typeClient === 'professionnel' ? 'Entreprise' : 'Compte'}
@@ -421,72 +419,9 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                         </span>
                       </div>
 
-                      {/* Téléphone */}
-                      <div className="flex items-center gap-2 py-1 border-b border-border/20">
-                        <span className="text-xs text-secondary w-20 shrink-0">Téléphone</span>
-                        {editingPhone ? (
-                          <Input
-                            className="h-7 text-sm flex-1"
-                            value={watch('telephone') || ''}
-                            onChange={(e) => setValue('telephone', formatPhoneInput(e.target.value))}
-                            onBlur={() => setEditingPhone(false)}
-                            autoFocus
-                          />
-                        ) : (
-                          <>
-                            <span className="text-sm flex-1 text-on-surface">
-                              {watch('telephone') || originalClient.telephone || <span className="text-secondary italic">—</span>}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!watch('telephone')) setValue('telephone', originalClient.telephone);
-                                setEditingPhone(true);
-                              }}
-                              className="text-secondary hover:text-primary transition-colors text-sm px-1"
-                              title="Modifier le téléphone"
-                            >
-                              ✏️
-                            </button>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Email */}
-                      <div className="flex items-center gap-2 py-1 border-b border-border/20">
-                        <span className="text-xs text-secondary w-20 shrink-0">Email</span>
-                        {editingEmail ? (
-                          <Input
-                            className="h-7 text-sm flex-1"
-                            type="email"
-                            value={watch('email') || ''}
-                            onChange={(e) => setValue('email', e.target.value)}
-                            onBlur={() => setEditingEmail(false)}
-                            autoFocus
-                          />
-                        ) : (
-                          <>
-                            <span className="text-sm flex-1 text-on-surface truncate">
-                              {watch('email') || originalClient.email || <span className="text-secondary italic">—</span>}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (!watch('email')) setValue('email', originalClient.email);
-                                setEditingEmail(true);
-                              }}
-                              className="text-secondary hover:text-primary transition-colors text-sm px-1 shrink-0"
-                              title="Modifier l'email"
-                            >
-                              ✏️
-                            </button>
-                          </>
-                        )}
-                      </div>
-
                       {/* Adresse siège */}
                       <div className="flex items-center gap-2 py-1">
-                        <span className="text-xs text-secondary w-20 shrink-0">Adresse</span>
+                        <span className="text-xs text-secondary w-20 shrink-0">Adresse siège</span>
                         {editingAdresse ? (
                           <div className="flex-1">
                             <AddressAutocomplete
@@ -516,6 +451,53 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                         )}
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Bloc 2 — Contact sélectionné */}
+                {watch('entrepriseNom') && originalClient && (
+                  <div className="mt-3 p-4 bg-surface-container-highest rounded-lg border border-border/40">
+                    <div className="flex items-center justify-between mb-2">
+                      <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary">
+                        Contact sélectionné
+                      </Label>
+                      <button
+                        type="button"
+                        onClick={() => contactsSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                        className="text-xs text-primary/70 hover:text-primary underline underline-offset-2 transition-colors"
+                      >
+                        Changer le contact ↓
+                      </button>
+                    </div>
+                    {selectedContactId ? (
+                      <div className="space-y-1.5">
+                        {(watch('prenom') || watch('nom')) && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-secondary w-20 shrink-0">Nom</span>
+                            <span className="text-sm font-bold text-on-surface">
+                              {[watch('prenom'), watch('nom')].filter(Boolean).join(' ')}
+                            </span>
+                          </div>
+                        )}
+                        {watch('telephone') && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-secondary w-20 shrink-0">Téléphone</span>
+                            <span className="text-sm text-on-surface">{watch('telephone')}</span>
+                          </div>
+                        )}
+                        {watch('email') && watch('email') !== 'Contact sans adresse email' && (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-secondary w-20 shrink-0">Email</span>
+                            <span className="text-sm text-on-surface truncate">{watch('email')}</span>
+                          </div>
+                        )}
+                        {selectedContactId === 'nouveau' && (
+                          <p className="text-xs text-primary/60 italic">Nouveau contact — remplissez vos coordonnées ci-dessous</p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-secondary italic">Aucun contact sélectionné — choisissez-en un ci-dessous</p>
+                    )}
                   </div>
                 )}
 
@@ -711,7 +693,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
                 {/* Sélecteur de contact */}
                 {watch('entrepriseNom') && (
-                  <div className="mt-6 pt-6 border-t border-primary/10 animate-fade-in">
+                  <div ref={contactsSectionRef} className="mt-6 pt-6 border-t border-primary/10 animate-fade-in">
                     <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-3">
                       {companyContacts.length > 0 ? 'Sélectionnez le contact' : 'Contacts enregistrés'}
                     </Label>
