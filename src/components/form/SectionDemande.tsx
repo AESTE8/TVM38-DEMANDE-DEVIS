@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
+import DatePicker from '../ui/DatePicker';
 import { cn } from '@/lib/utils';
 import { Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -269,19 +270,15 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             <CamionSelector />
 
             <div className="space-y-1">
-              <Label htmlFor="dateSouhaitee" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
+              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
-                onChange: (e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    const day = new Date(val + 'T00:00:00').getDay();
-                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
-                  }
-                }
-              })} />
+              <DatePicker
+                value={watch('dateSouhaitee')}
+                onChange={(iso) => setValue('dateSouhaitee', iso)}
+                placeholder="Choisir une date"
+              />
             </div>
 
             {showCreneauSection && (
@@ -345,19 +342,15 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             <CamionSelector />
 
             <div className="space-y-1">
-              <Label htmlFor="dateSouhaiteeCombi" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
+              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaiteeCombi" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
-                onChange: (e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    const day = new Date(val + 'T00:00:00').getDay();
-                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
-                  }
-                }
-              })} />
+              <DatePicker
+                value={watch('dateSouhaitee')}
+                onChange={(iso) => setValue('dateSouhaitee', iso)}
+                placeholder="Choisir une date"
+              />
             </div>
 
             {showCreneauSection && (
@@ -393,19 +386,15 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
         {typeDemande === 'decharge' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 animate-fade-in">
             <div className="space-y-1">
-              <Label htmlFor="dateSouhaitee" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
+              <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
                 <span>Date souhaitée</span>
                 <span className="text-[10px] normal-case font-medium opacity-60">(optionnel · lun–ven)</span>
               </Label>
-              <Input id="dateSouhaitee" type="date" onClick={(e) => { try { (e.target as HTMLInputElement).showPicker(); } catch {} }} {...register('dateSouhaitee', {
-                onChange: (e) => {
-                  const val = e.target.value;
-                  if (val) {
-                    const day = new Date(val + 'T00:00:00').getDay();
-                    if (day === 0 || day === 6) setValue('dateSouhaitee', '');
-                  }
-                }
-              })} />
+              <DatePicker
+                value={watch('dateSouhaitee')}
+                onChange={(iso) => setValue('dateSouhaitee', iso)}
+                placeholder="Choisir une date"
+              />
             </div>
 
             {showCreneauSection && (
