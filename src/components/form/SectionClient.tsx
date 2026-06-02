@@ -525,31 +525,40 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                     <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-primary block mb-2">
                       Choisir une agence
                     </Label>
-                    <select
-                      className="w-full border border-border rounded-md px-3 py-2 text-base md:text-sm bg-surface-container-highest focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      defaultValue=""
-                      onChange={(e) => {
-                        const agence = companyAgences.find(a => a.id === e.target.value);
-                        if (agence) {
-                          const adresse = agence.adresse || agence.adresseStructuree?.rue || '';
-                          setValue('adresseLivraison', adresse, { shouldValidate: true });
-                          setValue('agenceNom', agence.nom || '');
-                          setShowNewAgence(false);
-                          setSelectedAgenceId(agence.id);
-                          setOriginalAgence({ nom: agence.nom || '', adresse });
-                          setEditedAgenceNom(agence.nom || '');
-                          setEditedAgenceAdresse(adresse);
-                          setEditingAgence(false);
-                        }
-                      }}
-                    >
-                      <option value="" disabled>-- Sélectionnez votre agence --</option>
+                    <div className="grid grid-cols-1 gap-2">
                       {companyAgences.map((agence: any) => (
-                        <option key={agence.id} value={agence.id}>
-                          {agence.nom} {agence.adresse ? `— ${agence.adresse}` : ''}
-                        </option>
+                        <button
+                          key={agence.id}
+                          type="button"
+                          onClick={() => {
+                            const adresse = agence.adresse || agence.adresseStructuree?.rue || '';
+                            setValue('adresseLivraison', adresse, { shouldValidate: true });
+                            setValue('agenceNom', agence.nom || '');
+                            setShowNewAgence(false);
+                            setSelectedAgenceId(agence.id);
+                            setOriginalAgence({ nom: agence.nom || '', adresse });
+                            setEditedAgenceNom(agence.nom || '');
+                            setEditedAgenceAdresse(adresse);
+                            setEditingAgence(false);
+                          }}
+                          className={cn(
+                            "p-4 rounded-sm border-2 text-left transition-all",
+                            selectedAgenceId === agence.id
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-border bg-surface-container-highest hover:border-primary/30"
+                          )}
+                        >
+                          <div className={cn("font-bold text-sm", selectedAgenceId === agence.id ? "text-primary" : "text-on-surface")}>
+                            {agence.nom}
+                          </div>
+                          {(agence.adresse || agence.adresseStructuree?.rue) && (
+                            <div className="text-xs text-secondary mt-0.5">
+                              {agence.adresse || agence.adresseStructuree?.rue}
+                            </div>
+                          )}
+                        </button>
                       ))}
-                    </select>
+                    </div>
 
                     {/* Édition agence sélectionnée */}
                     {selectedAgenceId && !showNewAgence && (
