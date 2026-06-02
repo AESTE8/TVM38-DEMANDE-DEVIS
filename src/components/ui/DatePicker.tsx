@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { fr } from 'react-day-picker/locale';
-import { Calendar } from 'lucide-react';
+import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface DatePickerProps {
@@ -28,7 +28,7 @@ function formatFR(date: Date): string {
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-export default function DatePicker({ value, onChange, placeholder = 'Sélectionner une date', className }: DatePickerProps) {
+export default function DatePicker({ value, onChange, placeholder = 'Choisir une date', className }: DatePickerProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const selected = toDate(value);
@@ -43,23 +43,22 @@ export default function DatePicker({ value, onChange, placeholder = 'Sélectionn
 
   return (
     <div ref={ref} className={cn('relative', className)}>
+      {/* Bouton déclencheur */}
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
         className={cn(
-          'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm text-left transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+          'w-full flex items-center justify-between gap-2 px-3 py-2 rounded-md border border-input bg-background text-sm text-left transition-colors',
+          'hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
           !value && 'text-muted-foreground'
         )}
       >
-        <span className="truncate">{selected ? formatFR(selected) : placeholder}</span>
+        <span className="truncate capitalize">{selected ? formatFR(selected) : placeholder}</span>
         <Calendar className="w-4 h-4 text-secondary shrink-0" />
       </button>
 
       {open && (
-        <div className="absolute left-0 z-50 mt-1 rounded-xl border border-border bg-surface shadow-xl animate-fade-in">
-          <style>{`
-            .rdp-root { --rdp-accent-color: hsl(var(--primary)); --rdp-accent-background-color: hsl(var(--primary) / 0.1); }
-          `}</style>
+        <div className="absolute left-0 z-50 mt-1 rounded-xl border border-border bg-surface shadow-xl animate-fade-in select-none">
           <DayPicker
             mode="single"
             locale={fr}
@@ -67,14 +66,54 @@ export default function DatePicker({ value, onChange, placeholder = 'Sélectionn
             defaultMonth={selected ?? today}
             disabled={[{ before: today }, { dayOfWeek: [0, 6] }]}
             onSelect={(date) => {
-              if (date) {
-                onChange(toISO(date));
-                setOpen(false);
-              }
+              if (date) { onChange(toISO(date)); setOpen(false); }
+            }}
+            classNames={{
+              root: 'p-4 w-72',
+              months: '',
+              month: '',
+              month_caption: 'flex items-center justify-between mb-4 px-1',
+              caption_label: 'text-sm font-bold text-on-surface capitalize',
+              nav: 'flex items-center gap-1',
+              button_previous: cn(
+                'p-1.5 rounded-md transition-colors text-secondary hover:text-primary hover:bg-primary/10',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30'
+              ),
+              button_next: cn(
+                'p-1.5 rounded-md transition-colors text-secondary hover:text-primary hover:bg-primary/10',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30'
+              ),
+              month_grid: 'w-full',
+              weekdays: 'flex mb-1',
+              weekday: 'w-9 h-8 flex items-center justify-center text-[0.65rem] font-bold uppercase text-secondary/70',
+              weeks: '',
+              week: 'flex',
+              day: 'p-0',
+            }}
+            components={{
+              Chevron: ({ orientation }) =>
+                orientation === 'left'
+                  ? <ChevronLeft className="w-4 h-4" />
+                  : <ChevronRight className="w-4 h-4" />,
+              DayButton: ({ day: _day, modifiers, ...props }) => (
+                <button
+                  {...props}
+                  className={cn(
+                    'w-9 h-9 rounded-lg text-sm flex items-center justify-center transition-colors m-px font-medium',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30',
+                    modifiers.selected && 'bg-primary text-white shadow-sm',
+                    modifiers.today && !modifiers.selected && 'border-2 border-primary/50 text-primary font-bold',
+                    modifiers.outside && 'text-secondary/30',
+                    modifiers.disabled
+                      ? 'text-secondary/30 cursor-not-allowed'
+                      : !modifiers.selected && 'hover:bg-primary/10 hover:text-primary cursor-pointer',
+                  )}
+                />
+              ),
             }}
           />
           {value && (
-            <div className="px-4 pb-3 flex justify-end">
+            <div className="border-t border-border/40 px-4 py-2.5 flex justify-end">
               <button
                 type="button"
                 onClick={() => { onChange(''); setOpen(false); }}
