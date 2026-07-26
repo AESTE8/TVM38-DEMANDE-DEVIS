@@ -247,19 +247,36 @@ compte ou change un mot de passe.
 
 ---
 
-## 7. Point de sécurité non lié, à traiter
+## 7. Durcissement RLS du référentiel — appliqué
 
-La table `tranches_remise` a **RLS désactivé** : elle est lisible et modifiable
-par quiconque dispose de la clé anon (publiée dans le bundle du site).
+Problème détecté en vérifiant les migrations précédentes : la clé publique du
+site, distribuée en clair dans le bundle JavaScript, disposait d'un accès **en
+écriture** à `materiaux`, `camions` et `chauffeurs` (`for all to anon using
+(true) with check (true)`). N'importe qui pouvait modifier les prix au tonnage
+servant au chiffrage. `tranches_remise` n'avait carrément pas de RLS.
 
-```sql
-alter table public.tranches_remise enable row level security;
+Corrigé par `20260726010000_durcissement_rls_referentiel.sql`. Vérifié en
+endossant le rôle `anon` :
 
-create policy tranches_remise_authenticated_all on public.tranches_remise
-  for all to authenticated
-  using (auth.jwt() is not null)
-  with check (auth.jwt() is not null);
-```
+| Vérification | Résultat |
+|---|---|
+| Le formulaire lit les matériaux | ✅ 29 lignes visibles |
+| Le public modifie les prix | 🔒 bloqué |
+| Le public lit `tranches_remise` | 🔒 bloqué |
+| Le public lit les devis | 🔒 bloqué |
+| Le public lit les demandes | 🔒 bloqué |
+| Le public lit les clients | 🔒 bloqué |
 
-⚠️ Activer RLS **sans policy** bloquerait le logiciel. Les deux instructions
-doivent être exécutées ensemble.
+Les policies `authenticated` sont inchangées : le logiciel conserve ses droits.
+
+## 8. Observation — `CompanyAutocomplete` et le mode invité
+
+`src/components/ui/CompanyAutocomplete.tsx:45` interroge `clients` directement
+avec la clé publique. Or `clients` n'a **jamais eu** de policy `anon` : cette
+requête renvoie une liste vide depuis toujours, indépendamment des changements
+ci-dessus.
+
+L'autocomplétion d'entreprise ne fonctionne donc pas en mode invité. Si le
+comportement attendu est qu'elle fonctionne, il faut passer par une edge
+function dédiée qui ne renvoie que `id` et `nom` — surtout pas ouvrir `clients`
+en lecture anon, la table contient les mots de passe et l'ensemble des contacts.
