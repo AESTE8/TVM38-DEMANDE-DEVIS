@@ -134,6 +134,11 @@ begin
 end;
 $$;
 
+-- La fonction ne référence que NEW/OLD, jamais une table : figer un search_path
+-- vide est sans effet sur son comportement et empêche qu'un schéma placé en
+-- tête de chemin ne détourne un appel.
+alter function public.devis_touch() set search_path = '';
+
 drop trigger if exists devis_touch_trg on public.devis;
 create trigger devis_touch_trg
   before insert or update on public.devis
