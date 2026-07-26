@@ -16,7 +16,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (isSessionValid()) navigate('/formulaire', { replace: true });
+    if (isSessionValid()) navigate('/espace', { replace: true });
   }, []);
   const [identifiant, setIdentifiant] = useState('');
   const [password, setPassword] = useState('');
@@ -51,8 +51,8 @@ export default function LoginPage() {
         return;
       }
 
-      setSession(data.client as ClientData);
-      navigate('/formulaire', { replace: true });
+      setSession(data.client as ClientData, data.token as string, data.expiresAt as number);
+      navigate('/espace', { replace: true });
     } catch {
       setError('Impossible de contacter le serveur. Vérifiez votre connexion.');
     } finally {

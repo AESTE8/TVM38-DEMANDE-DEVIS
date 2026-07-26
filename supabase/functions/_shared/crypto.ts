@@ -1,0 +1,146 @@
+// Primitives cryptographiques partagées par les edge functions.
+// Tout est basé sur Web Crypto, disponible nativement dans Deno : aucune
+// dépendance externe à faire vivre sur des fonctions critiques.
+
+const PBKDF2_ITERATIONS = 210_000; // Recommandation OWASP pour PBKDF2-SHA256
+const KEY_LENGTH_BITS = 256;
+
+const encoder = new TextEncoder();
+
+function toBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes));
+}
+
+function fromBase64(value: string): Uint8Array {
+  return Uint8Array.from(atob(value), (c) => c.charCodeAt(0));
+}
+
+function toBase64Url(bytes: Uint8Array): string {
+  return toBase64(bytes).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+function fromBase64Url(value: string): Uint8Array {
+  const padded = value.replace(/-/g, '+').replace(/_/g, '/');
+  return fromBase64(padded.padEnd(Math.ceil(padded.length / 4) * 4, '='));
+}
+
+/** Comparaison à temps constant — évite de fuiter le hash octet par octet. */
+function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
+  return diff === 0;
+}
+
+async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    key,
+    KEY_LENGTH_BITS,
+  );
+  return new Uint8Array(bits);
+}
+
+/** Produit un hash au format `pbkdf2$<iterations>$<salt_b64>$<hash_b64>`. */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const derived = await pbkdf2(password, salt, PBKDF2_ITERATIONS);
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(derived)}`;
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  const parts = stored.split('$');
+  if (parts.length !== 4 || parts[0] !== 'pbkdf2') return false;
+
+  const iterations = Number(parts[1]);
+  if (!Number.isFinite(iterations) || iterations <= 0) return false;
+
+  try {
+    const derived = await pbkdf2(password, fromBase64(parts[2]), iterations);
+    return timingSafeEqual(derived, fromBase64(parts[3]));
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// JWT HS256
+// ---------------------------------------------------------------------------
+// Le site web ne stocke plus un objet client librement modifiable : il stocke un
+// jeton signé. Modifier son contenu (pour se faire passer pour un autre client)
+// invalide la signature, et les edge functions rejettent le jeton.
+
+export interface ClientTokenPayload {
+  sub: string; // clients.id
+  code: string;
+  nom: string;
+  iat: number;
+  exp: number;
+}
+
+async function hmacKey(secret: string): Promise<CryptoKey> {
+  return await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify'],
+  );
+}
+
+export async function signClientToken(
+  payload: Omit<ClientTokenPayload, 'iat' | 'exp'>,
+  secret: string,
+  ttlSeconds: number,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const body: ClientTokenPayload = { ...payload, iat: now, exp: now + ttlSeconds };
+
+  const header = toBase64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const claims = toBase64Url(encoder.encode(JSON.stringify(body)));
+  const data = `${header}.${claims}`;
+
+  const signature = await crypto.subtle.sign('HMAC', await hmacKey(secret), encoder.encode(data));
+  return `${data}.${toBase64Url(new Uint8Array(signature))}`;
+}
+
+/** Renvoie le payload si le jeton est valide et non expiré, sinon null. */
+export async function verifyClientToken(
+  token: string,
+  secret: string,
+): Promise<ClientTokenPayload | null> {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+
+  const data = `${parts[0]}.${parts[1]}`;
+
+  try {
+    const valid = await crypto.subtle.verify(
+      'HMAC',
+      await hmacKey(secret),
+      fromBase64Url(parts[2]),
+      encoder.encode(data),
+    );
+    if (!valid) return null;
+
+    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(parts[1]))) as ClientTokenPayload;
+    if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    if (!payload.sub) return null;
+
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+/** Extrait et vérifie le jeton porté par l'en-tête `Authorization: Bearer ...`. */
+export async function requireClient(
+  req: Request,
+  secret: string,
+): Promise<ClientTokenPayload | null> {
+  const header = req.headers.get('Authorization') ?? '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+  return await verifyClientToken(match[1].trim(), secret);
+}

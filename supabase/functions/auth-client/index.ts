@@ -1,32 +1,43 @@
-// Supabase Edge Function — auth-client v1
-// Authentifie un client du site web par identifiant + password.
-// Utilise service_role pour contourner RLS et comparer côté serveur.
+// Supabase Edge Function — auth-client v2
+// Authentifie un client du site web (identifiant + mot de passe) et délivre un
+// jeton signé utilisé ensuite par l'espace client.
+//
+// Deux évolutions par rapport à la v1 :
+//  1. Les mots de passe sont vérifiés contre un hash PBKDF2, plus par égalité
+//     de chaînes sur une valeur stockée en clair.
+//  2. Le frontend reçoit un JWT HS256 signé au lieu d'un objet client brut :
+//     bricoler le localStorage ne permet plus de se faire passer pour un autre
+//     client, ce qui devient critique dès lors qu'on expose des montants.
+//
+// Migration transparente : tant qu'un compte n'a pas de `password_hash`, on
+// compare à l'ancien `password` en clair puis on écrit le hash au vol. Aucun
+// client n'a de mot de passe à réinitialiser.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { hashPassword, signClientToken, verifyPassword } from '../_shared/crypto.ts';
+import { json, preflight, requireSecret } from '../_shared/http.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+// 7 jours — aligné sur la durée de session que le site pratiquait déjà.
+const TOKEN_TTL_SECONDS = 7 * 24 * 60 * 60;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return preflight();
   if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' });
+
+  let jwtSecret: string;
+  try {
+    jwtSecret = requireSecret('CLIENT_JWT_SECRET');
+  } catch (err) {
+    console.error('Configuration invalide :', err);
+    return json(500, { error: 'SERVER_MISCONFIGURED' });
+  }
 
   let identifiant: string;
   let password: string;
@@ -45,9 +56,9 @@ Deno.serve(async (req) => {
 
   const { data: client, error } = await supabase
     .from('clients')
-    .select('id, nom, prenom, code, type, email, telephone, adresse, contacts, agences, liste_noire, password')
+    .select('id, nom, prenom, code, type, email, telephone, adresse, contacts, agences, liste_noire, password, password_hash')
     .eq('identifiant', identifiant)
-    .single();
+    .maybeSingle();
 
   if (error || !client) {
     return json(401, { error: 'INVALID_CREDENTIALS' });
@@ -57,12 +68,59 @@ Deno.serve(async (req) => {
     return json(403, { error: 'ACCOUNT_SUSPENDED' });
   }
 
-  if (client.password !== password) {
+  // Vérification du mot de passe
+  let authenticated = false;
+
+  if (client.password_hash) {
+    authenticated = await verifyPassword(password, client.password_hash);
+  } else if (client.password) {
+    // Compte pas encore migré : on compare à l'ancienne valeur en clair, et si
+    // elle est bonne on en profite pour écrire le hash définitivement.
+    authenticated = client.password === password;
+
+    if (authenticated) {
+      try {
+        const hash = await hashPassword(password);
+        await supabase.from('clients').update({ password_hash: hash }).eq('id', client.id);
+      } catch (err) {
+        // La connexion reste valide même si l'écriture du hash échoue :
+        // le compte sera simplement migré à la prochaine tentative.
+        console.error('Migration du hash échouée pour', client.id, err);
+      }
+    }
+  }
+
+  if (!authenticated) {
     return json(401, { error: 'INVALID_CREDENTIALS' });
   }
 
-  // Ne jamais renvoyer le password au frontend
-  const { password: _pw, liste_noire: _lb, ...safeClient } = client;
+  const token = await signClientToken(
+    { sub: client.id, code: client.code, nom: client.nom },
+    jwtSecret,
+    TOKEN_TTL_SECONDS,
+  );
 
-  return json(200, { success: true, client: safeClient });
+  // Ni le mot de passe, ni son hash, ni le statut de liste noire ne sortent
+  // d'ici. On énumère explicitement ce qui est renvoyé plutôt que d'exclure
+  // des champs : une colonne sensible ajoutée plus tard à `clients` ne se
+  // retrouvera pas exposée par inadvertance.
+  const safeClient = {
+    id: client.id,
+    nom: client.nom,
+    prenom: client.prenom,
+    code: client.code,
+    type: client.type,
+    email: client.email,
+    telephone: client.telephone,
+    adresse: client.adresse,
+    contacts: client.contacts,
+    agences: client.agences,
+  };
+
+  return json(200, {
+    success: true,
+    client: safeClient,
+    token,
+    expiresAt: Date.now() + TOKEN_TTL_SECONDS * 1000,
+  });
 });

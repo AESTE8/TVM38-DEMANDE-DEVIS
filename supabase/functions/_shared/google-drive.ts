@@ -1,0 +1,195 @@
+// Accès Google Drive via un compte de service.
+//
+// La clé privée du compte de service ne quitte JAMAIS l'infrastructure : elle
+// vit dans le secret `GOOGLE_SERVICE_ACCOUNT_JSON` des edge functions. Ni le
+// logiciel desktop ni le site web ne la manipulent — un poste compromis ou un
+// exécutable décompilé ne donne donc aucun accès au Drive.
+//
+// ⚠️ Prérequis Google : les comptes de service n'ont pas de quota de stockage
+// propre. Le dossier cible doit être un **Drive partagé** (Shared Drive) dont le
+// compte de service est membre avec le rôle « Gestionnaire de contenu ».
+// Un simple dossier partagé depuis un Drive personnel provoque l'erreur
+// « Service Accounts do not have storage quota » à l'upload.
+
+const TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token';
+// drive.file : le compte de service ne voit que les fichiers qu'il a créés
+// lui-même. Portée minimale, il ne peut pas parcourir le reste du Drive.
+const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+interface ServiceAccount {
+  client_email: string;
+  private_key: string;
+}
+
+let cachedToken: { value: string; expiresAt: number } | null = null;
+
+function base64Url(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+}
+
+function loadServiceAccount(): ServiceAccount {
+  const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
+  if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON manquant');
+
+  const parsed = JSON.parse(raw) as ServiceAccount;
+  if (!parsed.client_email || !parsed.private_key) {
+    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON incomplet');
+  }
+  return parsed;
+}
+
+async function importPrivateKey(pem: string): Promise<CryptoKey> {
+  // Les secrets sont souvent collés avec des \n littéraux : on les restaure.
+  const normalized = pem.includes('\\n') ? pem.replace(/\\n/g, '\n') : pem;
+  const body = normalized
+    .replace(/-----BEGIN PRIVATE KEY-----/, '')
+    .replace(/-----END PRIVATE KEY-----/, '')
+    .replace(/\s+/g, '');
+
+  const der = Uint8Array.from(atob(body), (c) => c.charCodeAt(0));
+
+  return await crypto.subtle.importKey(
+    'pkcs8',
+    der,
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+}
+
+/** Jeton d'accès Google, mis en cache jusqu'à une minute avant son expiration. */
+export async function getAccessToken(): Promise<string> {
+  if (cachedToken && cachedToken.expiresAt > Date.now() + 60_000) {
+    return cachedToken.value;
+  }
+
+  const account = loadServiceAccount();
+  const now = Math.floor(Date.now() / 1000);
+  const encoder = new TextEncoder();
+
+  const header = base64Url(encoder.encode(JSON.stringify({ alg: 'RS256', typ: 'JWT' })));
+  const claims = base64Url(encoder.encode(JSON.stringify({
+    iss: account.client_email,
+    scope: SCOPE,
+    aud: TOKEN_ENDPOINT,
+    iat: now,
+    exp: now + 3600,
+  })));
+
+  const key = await importPrivateKey(account.private_key);
+  const signature = await crypto.subtle.sign(
+    'RSASSA-PKCS1-v1_5',
+    key,
+    encoder.encode(`${header}.${claims}`),
+  );
+
+  const assertion = `${header}.${claims}.${base64Url(new Uint8Array(signature))}`;
+
+  const res = await fetch(TOKEN_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Google OAuth a refusé l'assertion : ${res.status} ${await res.text()}`);
+  }
+
+  const data = await res.json();
+  cachedToken = {
+    value: data.access_token,
+    expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+  };
+  return cachedToken.value;
+}
+
+/**
+ * Dépose un PDF dans le Drive partagé.
+ *
+ * Si `existingFileId` est fourni, le contenu du fichier est **écrasé** au lieu
+ * d'en créer un nouveau. C'est le point qui fait tenir tout l'édifice : le lien
+ * stocké en base ne change jamais, et le PDF derrière est toujours la dernière
+ * version enregistrée par le dispatcher.
+ */
+export async function uploadPdf(
+  bytes: Uint8Array,
+  fileName: string,
+  folderId: string,
+  existingFileId?: string | null,
+): Promise<string> {
+  const token = await getAccessToken();
+
+  if (existingFileId) {
+    const res = await fetch(
+      `https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(existingFileId)}` +
+        `?uploadType=media&supportsAllDrives=true`,
+      {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/pdf' },
+        body: bytes,
+      },
+    );
+
+    if (res.ok) return existingFileId;
+
+    // Fichier supprimé du Drive entre-temps : on repart sur une création.
+    if (res.status !== 404) {
+      throw new Error(`Écrasement du PDF échoué : ${res.status} ${await res.text()}`);
+    }
+  }
+
+  const boundary = `tvm38-${crypto.randomUUID()}`;
+  const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType: 'application/pdf' });
+
+  const head = new TextEncoder().encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
+      `--${boundary}\r\nContent-Type: application/pdf\r\n\r\n`,
+  );
+  const tail = new TextEncoder().encode(`\r\n--${boundary}--`);
+
+  const body = new Uint8Array(head.length + bytes.length + tail.length);
+  body.set(head, 0);
+  body.set(bytes, head.length);
+  body.set(tail, head.length + bytes.length);
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Dépôt du PDF échoué : ${res.status} ${await res.text()}`);
+  }
+
+  const { id } = await res.json();
+  return id as string;
+}
+
+/** Récupère le contenu d'un PDF privé. Le client ne voit jamais l'URL Drive. */
+export async function downloadPdf(fileId: string): Promise<Uint8Array> {
+  const token = await getAccessToken();
+
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?alt=media&supportsAllDrives=true`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Lecture du PDF échouée : ${res.status} ${await res.text()}`);
+  }
+
+  return new Uint8Array(await res.arrayBuffer());
+}

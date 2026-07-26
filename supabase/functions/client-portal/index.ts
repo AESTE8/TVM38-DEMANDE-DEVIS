@@ -1,0 +1,384 @@
+// Supabase Edge Function — client-portal v1
+// Alimente l'espace personnel du client : le fil de ses affaires (demandes de
+// devis et devis reçus) et le détail de chacune.
+//
+// Principes :
+//  - Le client est identifié par le JWT signé émis par `auth-client`. Aucune
+//    donnée n'est servie sans jeton valide, et le filtrage se fait sur
+//    `token.sub` — jamais sur un identifiant fourni par l'appelant.
+//  - On lit `devis` en direct : c'est la même ligne que celle qu'édite le
+//    logiciel de la carrière. Aucune copie, donc aucune divergence possible
+//    entre ce que voit le dispatcher et ce que voit le client.
+//  - Seuls les devis formellement transmis sont exposés. Les brouillons
+//    (`en_attente`) du dispatcher restent invisibles.
+//
+// Routes :
+//   GET  /client-portal/affaires        → le fil
+//   GET  /client-portal/affaires/:id    → le détail d'une affaire
+
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { requireClient } from '../_shared/crypto.ts';
+import { json, preflight, requireSecret } from '../_shared/http.ts';
+
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+  auth: { autoRefreshToken: false, persistSession: false },
+});
+
+/** États d'un devis considérés comme transmis au client. */
+const ETATS_VISIBLES = ['envoye', 'accepte', 'termine'];
+
+type Statut =
+  | 'envoyee'      // demande reçue, pas encore traitée
+  | 'en_chiffrage' // le dispatcher travaille dessus
+  | 'devis_recu'   // un devis a été transmis
+  | 'acceptee'     // le client a donné son accord
+  | 'terminee'     // livrée / réalisée
+  | 'sans_suite';
+
+interface LigneDevis {
+  materiauId?: string;
+  quantiteTonnes?: number;
+  quantiteM3?: number;
+  modeEntree?: string;
+  type?: string;
+}
+
+/** Colonnes de `devis` sélectionnées par cette fonction. */
+interface DevisRow {
+  id: string;
+  numero_devis: string;
+  demande_id: string | null;
+  type_devis: string;
+  etat: string;
+  date_devis: string | null;
+  date_envoi: string | null;
+  date_envoi_at: string | null;
+  adresse_livraison: string | null;
+  creneau_livraison: string | null;
+  date_planification: string | null;
+  lignes: unknown;
+  montant_total_ht: number;
+  montant_envoye: number | null;
+  updated_at: string | null;
+  drive_file_id: string | null;
+  created_at: string;
+}
+
+interface DemandeRow {
+  id: string;
+  client_id: string | null;
+  statut: string;
+  type_demande: string;
+  adresse_livraison: string | null;
+  camion_livraison: string | null;
+  engin_chantier: string | null;
+  date_souhaitee: string | null;
+  creneau: string | null;
+  agence_nom: string | null;
+  contact_nom: string | null;
+  contact_prenom: string | null;
+  lignes: unknown;
+  notes: string | null;
+  created_at: string;
+}
+
+type Materiaux = Map<string, { nom: string; code: string }>;
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function statutDepuisDevis(etat: string): Statut {
+  if (etat === 'accepte') return 'acceptee';
+  if (etat === 'termine') return 'terminee';
+  return 'devis_recu';
+}
+
+function statutDepuisDemande(statutDemande: string): Statut {
+  if (statutDemande === 'sans_suite') return 'sans_suite';
+  if (statutDemande === 'en_traitement' || statutDemande === 'devisee') return 'en_chiffrage';
+  return 'envoyee';
+}
+
+/**
+ * Le montant a-t-il bougé depuis l'envoi ?
+ * `montant_envoye` est figé par un trigger au moment où le devis part. Si le
+ * dispatcher modifie ensuite le devis, les deux valeurs divergent et l'espace
+ * client peut le dire explicitement au lieu de laisser le client face à deux
+ * chiffres contradictoires (celui de son email, celui du site).
+ */
+function montantModifie(devis: { montant_total_ht: number; montant_envoye: number | null }): boolean {
+  if (devis.montant_envoye === null || devis.montant_envoye === undefined) return false;
+  // Tolérance au centime : `montant_total_ht` est un `real`, les comparaisons
+  // strictes sur flottants produiraient de faux positifs.
+  return Math.abs(devis.montant_total_ht - devis.montant_envoye) >= 0.01;
+}
+
+/** Enrichit les lignes avec le nom des matériaux. Aucun prix unitaire n'est exposé. */
+function mapLignes(lignes: unknown, materiaux: Materiaux) {
+  if (!Array.isArray(lignes)) return [];
+  return (lignes as LigneDevis[])
+    .filter((l) => (l?.quantiteTonnes ?? 0) > 0 || (l?.quantiteM3 ?? 0) > 0)
+    .map((l) => {
+      const mat = l.materiauId ? materiaux.get(l.materiauId) : undefined;
+      return {
+        nom: mat?.nom ?? 'Matériau',
+        code: mat?.code ?? null,
+        quantiteTonnes: l.quantiteTonnes ?? 0,
+        quantiteM3: l.quantiteM3 ?? 0,
+        modeEntree: l.modeEntree ?? 'tonnes',
+        type: l.type ?? null,
+      };
+    });
+}
+
+async function chargerMateriaux(): Promise<Materiaux> {
+  const { data } = await supabase.from('materiaux').select('id, nom, code');
+  const map: Materiaux = new Map();
+  for (const m of data ?? []) map.set(m.id, { nom: m.nom, code: m.code });
+  return map;
+}
+
+/**
+ * Charge tout ce qui appartient au client.
+ * Les devis sont récupérés quel que soit leur état : connaître l'existence d'un
+ * brouillon permet d'afficher « en cours de chiffrage » sans jamais en révéler
+ * le contenu.
+ */
+async function chargerAffaires(clientId: string) {
+  const [demandesRes, devisRes] = await Promise.all([
+    supabase
+      .from('demandes')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('devis')
+      .select(
+        'id, numero_devis, demande_id, type_devis, etat, date_devis, date_envoi, date_envoi_at, ' +
+        'adresse_livraison, creneau_livraison, date_planification, lignes, montant_total_ht, ' +
+        'montant_envoye, updated_at, drive_file_id, created_at',
+      )
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false }),
+  ]);
+
+  return {
+    demandes: (demandesRes.data ?? []) as DemandeRow[],
+    devis: (devisRes.data ?? []) as DevisRow[],
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Construction du fil
+// ---------------------------------------------------------------------------
+
+function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Materiaux) {
+  const devisParDemande = new Map<string, DevisRow>();
+  for (const d of devis) {
+    if (!d.demande_id) continue;
+    // Si plusieurs devis pointent la même demande, le plus récent fait foi.
+    const existant = devisParDemande.get(d.demande_id);
+    if (!existant || d.created_at > existant.created_at) devisParDemande.set(d.demande_id, d);
+  }
+
+  const affaires = [];
+
+  // 1. Les demandes du client, enrichies du devis qui leur répond
+  for (const dem of demandes) {
+    const devisLie = devisParDemande.get(dem.id);
+    const devisVisible = devisLie && ETATS_VISIBLES.includes(devisLie.etat) ? devisLie : null;
+
+    affaires.push({
+      id: `d:${dem.id}`,
+      statut: devisVisible ? statutDepuisDevis(devisVisible.etat) : statutDepuisDemande(dem.statut),
+      date: devisVisible?.date_envoi_at ?? devisVisible?.created_at ?? dem.created_at,
+      dateDemande: dem.created_at,
+      typeDemande: dem.type_demande,
+      lieu: dem.adresse_livraison || null,
+      lignes: mapLignes(dem.lignes, materiaux),
+      numeroDevis: devisVisible?.numero_devis ?? null,
+      montantHT: devisVisible ? devisVisible.montant_total_ht : null,
+      montantModifie: devisVisible ? montantModifie(devisVisible) : false,
+      pdfDisponible: Boolean(devisVisible?.drive_file_id),
+    });
+  }
+
+  // 2. Les devis créés directement par la carrière (demande passée par
+  //    téléphone, au comptoir…). Ils appartiennent au client au même titre.
+  for (const d of devis) {
+    if (d.demande_id && demandes.some((dem) => dem.id === d.demande_id)) continue;
+    if (!ETATS_VISIBLES.includes(d.etat)) continue;
+
+    affaires.push({
+      id: `q:${d.id}`,
+      statut: statutDepuisDevis(d.etat),
+      date: d.date_envoi_at ?? d.created_at,
+      dateDemande: null,
+      typeDemande: d.type_devis,
+      lieu: d.adresse_livraison || null,
+      lignes: mapLignes(d.lignes, materiaux),
+      numeroDevis: d.numero_devis,
+      montantHT: d.montant_total_ht,
+      montantModifie: montantModifie(d),
+      pdfDisponible: Boolean(d.drive_file_id),
+    });
+  }
+
+  affaires.sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return affaires;
+}
+
+// ---------------------------------------------------------------------------
+// Détail d'une affaire
+// ---------------------------------------------------------------------------
+
+function detailDevis(d: DevisRow, materiaux: Materiaux) {
+  return {
+    numero: d.numero_devis,
+    typeDevis: d.type_devis,
+    dateDevis: d.date_devis || null,
+    dateEnvoi: d.date_envoi || null,
+    dateEnvoiAt: d.date_envoi_at ?? null,
+    datePlanification: d.date_planification || null,
+    creneau: d.creneau_livraison || null,
+    adresseLivraison: d.adresse_livraison || null,
+    lignes: mapLignes(d.lignes, materiaux),
+    montantHT: d.montant_total_ht,
+    montantEnvoye: d.montant_envoye ?? null,
+    montantModifie: montantModifie(d),
+    updatedAt: d.updated_at ?? null,
+    pdfDisponible: Boolean(d.drive_file_id),
+    // Volontairement absents : notes internes, coûts de péage, taux de remise,
+    // chauffeur, statut de paiement. Ce sont des données de gestion interne.
+  };
+}
+
+function detailDemande(dem: DemandeRow, materiaux: Materiaux) {
+  return {
+    createdAt: dem.created_at,
+    typeDemande: dem.type_demande,
+    adresseLivraison: dem.adresse_livraison || null,
+    camionLivraison: dem.camion_livraison || null,
+    enginChantier: dem.engin_chantier || null,
+    dateSouhaitee: dem.date_souhaitee || null,
+    creneau: dem.creneau || null,
+    agenceNom: dem.agence_nom || null,
+    contact: [dem.contact_prenom, dem.contact_nom].filter(Boolean).join(' ') || null,
+    lignes: mapLignes(dem.lignes, materiaux),
+    notes: dem.notes || null,
+  };
+}
+
+function construireTimeline(statut: Statut, dateDemande: string | null, devis: { dateEnvoiAt: string | null } | null) {
+  if (statut === 'sans_suite') {
+    return [
+      { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
+      { cle: 'sans_suite', label: 'Sans suite', date: null, atteint: true },
+    ];
+  }
+
+  const ordre: Statut[] = ['envoyee', 'en_chiffrage', 'devis_recu', 'acceptee', 'terminee'];
+  const labels: Record<string, string> = {
+    envoyee: 'Demande envoyée',
+    en_chiffrage: 'En cours de chiffrage',
+    devis_recu: 'Devis reçu',
+    acceptee: 'Devis accepté',
+    terminee: 'Livraison réalisée',
+  };
+
+  const index = ordre.indexOf(statut);
+  return ordre.map((cle, i) => ({
+    cle,
+    label: labels[cle],
+    date: cle === 'envoyee' ? dateDemande : cle === 'devis_recu' ? devis?.dateEnvoiAt ?? null : null,
+    atteint: i <= index,
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Handler
+// ---------------------------------------------------------------------------
+
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return preflight();
+  if (req.method !== 'GET') return json(405, { error: 'METHOD_NOT_ALLOWED' });
+
+  let jwtSecret: string;
+  try {
+    jwtSecret = requireSecret('CLIENT_JWT_SECRET');
+  } catch (err) {
+    console.error('Configuration invalide :', err);
+    return json(500, { error: 'SERVER_MISCONFIGURED' });
+  }
+
+  const token = await requireClient(req, jwtSecret);
+  if (!token) return json(401, { error: 'UNAUTHENTICATED' });
+
+  const url = new URL(req.url);
+  // Le chemin est préfixé par le nom de la fonction : /client-portal/affaires/...
+  const segments = url.pathname.split('/').filter(Boolean);
+  const apres = segments.slice(segments.indexOf('client-portal') + 1);
+
+  if (apres[0] !== 'affaires') return json(404, { error: 'NOT_FOUND' });
+
+  const materiaux = await chargerMateriaux();
+  const { demandes, devis } = await chargerAffaires(token.sub);
+
+  // ---- Liste ----
+  if (apres.length === 1) {
+    return json(200, { affaires: construireFil(demandes, devis, materiaux) });
+  }
+
+  // ---- Détail ----
+  const affaireId = decodeURIComponent(apres[1]);
+  const separateur = affaireId.indexOf(':');
+  if (separateur === -1) return json(400, { error: 'INVALID_ID' });
+
+  const prefixe = affaireId.slice(0, separateur);
+  const brutId = affaireId.slice(separateur + 1);
+
+  if (prefixe === 'd') {
+    const dem = demandes.find((x) => x.id === brutId);
+    if (!dem) return json(404, { error: 'NOT_FOUND' });
+
+    const lies = devis
+      .filter((x) => x.demande_id === dem.id && ETATS_VISIBLES.includes(x.etat))
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    const devisVisible = lies[0] ?? null;
+
+    const statut = devisVisible ? statutDepuisDevis(devisVisible.etat) : statutDepuisDemande(dem.statut);
+    const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux) : null;
+
+    return json(200, {
+      id: affaireId,
+      statut,
+      devisId: devisVisible?.id ?? null,
+      demande: detailDemande(dem, materiaux),
+      devis: devisDetail,
+      timeline: construireTimeline(statut, dem.created_at, devisDetail),
+    });
+  }
+
+  if (prefixe === 'q') {
+    const d = devis.find((x) => x.id === brutId && ETATS_VISIBLES.includes(x.etat));
+    if (!d) return json(404, { error: 'NOT_FOUND' });
+
+    const statut = statutDepuisDevis(d.etat);
+    const devisDetail = detailDevis(d, materiaux);
+
+    return json(200, {
+      id: affaireId,
+      statut,
+      devisId: d.id,
+      demande: null,
+      devis: devisDetail,
+      timeline: construireTimeline(statut, null, devisDetail),
+    });
+  }
+
+  return json(400, { error: 'INVALID_ID' });
+});

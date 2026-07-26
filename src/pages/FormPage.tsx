@@ -12,7 +12,7 @@ import Footer from '@/components/layout/Footer';
 import { CAMIONS_CAPACITES, CAMIONS_LIVRAISON } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
-import { getConnectedClient, isGuestMode, clearGuestMode } from '@/lib/auth';
+import { getConnectedClient, isGuestMode, clearGuestMode, authHeaders } from '@/lib/auth';
 import { saveDraft, loadDraft, clearDraft, hasDraft } from '@/lib/formDraft';
 import { supabase } from '@/lib/supabase';
 import SectionDemande from '@/components/form/SectionDemande';
@@ -386,8 +386,12 @@ export default function FormPage() {
         camionLivraison: data.camionLivraison,
         dateSouhaitee: data.dateSouhaitee,
         creneau: data.creneau,
+        enginChantier: data.enginChantier,
         // Matériaux & notes
         materiauxData: JSON.stringify(materiauxData),
+        // Lignes brutes : servent à enregistrer la demande en base pour
+        // l'espace client. L'email, lui, continue d'utiliser materiauxData.
+        lignes: lignes.filter((l: LigneDevis) => l.quantiteTonnes > 0),
         notes: data.notes,
       };
 
@@ -395,7 +399,10 @@ export default function FormPage() {
         "https://dnauasukwbvwmhzjeecj.supabase.co/functions/v1/send-email",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          // Le jeton permet au serveur de rattacher la demande au bon compte.
+          // Absent en mode invité : la demande est alors enregistrée sans
+          // rattachement, exactement comme avant.
+          headers: { "Content-Type": "application/json", ...authHeaders() },
           body: JSON.stringify(payload),
         }
       );

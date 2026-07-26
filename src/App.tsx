@@ -10,6 +10,8 @@ const FormPage = lazy(() => import('@/pages/FormPage'));
 const SuccessPage = lazy(() => import('@/pages/SuccessPage'));
 const EstimationPage = lazy(() => import('@/pages/EstimationPage'));
 const CredentialsContactPage = lazy(() => import('@/pages/CredentialsContactPage'));
+const EspacePage = lazy(() => import('@/pages/EspacePage'));
+const AffairePage = lazy(() => import('@/pages/AffairePage'));
 
 export default function App() {
   return (
@@ -26,6 +28,12 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route path="/formulaire" element={<FormPage />} />
             <Route path="/merci" element={<SuccessPage />} />
+          </Route>
+
+          {/* Espace personnel — réservé aux clients disposant d'un compte */}
+          <Route element={<ProtectedRoute sessionRequise />}>
+            <Route path="/espace" element={<EspacePage />} />
+            <Route path="/espace/:id" element={<AffairePage />} />
           </Route>
         </Routes>
       </Suspense>

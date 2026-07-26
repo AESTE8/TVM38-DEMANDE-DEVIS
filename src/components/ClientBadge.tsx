@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { LogOut, UserCheck } from 'lucide-react';
 import { clearSession, getConnectedClient } from '@/lib/auth';
 
@@ -19,15 +19,23 @@ export default function ClientBadge() {
 
   return (
     <div className="flex items-center gap-2 sm:bg-primary/8 sm:border sm:border-primary/20 sm:rounded-sm sm:px-3 sm:py-2 text-sm">
-      <UserCheck className="w-4 h-4 text-primary shrink-0" />
-      <div className="hidden sm:flex flex-col min-w-0">
-        <span className="font-bold text-on-surface text-xs font-headline truncate max-w-[160px]">
-          {displayName}
-        </span>
-        <span className="text-secondary/70 text-[10px] font-body">
-          {client.code}
-        </span>
-      </div>
+      {/* Le badge est le point d'entrée vers l'espace personnel depuis n'importe
+          quelle page — notamment depuis le formulaire. */}
+      <Link
+        to="/espace"
+        title="Accéder à mon espace"
+        className="flex items-center gap-2 min-w-0 hover:opacity-80 transition-opacity"
+      >
+        <UserCheck className="w-4 h-4 text-primary shrink-0" />
+        <div className="hidden sm:flex flex-col min-w-0">
+          <span className="font-bold text-on-surface text-xs font-headline truncate max-w-[160px]">
+            {displayName}
+          </span>
+          <span className="text-secondary/70 text-[10px] font-body">
+            {client.code}
+          </span>
+        </div>
+      </Link>
       <button
         onClick={handleLogout}
         title="Se déconnecter"

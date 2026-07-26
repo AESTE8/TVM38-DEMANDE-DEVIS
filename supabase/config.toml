@@ -1,0 +1,31 @@
+project_id = "dnauasukwbvwmhzjeecj"
+
+# ---------------------------------------------------------------------------
+# Edge functions
+# ---------------------------------------------------------------------------
+# `verify_jwt = false` désactive uniquement la vérification *plateforme* du JWT
+# Supabase. Ces fonctions sont appelées par le site public, qui ne possède pas de
+# compte Supabase : elles vérifient elles-mêmes le jeton client signé
+# (voir _shared/crypto.ts) avant de servir la moindre donnée.
+
+[functions.auth-client]
+verify_jwt = false
+
+[functions.send-email]
+verify_jwt = false
+
+[functions.update-client]
+verify_jwt = false
+
+# Vérifient le jeton client émis par auth-client, et filtrent sur son `sub`.
+[functions.client-portal]
+verify_jwt = false
+
+[functions.devis-pdf]
+verify_jwt = false
+
+# Appelée par le logiciel de la carrière avec un vrai jeton Supabase : la
+# vérification plateforme reste active, et la fonction contrôle en plus que
+# l'utilisateur existe bien.
+[functions.devis-pdf-upload]
+verify_jwt = true
