@@ -105,11 +105,19 @@ export async function signClientToken(
   return `${data}.${toBase64Url(new Uint8Array(signature))}`;
 }
 
-/** Renvoie le payload si le jeton est valide et non expiré, sinon null. */
-export async function verifyClientToken(
+/**
+ * Vérifie signature et expiration d'un jeton HS256, et renvoie ses claims.
+ *
+ * Volontairement générique : deux émetteurs cohabitent sur ce projet. Le site
+ * signe les jetons client avec `CLIENT_JWT_SECRET`, tandis que le logiciel de
+ * la carrière signe les siens avec son propre secret (voir la fonction `devis`
+ * de son dépôt). Les deux sont des HS256 à vérifier de la même façon ; seules
+ * les claims attendues diffèrent.
+ */
+export async function verifyHs256(
   token: string,
   secret: string,
-): Promise<ClientTokenPayload | null> {
+): Promise<Record<string, unknown> | null> {
   const parts = token.split('.');
   if (parts.length !== 3) return null;
 
@@ -124,14 +132,62 @@ export async function verifyClientToken(
     );
     if (!valid) return null;
 
-    const payload = JSON.parse(new TextDecoder().decode(fromBase64Url(parts[1]))) as ClientTokenPayload;
+    const payload = JSON.parse(
+      new TextDecoder().decode(fromBase64Url(parts[1])),
+    ) as Record<string, unknown>;
+
+    // Un jeton sans expiration serait éternel : on le refuse.
     if (typeof payload.exp !== 'number' || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    if (!payload.sub) return null;
 
     return payload;
   } catch {
     return null;
   }
+}
+
+/** Renvoie le payload si le jeton client est valide et non expiré, sinon null. */
+export async function verifyClientToken(
+  token: string,
+  secret: string,
+): Promise<ClientTokenPayload | null> {
+  const payload = await verifyHs256(token, secret);
+  if (!payload || typeof payload.sub !== 'string' || !payload.sub) return null;
+  return payload as unknown as ClientTokenPayload;
+}
+
+/** Claims du jeton émis par le logiciel de la carrière à ses opérateurs. */
+export interface OperateurTokenPayload {
+  sub: string;
+  identifiant: string;
+  role: 'developpeur' | 'utilisateur' | 'spectateur';
+  exp: number;
+  iat: number;
+}
+
+/**
+ * Vérifie le jeton d'un opérateur du logiciel de la carrière.
+ *
+ * Le logiciel n'utilise pas Supabase Auth : il signe ses propres jetons avec
+ * `tvm38-auth-v1:<service_role_key>`, exactement comme le vérifie sa fonction
+ * `devis`. Le secret n'est donc pas une valeur à configurer en plus — il se
+ * dérive de la clé de service déjà présente dans l'environnement.
+ *
+ * Les comptes `spectateur` sont refusés : ils sont en lecture seule côté
+ * logiciel, ils n'ont pas à déposer de document.
+ */
+export async function requireOperateur(
+  req: Request,
+  serviceRoleKey: string,
+): Promise<OperateurTokenPayload | null> {
+  const header = req.headers.get('Authorization') ?? '';
+  const match = header.match(/^Bearer\s+(.+)$/i);
+  if (!match) return null;
+
+  const payload = await verifyHs256(match[1].trim(), `tvm38-auth-v1:${serviceRoleKey}`);
+  if (!payload || typeof payload.sub !== 'string' || !payload.sub) return null;
+  if (payload.role === 'spectateur') return null;
+
+  return payload as unknown as OperateurTokenPayload;
 }
 
 /** Extrait et vérifie le jeton porté par l'en-tête `Authorization: Bearer ...`. */

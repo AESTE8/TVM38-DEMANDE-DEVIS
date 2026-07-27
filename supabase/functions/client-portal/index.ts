@@ -27,8 +27,11 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
+// Le logiciel de la carrière gère sept états : en_attente, envoye, accepte,
+// refuse, planifie, termine, archive.
+
 /** États d'un devis considérés comme transmis au client. */
-const ETATS_VISIBLES = ['envoye', 'accepte', 'termine'];
+const ETATS_VISIBLES = ['envoye', 'accepte', 'planifie', 'termine'];
 
 /**
  * États d'un devis qui signifient « le dispatcher a la demande en main ».
@@ -38,11 +41,24 @@ const ETATS_VISIBLES = ['envoye', 'accepte', 'termine'];
  */
 const ETATS_EN_COURS = ['en_attente'];
 
+/**
+ * États d'un devis qui closent l'affaire sans livraison.
+ * Leur contenu n'est pas exposé — une offre refusée ou archivée n'a plus à être
+ * consultée — mais la demande, elle, ne doit pas rester bloquée sur « Demande
+ * envoyée » : le client verrait une affaire éternellement en attente.
+ *
+ * À noter : le logiciel prévoit un passage automatique en `refuse` au bout de
+ * 90 jours puis en `archive` 5 jours plus tard. Ce job n'est pas actif sur la
+ * base actuelle, mais s'il l'était, il ferait tomber ici les devis expirés.
+ */
+const ETATS_CLOS = ['refuse', 'archive'];
+
 type Statut =
   | 'envoyee'      // demande reçue, pas encore traitée
   | 'en_chiffrage' // le dispatcher travaille dessus
   | 'devis_recu'   // un devis a été transmis
   | 'acceptee'     // le client a donné son accord
+  | 'planifiee'    // la livraison est calée à une date
   | 'terminee'     // livrée / réalisée
   | 'sans_suite';
 
@@ -101,7 +117,9 @@ type Materiaux = Map<string, { nom: string; code: string }>;
 
 function statutDepuisDevis(etat: string): Statut {
   if (etat === 'accepte') return 'acceptee';
+  if (etat === 'planifie') return 'planifiee';
   if (etat === 'termine') return 'terminee';
+  if (etat === 'refuse') return 'sans_suite';
   return 'devis_recu';
 }
 
@@ -131,6 +149,8 @@ function statutAffaire(
   if (devisVisible) return statutDepuisDevis(devisVisible.etat);
   if (dem.statut === 'sans_suite') return 'sans_suite';
   if (devisLies.some((d) => ETATS_EN_COURS.includes(d.etat))) return 'en_chiffrage';
+  // Plus aucun devis vivant sur cette demande : l'affaire est close.
+  if (devisLies.length > 0 && devisLies.every((d) => ETATS_CLOS.includes(d.etat))) return 'sans_suite';
   return statutDepuisDemande(dem.statut);
 }
 
@@ -334,12 +354,13 @@ function construireTimeline(
     ];
   }
 
-  const ordre: Statut[] = ['envoyee', 'en_chiffrage', 'devis_recu', 'acceptee', 'terminee'];
+  const ordre: Statut[] = ['envoyee', 'en_chiffrage', 'devis_recu', 'acceptee', 'planifiee', 'terminee'];
   const labels: Record<string, string> = {
     envoyee: 'Demande envoyée',
     en_chiffrage: 'En cours de chiffrage',
     devis_recu: 'Devis reçu',
     acceptee: 'Devis accepté',
+    planifiee: 'Livraison planifiée',
     terminee: 'Livraison réalisée',
   };
 
@@ -352,7 +373,7 @@ function construireTimeline(
   const dates: Partial<Record<Statut, string | null>> = {
     envoyee: dateDemande,
     devis_recu: devis?.dateEnvoiAt ?? null,
-    terminee: devis?.datePlanification ?? null,
+    planifiee: devis?.datePlanification ?? null,
   };
 
   return ordre.map((cle, i) => {

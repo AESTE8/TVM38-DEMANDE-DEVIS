@@ -8,7 +8,8 @@
 //
 // Appel attendu :
 //   POST /functions/v1/devis-pdf-upload
-//   Authorization: Bearer <access_token Supabase du dispatcher connecté>
+//   Authorization: Bearer <jeton de session du logiciel, celui qu'il envoie
+//                          déjà à sa fonction `devis`>
 //   { "devisId": "...", "fileName": "26TVM0064.pdf", "pdfBase64": "..." }
 //
 // ⚠️ À appeler à CHAQUE enregistrement, pas uniquement au premier envoi :
@@ -17,6 +18,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { uploadPdf } from '../_shared/google-drive.ts';
+import { requireOperateur } from '../_shared/crypto.ts';
 import { json, preflight } from '../_shared/http.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -29,16 +31,6 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 // 15 Mo — un devis granulats fait quelques dizaines de Ko, cette borne ne sert
 // qu'à empêcher qu'une erreur côté logiciel ne sature la fonction.
 const MAX_PDF_BYTES = 15 * 1024 * 1024;
-
-/** Le PDF ne peut être déposé que par un opérateur authentifié dans le logiciel. */
-async function operateurAutorise(req: Request): Promise<boolean> {
-  const header = req.headers.get('Authorization') ?? '';
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  if (!match) return false;
-
-  const { data, error } = await supabase.auth.getUser(match[1].trim());
-  return !error && Boolean(data?.user);
-}
 
 function decodeBase64(value: string): Uint8Array {
   const clean = value.includes(',') ? value.slice(value.indexOf(',') + 1) : value;
@@ -55,9 +47,10 @@ Deno.serve(async (req) => {
     return json(500, { error: 'SERVER_MISCONFIGURED' });
   }
 
-  if (!(await operateurAutorise(req))) {
-    return json(401, { error: 'UNAUTHENTICATED' });
-  }
+  // Le logiciel de la carrière signe ses propres jetons — il n'a pas de compte
+  // Supabase Auth. On vérifie donc le même jeton que sa fonction `devis`.
+  const operateur = await requireOperateur(req, SUPABASE_SERVICE_ROLE_KEY);
+  if (!operateur) return json(401, { error: 'UNAUTHENTICATED' });
 
   let devisId: string;
   let fileName: string;

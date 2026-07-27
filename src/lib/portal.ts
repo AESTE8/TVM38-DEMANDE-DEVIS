@@ -7,6 +7,7 @@ export type StatutAffaire =
   | 'en_chiffrage'
   | 'devis_recu'
   | 'acceptee'
+  | 'planifiee'
   | 'terminee'
   | 'sans_suite';
 
@@ -155,6 +156,7 @@ export const STATUT_LABELS: Record<StatutAffaire, string> = {
   en_chiffrage: 'En cours de chiffrage',
   devis_recu: 'Devis reçu',
   acceptee: 'Devis accepté',
+  planifiee: 'Livraison planifiée',
   terminee: 'Livraison réalisée',
   sans_suite: 'Sans suite',
 };
@@ -165,6 +167,7 @@ export const STATUT_STYLES: Record<StatutAffaire, { pastille: string; texte: str
   en_chiffrage: { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },
   devis_recu:   { pastille: 'bg-primary',       texte: 'text-primary',       fond: 'bg-primary/10' },
   acceptee:     { pastille: 'bg-emerald-600',   texte: 'text-emerald-700',   fond: 'bg-emerald-600/10' },
+  planifiee:    { pastille: 'bg-emerald-600',   texte: 'text-emerald-700',   fond: 'bg-emerald-600/10' },
   terminee:     { pastille: 'bg-secondary/60',  texte: 'text-secondary',     fond: 'bg-secondary/10' },
   sans_suite:   { pastille: 'bg-secondary/40',  texte: 'text-secondary/70',  fond: 'bg-secondary/5' },
 };
