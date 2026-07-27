@@ -5,6 +5,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import nodemailer from 'npm:nodemailer@6';
+import { requireClient } from '../_shared/crypto.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -381,6 +382,63 @@ Deno.serve(async (req) => {
       materiauxData: String(body.materiauxData || '').slice(0, 5000),
       notes: String(body.notes || '').slice(0, 1000),
     };
+
+    // -----------------------------------------------------------------------
+    // Persistance de la demande
+    // -----------------------------------------------------------------------
+    // Jusqu'ici une demande n'existait que sous forme d'email. Elle est
+    // désormais enregistrée pour alimenter l'espace client et permettre au
+    // dispatcher de la convertir en devis.
+    //
+    // Le client est identifié par son jeton signé, jamais par un identifiant
+    // fourni dans le corps de la requête : personne ne peut rattacher une
+    // demande au compte d'un autre. En mode invité, il n'y a pas de jeton et la
+    // demande est enregistrée sans rattachement.
+    //
+    // Un échec ici ne doit JAMAIS empêcher l'email de partir : l'email reste le
+    // filet de sécurité de la carrière.
+    let clientId: string | null = null;
+    try {
+      const secret = Deno.env.get('CLIENT_JWT_SECRET');
+      if (secret && secret.length >= 32) {
+        const token = await requireClient(req, secret);
+        clientId = token?.sub ?? null;
+      }
+    } catch (err) {
+      console.error('Vérification du jeton client échouée :', err);
+    }
+
+    try {
+      const { error: demandeError } = await supabase.from('demandes').insert({
+        client_id: clientId,
+        type_client: fields.typeClient || 'professionnel',
+        deja_client: fields.dejaClient || null,
+        entreprise_nom: fields.entrepriseNom || null,
+        entreprise_adresse: fields.entrepriseAdresse || null,
+        agence_nom: fields.agenceNom || null,
+        contact_nom: fields.nom || null,
+        contact_prenom: fields.prenom || null,
+        contact_fonction: fields.fonction || null,
+        contact_telephone: fields.telephone || null,
+        contact_email: fields.email || null,
+        type_demande: fields.typeDemande || 'livraison',
+        adresse_livraison: fields.adresseLivraison || null,
+        camion_livraison: fields.camionLivraison || null,
+        engin_chantier: safe(body.enginChantier, 100) || null,
+        date_souhaitee: fields.dateSouhaitee || null,
+        creneau: fields.creneau || null,
+        lignes: Array.isArray(body.lignes) ? body.lignes : [],
+        notes: fields.notes || null,
+        statut: 'envoyee',
+        source: 'web',
+      });
+
+      if (demandeError) {
+        console.error("Enregistrement de la demande échoué (l'email part quand même) :", demandeError);
+      }
+    } catch (err) {
+      console.error("Enregistrement de la demande échoué (l'email part quand même) :", err);
+    }
 
     const subject = `Demande de devis — ${fields.prenom} ${fields.nom}${fields.entrepriseNom ? ' (' + fields.entrepriseNom + ')' : ''}`;
     const html = buildHtml(fields);

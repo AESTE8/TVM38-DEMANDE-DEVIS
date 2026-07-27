@@ -28,3 +28,11 @@ dist-ssr
 .env.*
 !.env.example
 *.tsbuildinfo
+
+# Clés de comptes de service Google — ne doivent exister que dans les secrets
+# Supabase, jamais dans le dépôt ni sur un poste de travail.
+*service-account*.json
+*service_account*.json
+*-credentials.json
+gcp-*.json
+tvm38-devis-et-logistique-*.json

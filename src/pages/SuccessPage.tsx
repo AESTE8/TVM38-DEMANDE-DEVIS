@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import Header from '@/components/layout/Header';
+import { isSessionValid } from '@/lib/auth';
 
 export default function SuccessPage() {
   const navigate = useNavigate();
@@ -58,6 +59,22 @@ export default function SuccessPage() {
             </>
           )}
         </div>
+
+        {/* Suivi de la demande — visible uniquement pour les clients connectés,
+            le mode invité n'ayant pas d'espace personnel. */}
+        {isSessionValid() && (
+          <div className="mb-6">
+            <Link
+              to="/espace"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-md bg-primary text-on-primary text-sm font-bold hover:opacity-90 transition-opacity"
+            >
+              Suivre ma demande dans mon espace →
+            </Link>
+            <p className="text-xs text-muted-foreground mt-2">
+              Le devis y apparaîtra dès qu'il vous aura été transmis.
+            </p>
+          </div>
+        )}
 
         {/* Boutons */}
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
