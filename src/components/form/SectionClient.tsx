@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
 import { cn, formatPhoneInput } from '@/lib/utils';
+import { authHeaders } from '@/lib/auth';
 import { Trash2, Pencil } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
@@ -13,12 +14,28 @@ import Badge from '../ui/badge';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
-async function callUpdateClient(client_id: string, operation: string, data: unknown) {
-  await fetch(`${SUPABASE_URL}/functions/v1/update-client`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ client_id, operation, data }),
-  });
+/**
+ * Met à jour la fiche du client connecté.
+ *
+ * La cible n'est plus transmise : le serveur écrit sur le client désigné par le
+ * jeton. Un appel sans jeton est refusé, ce qui est le comportement voulu — le
+ * mode invité ne modifie aucune fiche.
+ */
+async function callUpdateClient(operation: string, data: unknown) {
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-client`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify({ operation, data }),
+    });
+    if (!res.ok) {
+      // Non bloquant : la demande de devis part quand même, l'email reste le
+      // filet de sécurité. On trace pour ne pas échouer en silence.
+      console.error(`Mise à jour de la fiche client refusée (${res.status}) — ${operation}`);
+    }
+  } catch (err) {
+    console.error('Mise à jour de la fiche client injoignable —', operation, err);
+  }
 }
 
 interface Props {
@@ -146,7 +163,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     useImperativeHandle(deleteContactRef, () => ({
       saveNewContactIfNeeded: async (formData: DevisFormData) => {
         if (!selectedClientId || selectedContactId !== 'nouveau' || dejaClient !== 'oui') return;
-        await callUpdateClient(selectedClientId, 'add_contact', {
+        await callUpdateClient('add_contact', {
           id: crypto.randomUUID(),
           nom: formData.nom || '',
           prenom: formData.prenom || '',
@@ -158,7 +175,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
       saveNewAgenceIfNeeded: async (_formData: DevisFormData) => {
         if (!showNewAgence || !newAgenceNom || !selectedClientId) return;
-        await callUpdateClient(selectedClientId, 'add_agence', {
+        await callUpdateClient('add_agence', {
           id: crypto.randomUUID(),
           nom: newAgenceNom,
           adresse: newAgenceAdresse,
@@ -169,14 +186,14 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
         if (!selectedClientId || !originalClient || selectedContactId !== null) return;
         const adresse = formData.entrepriseAdresse || '';
         if (adresse === originalClient.adresse) return;
-        await callUpdateClient(selectedClientId, 'update_adresse', { adresse });
+        await callUpdateClient('update_adresse', { adresse });
       },
 
       updateExistingAgenceIfChanged: async () => {
         if (!selectedClientId || !selectedAgenceId || !originalAgence || !editingAgence) return;
         const hasChanged = editedAgenceNom !== originalAgence.nom || editedAgenceAdresse !== originalAgence.adresse;
         if (!hasChanged) return;
-        await callUpdateClient(selectedClientId, 'update_agence', {
+        await callUpdateClient('update_agence', {
           id: selectedAgenceId,
           nom: editedAgenceNom,
           adresse: editedAgenceAdresse,
@@ -185,7 +202,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
       updateExistingContactIfChanged: async (formData: DevisFormData) => {
         if (!selectedClientId || !selectedContactId || selectedContactId === 'nouveau' || dejaClient !== 'oui') return;
-        await callUpdateClient(selectedClientId, 'update_contact', {
+        await callUpdateClient('update_contact', {
           id: selectedContactId,
           nom: formData.nom || '',
           prenom: formData.prenom || '',
@@ -196,7 +213,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
       deleteContact: async (contactId: string) => {
         if (!selectedClientId) return;
-        await callUpdateClient(selectedClientId, 'delete_contact', { id: contactId });
+        await callUpdateClient('delete_contact', { id: contactId });
         setCompanyContacts((prev) => prev.filter((c: any) => c.id !== contactId));
         if (selectedContactId === contactId) {
           setSelectedContactId(null);
@@ -566,7 +583,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                 e.stopPropagation();
                                 if (!confirm(`Supprimer l'agence "${agence.nom}" ?`)) return;
                                 if (selectedClientId) {
-                                  await callUpdateClient(selectedClientId, 'delete_agence', { id: agence.id });
+                                  await callUpdateClient('delete_agence', { id: agence.id });
                                 }
                                 setCompanyAgences((prev: any[]) => prev.filter((a: any) => a.id !== agence.id));
                                 if (selectedAgenceId === agence.id) {
@@ -621,7 +638,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                 type="button"
                                 onClick={async () => {
                                   if (selectedClientId && selectedAgenceId) {
-                                    await callUpdateClient(selectedClientId, 'update_agence', {
+                                    await callUpdateClient('update_agence', {
                                       id: selectedAgenceId,
                                       nom: editedAgenceNom,
                                       adresse: editedAgenceAdresse,

@@ -14,10 +14,13 @@ verify_jwt = false
 [functions.send-email]
 verify_jwt = false
 
+# Vérifient le jeton client émis par auth-client, et filtrent sur son `sub`.
+# `verify_jwt = false` est ici le réglage sûr : la vérification plateforme se
+# contente d'un JWT signé par le projet, ce que la clé publique du site
+# satisfait. Elle n'identifie donc personne. C'est la fonction qui authentifie.
 [functions.update-client]
 verify_jwt = false
 
-# Vérifient le jeton client émis par auth-client, et filtrent sur son `sub`.
 [functions.client-portal]
 verify_jwt = false
 
