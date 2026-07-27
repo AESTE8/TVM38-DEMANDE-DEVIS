@@ -30,13 +30,62 @@ function base64Url(bytes: Uint8Array): string {
     .replace(/=+$/, '');
 }
 
+/**
+ * Charge le compte de service depuis le secret.
+ *
+ * La valeur traverse un shell avant d'arriver ici, et c'est là qu'elle s'abîme :
+ * guillemets avalés, BOM ajouté par un éditeur Windows, valeur entourée
+ * d'apostrophes. On absorbe ces cas plutôt que de renvoyer un `SyntaxError` nu,
+ * qui n'apprend rien à celui qui a posé le secret.
+ *
+ * Le base64 est accepté en plus du JSON brut : c'est la façon la plus sûre de
+ * transporter ce secret, aucun shell ne peut le déformer.
+ *   supabase secrets set GOOGLE_SERVICE_ACCOUNT_JSON="$(base64 -w0 compte.json)"
+ */
 function loadServiceAccount(): ServiceAccount {
   const raw = Deno.env.get('GOOGLE_SERVICE_ACCOUNT_JSON');
   if (!raw) throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON manquant');
 
-  const parsed = JSON.parse(raw) as ServiceAccount;
+  // BOM, espaces, et apostrophes ou guillemets d'enrobage laissés par le shell.
+  let texte = raw.replace(/^\uFEFF/, '').trim();
+  if (texte.length > 1 && (texte[0] === "'" || texte[0] === '"') && texte.at(-1) === texte[0]) {
+    texte = texte.slice(1, -1).trim();
+  }
+
+  // Pas du JSON : on tente le base64 avant d'abandonner.
+  if (!texte.startsWith('{')) {
+    try {
+      texte = atob(texte.replace(/\s+/g, '')).trim();
+    } catch {
+      // On retombe sur l'erreur de parsing ci-dessous, plus parlante.
+    }
+  }
+
+  let parsed: ServiceAccount;
+  try {
+    parsed = JSON.parse(texte) as ServiceAccount;
+  } catch (err) {
+    // Les premiers caractères d'un JSON de compte de service ne sont pas
+    // sensibles (`{"type":"service_account",...`) — la clé privée est bien plus
+    // loin. Les montrer est ce qui permet de comprendre ce qui a été posé.
+    const apercu = texte.slice(0, 40).replace(/\s+/g, ' ');
+    throw new Error(
+      `GOOGLE_SERVICE_ACCOUNT_JSON illisible (${texte.length} caractères, commence par « ${apercu} ») : ` +
+      `${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
+  // Une valeur encodée deux fois donne une chaîne, pas un objet.
+  if (typeof parsed !== 'object' || parsed === null) {
+    throw new Error(
+      `GOOGLE_SERVICE_ACCOUNT_JSON n'est pas un objet JSON (type ${typeof parsed}) — ` +
+      'la valeur a probablement été encodée deux fois',
+    );
+  }
+
   if (!parsed.client_email || !parsed.private_key) {
-    throw new Error('GOOGLE_SERVICE_ACCOUNT_JSON incomplet');
+    const champs = Object.keys(parsed).join(', ') || 'aucun';
+    throw new Error(`GOOGLE_SERVICE_ACCOUNT_JSON incomplet — champs trouvés : ${champs}`);
   }
   return parsed;
 }

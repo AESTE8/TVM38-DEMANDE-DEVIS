@@ -99,6 +99,13 @@ Deno.serve(async (req) => {
     return json(200, { success: true, driveFileId: fileId });
   } catch (err) {
     console.error('Dépôt Drive échoué pour le devis', devisId, err);
-    return json(502, { error: 'DRIVE_UPLOAD_FAILED' });
+
+    // Le message de Google est remonté tel quel. C'est le seul endroit où l'on
+    // apprend *pourquoi* le dépôt échoue — dossier introuvable, compte de
+    // service non membre du Drive, portée insuffisante — et sans lui la panne
+    // est indiagnosticable depuis le logiciel. Cette réponse ne part que vers
+    // un opérateur authentifié, jamais vers un client.
+    const detail = (err instanceof Error ? err.message : String(err)).slice(0, 600);
+    return json(502, { error: 'DRIVE_UPLOAD_FAILED', detail });
   }
 });
