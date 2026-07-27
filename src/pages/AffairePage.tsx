@@ -377,7 +377,7 @@ export default function AffairePage() {
         )}
       </main>
 
-      <Footer />
+      <Footer compact />
     </div>
   );
 }
