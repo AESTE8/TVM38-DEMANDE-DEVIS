@@ -1,6 +1,34 @@
 import { Link } from 'react-router-dom';
 
-export default function Footer() {
+interface FooterProps {
+  compact?: boolean;
+}
+
+export default function Footer({ compact = false }: FooterProps) {
+  if (compact) {
+    return (
+      <footer className="border-t border-border/70 bg-white">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 px-4 py-7 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <div>
+            <p className="font-headline text-sm font-extrabold uppercase text-on-surface">MIDALI - TVM38</p>
+            <p className="mt-1 text-xs text-secondary">Carrière et centre de valorisation à Villard-Bonnot.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
+            <a className="font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="tel:0620721960">
+              06 20 72 19 60
+            </a>
+            <a className="text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="mailto:tvm38@midali.fr">
+              tvm38@midali.fr
+            </a>
+            <Link className="text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/estimation">
+              Donner mon avis
+            </Link>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   return (
     <footer className="bg-surface-container border-t-4 border-primary">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8 px-12 py-16 w-full max-w-screen-2xl mx-auto">
