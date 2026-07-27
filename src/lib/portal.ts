@@ -161,6 +161,31 @@ export const STATUT_LABELS: Record<StatutAffaire, string> = {
   sans_suite: 'Sans suite',
 };
 
+/**
+ * Regroupement des statuts pour le filtrage et les compteurs de l'espace.
+ *
+ * Défini une seule fois : les filtres et les statistiques de la page se
+ * calculaient chacun de leur côté, et avaient fini par ne plus dire la même
+ * chose — « En cours » ne comptait que les demandes non chiffrées, donc restait
+ * à zéro, pendant qu'un devis planifié n'apparaissait nulle part.
+ *
+ * `en_cours` : le dossier avance et le client n'a rien à faire.
+ * `devis_recu` : un devis attend sa décision. C'est le seul groupe actionnable.
+ * `historique` : l'affaire est close, livrée ou abandonnée. La pastille de
+ * chaque carte distingue les deux, le libellé du groupe n'a pas à trancher.
+ */
+export const GROUPES_AFFAIRE = {
+  en_cours: ['envoyee', 'en_chiffrage', 'acceptee', 'planifiee'],
+  devis_recu: ['devis_recu'],
+  historique: ['terminee', 'sans_suite'],
+} as const satisfies Record<string, readonly StatutAffaire[]>;
+
+export type GroupeAffaire = keyof typeof GROUPES_AFFAIRE;
+
+export function estDansGroupe(statut: StatutAffaire, groupe: GroupeAffaire): boolean {
+  return (GROUPES_AFFAIRE[groupe] as readonly StatutAffaire[]).includes(statut);
+}
+
 /** Classes Tailwind de la pastille de statut, du plus actif au plus neutre. */
 export const STATUT_STYLES: Record<StatutAffaire, { pastille: string; texte: string; fond: string }> = {
   envoyee:      { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },

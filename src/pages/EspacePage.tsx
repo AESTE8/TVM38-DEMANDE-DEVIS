@@ -25,20 +25,22 @@ import AffaireCard from '@/components/portal/AffaireCard';
 import { getConnectedClient } from '@/lib/auth';
 import {
   Affaire,
+  GroupeAffaire,
   SessionExpiree,
   TYPE_DEMANDE_LABELS,
+  estDansGroupe,
   fetchAffaires,
 } from '@/lib/portal';
 
 gsap.registerPlugin(useGSAP);
 
-type FiltreAffaires = 'toutes' | 'en_cours' | 'devis' | 'terminees';
+type FiltreAffaires = 'toutes' | GroupeAffaire;
 
 const FILTRES: Array<{ cle: FiltreAffaires; label: string }> = [
   { cle: 'toutes', label: 'Toutes' },
   { cle: 'en_cours', label: 'En cours' },
-  { cle: 'devis', label: 'Devis' },
-  { cle: 'terminees', label: 'Terminées' },
+  { cle: 'devis_recu', label: 'Devis reçu' },
+  { cle: 'historique', label: 'Historique' },
 ];
 
 function normaliserRecherche(valeur: string): string {
@@ -152,10 +154,8 @@ export default function EspacePage() {
 
   const statistiques = useMemo(() => ({
     total: affaires.length,
-    enCours: affaires.filter((affaire) =>
-      affaire.statut === 'envoyee' || affaire.statut === 'en_chiffrage',
-    ).length,
-    devis: affaires.filter((affaire) => affaire.montantHT !== null).length,
+    enCours: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'en_cours')).length,
+    devis: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'devis_recu')).length,
   }), [affaires]);
 
   const affairesFiltrees = useMemo(() => {
@@ -163,10 +163,7 @@ export default function EspacePage() {
 
     return affaires.filter((affaire) => {
       const correspondFiltre =
-        filtre === 'toutes'
-        || (filtre === 'en_cours' && ['envoyee', 'en_chiffrage'].includes(affaire.statut))
-        || (filtre === 'devis' && affaire.montantHT !== null)
-        || (filtre === 'terminees' && ['terminee', 'sans_suite'].includes(affaire.statut));
+        filtre === 'toutes' || estDansGroupe(affaire.statut, filtre);
 
       if (!correspondFiltre) return false;
       if (!terme) return true;
@@ -219,7 +216,7 @@ export default function EspacePage() {
                 {[
                   { label: 'Dossiers suivis', valeur: statistiques.total, icone: Files },
                   { label: 'En cours', valeur: statistiques.enCours, icone: Clock3 },
-                  { label: 'Devis disponibles', valeur: statistiques.devis, icone: FileCheck2 },
+                  { label: 'Devis reçus', valeur: statistiques.devis, icone: FileCheck2 },
                 ].map(({ label, valeur, icone: Icone }) => (
                   <div
                     key={label}
