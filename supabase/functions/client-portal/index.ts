@@ -261,14 +261,23 @@ function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Mat
     const devisLies = devisParDemande.get(dem.id) ?? [];
     const devisVisible = devisTransmis(devisLies);
 
+    // Dès qu'un devis a été transmis, c'est lui que décrit la carte : elle en
+    // porte déjà le numéro, le montant et le PDF. Reprendre les matériaux, le
+    // lieu ou le type depuis la demande d'origine ferait cohabiter deux
+    // versions de la même affaire — le dispatcher ajoute un matériau, le
+    // montant bouge sur la carte mais le résumé continue d'annoncer l'ancienne
+    // liste. La demande reste consultable telle qu'envoyée, sur le détail.
+    const source = devisVisible ?? dem;
+    const lignes = mapLignes(source.lignes, materiaux);
+
     affaires.push({
       id: `d:${dem.id}`,
       statut: statutAffaire(dem, devisVisible, devisLies),
       date: devisVisible?.date_envoi_at ?? devisVisible?.created_at ?? dem.created_at,
       dateDemande: dem.created_at,
-      typeDemande: dem.type_demande,
-      lieu: dem.adresse_livraison || null,
-      lignes: mapLignes(dem.lignes, materiaux),
+      typeDemande: devisVisible?.type_devis ?? dem.type_demande,
+      lieu: (devisVisible?.adresse_livraison || dem.adresse_livraison) || null,
+      lignes,
       numeroDevis: devisVisible?.numero_devis ?? null,
       montantHT: devisVisible ? devisVisible.montant_total_ht : null,
       montantModifie: devisVisible ? montantModifie(devisVisible) : false,
