@@ -30,6 +30,14 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 /** États d'un devis considérés comme transmis au client. */
 const ETATS_VISIBLES = ['envoye', 'accepte', 'termine'];
 
+/**
+ * États d'un devis qui signifient « le dispatcher a la demande en main ».
+ * Leur contenu n'est jamais exposé — seule leur existence l'est, pour que le
+ * client sache que sa demande avance. `archive` en est exclu : un devis
+ * abandonné ne veut pas dire qu'on travaille dessus.
+ */
+const ETATS_EN_COURS = ['en_attente'];
+
 type Statut =
   | 'envoyee'      // demande reçue, pas encore traitée
   | 'en_chiffrage' // le dispatcher travaille dessus
@@ -101,6 +109,29 @@ function statutDepuisDemande(statutDemande: string): Statut {
   if (statutDemande === 'sans_suite') return 'sans_suite';
   if (statutDemande === 'en_traitement' || statutDemande === 'devisee') return 'en_chiffrage';
   return 'envoyee';
+}
+
+/**
+ * Statut d'une affaire née d'une demande web.
+ *
+ * L'ordre compte : un devis transmis prime, puis l'existence d'un brouillon,
+ * puis le statut porté par la demande elle-même.
+ *
+ * Le rattrapage par le brouillon est ce qui rend le suivi vivant sans rien
+ * demander au logiciel de la carrière. `demandes.statut` ne bouge que si le
+ * dispatcher le met à jour à la main ; tant qu'il ne le fait pas, une demande
+ * déjà en cours de chiffrage resterait affichée « Demande envoyée ». Or créer un
+ * devis rattaché à la demande, c'est précisément commencer à la chiffrer.
+ */
+function statutAffaire(
+  dem: DemandeRow,
+  devisVisible: DevisRow | null,
+  devisLies: DevisRow[],
+): Statut {
+  if (devisVisible) return statutDepuisDevis(devisVisible.etat);
+  if (dem.statut === 'sans_suite') return 'sans_suite';
+  if (devisLies.some((d) => ETATS_EN_COURS.includes(d.etat))) return 'en_chiffrage';
+  return statutDepuisDemande(dem.statut);
 }
 
 /**
@@ -176,25 +207,43 @@ async function chargerAffaires(clientId: string) {
 // Construction du fil
 // ---------------------------------------------------------------------------
 
-function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Materiaux) {
-  const devisParDemande = new Map<string, DevisRow>();
+/**
+ * Regroupe les devis par demande, du plus récent au plus ancien.
+ * On garde la liste entière plutôt que le seul devis le plus récent : un
+ * brouillon créé après un devis déjà envoyé masquerait sinon ce dernier.
+ */
+function grouperParDemande(devis: DevisRow[]): Map<string, DevisRow[]> {
+  const parDemande = new Map<string, DevisRow[]>();
   for (const d of devis) {
     if (!d.demande_id) continue;
-    // Si plusieurs devis pointent la même demande, le plus récent fait foi.
-    const existant = devisParDemande.get(d.demande_id);
-    if (!existant || d.created_at > existant.created_at) devisParDemande.set(d.demande_id, d);
+    const liste = parDemande.get(d.demande_id);
+    if (liste) liste.push(d);
+    else parDemande.set(d.demande_id, [d]);
   }
+  for (const liste of parDemande.values()) {
+    liste.sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+  }
+  return parDemande;
+}
+
+/** Le devis transmis le plus récent parmi ceux rattachés à une demande. */
+function devisTransmis(devisLies: DevisRow[]): DevisRow | null {
+  return devisLies.find((d) => ETATS_VISIBLES.includes(d.etat)) ?? null;
+}
+
+function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Materiaux) {
+  const devisParDemande = grouperParDemande(devis);
 
   const affaires = [];
 
   // 1. Les demandes du client, enrichies du devis qui leur répond
   for (const dem of demandes) {
-    const devisLie = devisParDemande.get(dem.id);
-    const devisVisible = devisLie && ETATS_VISIBLES.includes(devisLie.etat) ? devisLie : null;
+    const devisLies = devisParDemande.get(dem.id) ?? [];
+    const devisVisible = devisTransmis(devisLies);
 
     affaires.push({
       id: `d:${dem.id}`,
-      statut: devisVisible ? statutDepuisDevis(devisVisible.etat) : statutDepuisDemande(dem.statut),
+      statut: statutAffaire(dem, devisVisible, devisLies),
       date: devisVisible?.date_envoi_at ?? devisVisible?.created_at ?? dem.created_at,
       dateDemande: dem.created_at,
       typeDemande: dem.type_demande,
@@ -273,7 +322,11 @@ function detailDemande(dem: DemandeRow, materiaux: Materiaux) {
   };
 }
 
-function construireTimeline(statut: Statut, dateDemande: string | null, devis: { dateEnvoiAt: string | null } | null) {
+function construireTimeline(
+  statut: Statut,
+  dateDemande: string | null,
+  devis: { dateEnvoiAt: string | null; datePlanification: string | null } | null,
+) {
   if (statut === 'sans_suite') {
     return [
       { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
@@ -291,12 +344,26 @@ function construireTimeline(statut: Statut, dateDemande: string | null, devis: {
   };
 
   const index = ordre.indexOf(statut);
-  return ordre.map((cle, i) => ({
-    cle,
-    label: labels[cle],
-    date: cle === 'envoyee' ? dateDemande : cle === 'devis_recu' ? devis?.dateEnvoiAt ?? null : null,
-    atteint: i <= index,
-  }));
+
+  // Une date n'est portée que par les étapes dont on sait dater le passage.
+  // `acceptee` n'en a pas : le logiciel ne conserve pas la date d'accord, et
+  // afficher `updated_at` reviendrait à dater l'accord d'une modification
+  // quelconque du devis. Mieux vaut une étape sans date qu'une date fausse.
+  const dates: Partial<Record<Statut, string | null>> = {
+    envoyee: dateDemande,
+    devis_recu: devis?.dateEnvoiAt ?? null,
+    terminee: devis?.datePlanification ?? null,
+  };
+
+  return ordre.map((cle, i) => {
+    const atteint = i <= index;
+    return {
+      cle,
+      label: labels[cle],
+      date: atteint ? dates[cle] ?? null : null,
+      atteint,
+    };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -345,12 +412,10 @@ Deno.serve(async (req) => {
     const dem = demandes.find((x) => x.id === brutId);
     if (!dem) return json(404, { error: 'NOT_FOUND' });
 
-    const lies = devis
-      .filter((x) => x.demande_id === dem.id && ETATS_VISIBLES.includes(x.etat))
-      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
-    const devisVisible = lies[0] ?? null;
+    const devisLies = grouperParDemande(devis).get(dem.id) ?? [];
+    const devisVisible = devisTransmis(devisLies);
 
-    const statut = devisVisible ? statutDepuisDevis(devisVisible.etat) : statutDepuisDemande(dem.statut);
+    const statut = statutAffaire(dem, devisVisible, devisLies);
     const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux) : null;
 
     return json(200, {
