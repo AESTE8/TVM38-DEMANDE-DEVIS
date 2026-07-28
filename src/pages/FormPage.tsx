@@ -201,7 +201,41 @@ export default function FormPage() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const scrollTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
+  const formTopRef = useRef<HTMLDivElement>(null);
+
+  const scrollTop = () => {
+    // 1. Fermer le clavier virtuel iOS/Android en retirant le focus du champ actif
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    // 2. Faire défiler la vue jusqu'au sommet du composant formulaire
+    if (formTopRef.current) {
+      formTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (document.documentElement) document.documentElement.scrollTop = 0;
+    if (document.body) document.body.scrollTop = 0;
+
+    // 3. Ré-exécution temporisée obligatoire pour iOS Safari (clavier & barre d'adresse)
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }, 80);
+
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+      if (document.documentElement) document.documentElement.scrollTop = 0;
+      if (document.body) document.body.scrollTop = 0;
+    }, 200);
+  };
+
+  // Scroll automatique au sommet à chaque changement d'étape ou d'onglet décharge
+  useEffect(() => {
+    scrollTop();
+  }, [currentStep, combiTab]);
 
   const validateStep = async (step: number): Promise<boolean> => {
     if (step === 1) {
@@ -437,7 +471,7 @@ export default function FormPage() {
     });
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div ref={formTopRef} className="min-h-screen bg-surface">
       <Header>
         {connectedClient && <ClientBadge />}
       </Header>
