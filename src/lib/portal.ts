@@ -32,6 +32,7 @@ export interface Affaire {
   montantHT: number | null;
   montantModifie: boolean;
   pdfDisponible: boolean;
+  devisId: string | null;
 }
 
 export interface DevisDetail {

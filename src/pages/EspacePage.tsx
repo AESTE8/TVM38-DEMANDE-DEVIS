@@ -7,11 +7,14 @@ import {
   ArrowRight,
   Calculator,
   CheckCircle2,
+  ChevronDown,
   Clock3,
   FileCheck2,
   Files,
   Inbox,
   Mail,
+  Phone,
+  PhoneCall,
   Plus,
   Search,
   Send,
@@ -57,11 +60,13 @@ export default function EspacePage() {
   const [erreur, setErreur] = useState<string | null>(null);
   const [filtre, setFiltre] = useState<FiltreAffaires>('toutes');
   const [recherche, setRecherche] = useState('');
+  const [menuContactOuvert, setMenuContactOuvert] = useState(false);
 
   useEffect(() => {
     document.title = 'Mon espace — TVM38';
   }, []);
 
+  // 1. Animation au chargement initial de la page (en-tête + stats)
   useGSAP(() => {
     if (chargement) return;
 
@@ -79,7 +84,6 @@ export default function EspacePage() {
 
         const introduction = racine.querySelectorAll('[data-espace-intro]');
         const indicateurs = racine.querySelectorAll('[data-espace-stat]');
-        const cartes = racine.querySelectorAll('[data-espace-card]');
 
         const timeline = gsap.timeline({
           defaults: {
@@ -106,15 +110,45 @@ export default function EspacePage() {
             duration: 0.3,
           }, '-=0.2');
         }
+      },
+      pageRef,
+    );
+
+    return () => media.revert();
+  }, {
+    scope: pageRef,
+    dependencies: [chargement, erreur],
+    revertOnUpdate: true,
+  });
+
+  // 2. Animation ciblée uniquement sur la liste des demandes lors du filtrage/recherche
+  useGSAP(() => {
+    if (chargement) return;
+
+    const media = gsap.matchMedia();
+
+    media.add(
+      {
+        animationAutorisee: '(prefers-reduced-motion: no-preference)',
+        animationReduite: '(prefers-reduced-motion: reduce)',
+      },
+      (contexte) => {
+        if (contexte.conditions?.animationReduite) return;
+        const racine = pageRef.current;
+        if (!racine) return;
+
+        const cartes = racine.querySelectorAll('[data-espace-card]');
 
         if (cartes.length > 0) {
-          timeline.from(cartes, {
+          gsap.from(cartes, {
             autoAlpha: 0,
-            y: 20,
-            scale: 0.98,
-            stagger: 0.04,
-            duration: 0.35,
-          }, '-=0.15');
+            y: 16,
+            scale: 0.985,
+            stagger: 0.035,
+            duration: 0.3,
+            ease: 'power3.out',
+            clearProps: 'transform,opacity,visibility',
+          });
         }
       },
       pageRef,
@@ -123,7 +157,7 @@ export default function EspacePage() {
     return () => media.revert();
   }, {
     scope: pageRef,
-    dependencies: [chargement, erreur, filtre, recherche],
+    dependencies: [filtre, recherche],
     revertOnUpdate: true,
   });
 
@@ -214,14 +248,85 @@ export default function EspacePage() {
               </div>
 
               <div data-espace-intro className="flex flex-wrap items-center gap-2 sm:gap-3">
-                <a
-                  href="mailto:tvm38@midali.fr"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                  title="Contact direct carrière"
-                >
-                  <Mail aria-hidden="true" className="h-4 w-4 text-primary" />
-                  Contact Carrière
-                </a>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMenuContactOuvert((v) => !v)}
+                    aria-expanded={menuContactOuvert}
+                    className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                  >
+                    <PhoneCall aria-hidden="true" className="h-4 w-4 text-primary" />
+                    <span>Contact Carrière</span>
+                    <ChevronDown
+                      aria-hidden="true"
+                      className={`h-3.5 w-3.5 text-secondary transition-transform duration-200 ${
+                        menuContactOuvert ? 'rotate-180 text-primary' : ''
+                      }`}
+                    />
+                  </button>
+
+                  {menuContactOuvert && (
+                    <>
+                      {/* Backdrop pour fermer le menu lors d'un clic extérieur */}
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setMenuContactOuvert(false)}
+                      />
+
+                      {/* Popover avec Motion Design */}
+                      <div className="absolute right-0 top-full mt-2 z-50 w-72 origin-top-right rounded-xl border border-border/80 bg-white p-3 shadow-2xl backdrop-blur-md animate-scale-bounce">
+                        <div className="flex items-center justify-between pb-2 border-b border-border/40 px-1">
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-secondary/70">
+                            Contacter TVM38
+                          </p>
+                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
+                            Carrière ouverte
+                          </span>
+                        </div>
+
+                        <div className="mt-2.5 flex flex-col gap-1.5">
+                          {/* Option 1 : Téléphone */}
+                          <a
+                            href="tel:0620721960"
+                            onClick={() => setMenuContactOuvert(false)}
+                            className="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-primary/8 active:scale-[0.98] motion-smooth"
+                          >
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-emerald-50 text-emerald-600 transition-colors group-hover:bg-emerald-600 group-hover:text-white">
+                              <Phone aria-hidden="true" className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-on-surface group-hover:text-primary">
+                                Par Téléphone
+                              </p>
+                              <p className="text-[11px] font-semibold text-secondary">
+                                06 20 72 19 60
+                              </p>
+                            </div>
+                          </a>
+
+                          {/* Option 2 : Email */}
+                          <a
+                            href="mailto:tvm38@midali.fr"
+                            onClick={() => setMenuContactOuvert(false)}
+                            className="group flex items-center gap-3 rounded-lg p-2.5 transition-all hover:bg-primary/8 active:scale-[0.98] motion-smooth"
+                          >
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                              <Mail aria-hidden="true" className="h-4 w-4" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-xs font-bold text-on-surface group-hover:text-primary">
+                                Par Email
+                              </p>
+                              <p className="text-[11px] font-semibold text-secondary">
+                                tvm38@midali.fr
+                              </p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
 
                 <Link
                   to="/formulaire"

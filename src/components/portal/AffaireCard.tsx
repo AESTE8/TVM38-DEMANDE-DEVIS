@@ -1,19 +1,21 @@
+import { useState } from 'react';
 import {
   ArrowRight,
   CalendarDays,
   Download,
-  FileCheck2,
   FileText,
   MapPin,
   Package,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import StatutBadge from '@/components/portal/StatutBadge';
 import {
   Affaire,
   StatutAffaire,
   TYPE_DEMANDE_LABELS,
+  fetchAffaire,
   formatDate,
   formatMontant,
   formatTonnage,
@@ -70,12 +72,37 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
   const libelleType = TYPE_DEMANDE_LABELS[affaire.typeDemande] ?? affaire.typeDemande;
   const activeStepIndex = getStepIndex(affaire.statut);
 
-  const handlePdfClick = (e: React.MouseEvent) => {
+  const [pdfEnCours, setPdfEnCours] = useState(false);
+
+  const handlePdfClick = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    ouvrirPdfDevis(affaire.id).catch(() => {
-      // Handled in detail page if needed
-    });
+
+    if (pdfEnCours) return;
+    setPdfEnCours(true);
+
+    try {
+      let devId = affaire.devisId;
+
+      if (!devId) {
+        if (affaire.id.startsWith('q:')) {
+          devId = affaire.id.slice(2);
+        } else {
+          const detail = await fetchAffaire(affaire.id);
+          devId = detail.devisId;
+        }
+      }
+
+      if (devId) {
+        await ouvrirPdfDevis(devId);
+      } else {
+        toast.error("Le PDF de ce devis n'est pas encore disponible.");
+      }
+    } catch (err) {
+      toast.error("Le PDF n'a pas pu être ouvert. Réessayez dans un instant.");
+    } finally {
+      setPdfEnCours(false);
+    }
   };
 
   return (
@@ -194,11 +221,12 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
                   <button
                     type="button"
                     onClick={handlePdfClick}
-                    className="inline-flex items-center gap-1 rounded-md border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+                    disabled={pdfEnCours}
+                    className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
                     title="Télécharger le PDF"
                   >
-                    <Download aria-hidden="true" className="h-3.5 w-3.5" />
-                    PDF
+                    <Download aria-hidden="true" className={`h-3.5 w-3.5 ${pdfEnCours ? 'animate-spin' : ''}`} />
+                    {pdfEnCours ? '...' : 'PDF'}
                   </button>
                 )}
               </div>
