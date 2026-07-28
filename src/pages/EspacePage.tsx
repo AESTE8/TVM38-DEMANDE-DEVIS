@@ -403,7 +403,7 @@ export default function EspacePage() {
                             estActif
                               ? 'bg-primary/10 text-primary'
                               : item.highlight && aDesItems
-                              ? 'bg-emerald-600 text-white animate-pulse'
+                              ? 'bg-emerald-600 text-white'
                               : 'bg-border/60 text-secondary'
                           }`}
                         >

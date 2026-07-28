@@ -28,7 +28,6 @@ const STATUT_STEPS: Array<{ key: string; label: string }> = [
   { key: 'envoyee', label: 'Demande' },
   { key: 'en_chiffrage', label: 'Chiffrage' },
   { key: 'devis_recu', label: 'Devis prêt' },
-  { key: 'valide', label: 'Livraison' },
 ];
 
 function getStepIndex(statut: StatutAffaire): number {
@@ -38,11 +37,10 @@ function getStepIndex(statut: StatutAffaire): number {
     case 'en_chiffrage':
       return 2;
     case 'devis_recu':
-      return 3;
     case 'acceptee':
     case 'planifiee':
     case 'terminee':
-      return 4;
+      return 3;
     case 'sans_suite':
       return 0;
     default:
@@ -99,31 +97,32 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
         </span>
       </div>
 
-      {/* Mini Timeline à 4 étapes */}
+      {/* Mini Timeline à 3 étapes : Demande, Chiffrage, Devis prêt */}
       {affaire.statut !== 'sans_suite' && (
         <div className="mt-4 rounded-lg bg-surface-container-low/60 p-2.5">
           <div className="flex items-center gap-1.5">
             {STATUT_STEPS.map((step, idx) => {
-              const isPassed = activeStepIndex > idx + 1;
-              const isCurrent = activeStepIndex === idx + 1;
+              const stepNum = idx + 1;
+              const isCompleted = activeStepIndex >= stepNum;
+              const isCurrent = activeStepIndex === stepNum && activeStepIndex < 3;
 
               return (
                 <div key={step.key} className="flex flex-1 flex-col gap-1">
                   <div
                     className={`h-1.5 w-full rounded-full transition-all duration-300 ${
-                      isPassed
+                      isCompleted
                         ? 'bg-emerald-500'
                         : isCurrent
-                        ? 'bg-amber-500 animate-pulse'
+                        ? 'bg-amber-500'
                         : 'bg-border/60'
                     }`}
                   />
                   <span
                     className={`truncate text-[10px] font-bold ${
-                      isCurrent
-                        ? 'text-on-surface'
-                        : isPassed
-                        ? 'text-emerald-700 font-semibold'
+                      isCompleted
+                        ? 'text-emerald-700'
+                        : isCurrent
+                        ? 'text-amber-800'
                         : 'text-secondary/50'
                     }`}
                   >
