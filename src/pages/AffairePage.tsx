@@ -129,77 +129,87 @@ export default function AffairePage() {
   const demande = affaire?.demande ?? null;
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col relative pb-24">
       <Header>{client && <ClientBadge />}</Header>
 
       <main className="flex-1 w-full max-w-3xl mx-auto px-4 pt-24 md:pt-32 pb-12">
 
         <Link
           to="/espace"
-          className="inline-flex items-center gap-1 text-sm font-bold text-secondary hover:text-primary transition-colors mb-4"
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-secondary hover:text-primary transition-colors mb-5"
         >
-          <ChevronLeft className="w-4 h-4" />
-          Mon espace
+          <ChevronLeft className="w-4 h-4 text-primary" />
+          Retour à mon espace
         </Link>
 
         {chargement && (
           <div className="space-y-4" aria-live="polite" aria-busy="true">
             <span className="sr-only">Chargement du détail…</span>
-            <div className="h-32 rounded-sm bg-surface-container animate-pulse" />
-            <div className="h-64 rounded-sm bg-surface-container animate-pulse" />
+            <div className="h-32 rounded-xl bg-surface-container animate-pulse" />
+            <div className="h-64 rounded-xl bg-surface-container animate-pulse" />
           </div>
         )}
 
         {!chargement && erreur && (
-          <div className="bg-destructive/10 border border-destructive/20 rounded-sm p-4 flex gap-3">
+          <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-5 flex gap-3">
             <AlertTriangle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
-            <p className="text-sm text-destructive font-body">{erreur}</p>
+            <div>
+              <p className="text-sm font-bold text-destructive">Une erreur est survenue</p>
+              <p className="text-sm text-destructive/80 font-body mt-0.5">{erreur}</p>
+            </div>
           </div>
         )}
 
         {!chargement && affaire && (
-          <div className="space-y-4">
+          <div className="space-y-5">
 
             {/* Statut + suivi */}
-            <section className="bg-card border border-border/60 rounded-sm p-5 shadow-sm">
-              <StatutBadge statut={affaire.statut} className="mb-4" />
+            <section className="bg-card border border-border/75 rounded-xl p-5 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 mb-5 pb-4 border-b border-border/50">
+                <StatutBadge statut={affaire.statut} />
+                {devis?.numero && (
+                  <span className="text-xs font-bold text-secondary">
+                    Devis n° <strong className="text-on-surface font-black">{devis.numero}</strong>
+                  </span>
+                )}
+              </div>
 
               <ol className="space-y-0">
                 {affaire.timeline.map((etape, i) => (
-                  <li key={etape.cle} className="flex gap-3">
+                  <li key={etape.cle} className="flex gap-3.5">
                     {/* Colonne du fil */}
                     <div className="flex flex-col items-center shrink-0">
                       <span
                         className={cn(
-                          'w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors',
+                          'w-6 h-6 rounded-full flex items-center justify-center border-2 transition-all',
                           etape.atteint
-                            ? 'bg-primary border-primary text-on-primary'
-                            : 'bg-surface border-border',
+                            ? 'bg-primary border-primary text-white shadow-sm'
+                            : 'bg-surface border-border text-secondary/40',
                         )}
                       >
-                        {etape.atteint && <Check className="w-3 h-3" strokeWidth={3} />}
+                        {etape.atteint && <Check className="w-3.5 h-3.5" strokeWidth={3} />}
                       </span>
                       {i < affaire.timeline.length - 1 && (
                         <span
                           className={cn(
-                            'w-0.5 flex-1 min-h-[24px]',
-                            affaire.timeline[i + 1].atteint ? 'bg-primary' : 'bg-border',
+                            'w-0.5 flex-1 min-h-[28px]',
+                            affaire.timeline[i + 1].atteint ? 'bg-primary' : 'bg-border/60',
                           )}
                         />
                       )}
                     </div>
 
-                    <div className={cn('pb-4', i === affaire.timeline.length - 1 && 'pb-0')}>
+                    <div className={cn('pb-4.5', i === affaire.timeline.length - 1 && 'pb-0')}>
                       <p
                         className={cn(
-                          'text-sm font-headline font-bold leading-5',
+                          'text-sm font-headline font-bold leading-snug',
                           etape.atteint ? 'text-on-surface' : 'text-secondary/50',
                         )}
                       >
                         {etape.label}
                       </p>
                       {etape.date && etape.atteint && (
-                        <p className="text-xs text-secondary/70 font-body">{formatDate(etape.date)}</p>
+                        <p className="text-xs text-secondary/70 font-body mt-0.5">{formatDate(etape.date)}</p>
                       )}
                     </div>
                   </li>
@@ -209,38 +219,42 @@ export default function AffairePage() {
 
             {/* Le devis */}
             {devis && (
-              <section className="bg-card border border-border/60 rounded-sm shadow-sm overflow-hidden">
-                <div className="bg-surface-container-low px-5 py-3 border-b border-border/40">
-                  <p className="text-[11px] uppercase tracking-widest text-secondary font-headline font-bold">
-                    Votre devis
-                  </p>
-                  <p className="font-headline font-black text-on-surface tracking-tight">
-                    n° {devis.numero}
-                  </p>
+              <section className="bg-card border border-border/75 rounded-xl shadow-sm overflow-hidden">
+                <div className="bg-surface-container-low px-5 py-3.5 border-b border-border/40 flex items-center justify-between">
+                  <div>
+                    <p className="text-[11px] uppercase tracking-widest text-secondary font-headline font-bold">
+                      Proposition Chiffrée
+                    </p>
+                    <p className="font-headline font-black text-on-surface tracking-tight text-lg">
+                      Devis n° {devis.numero}
+                    </p>
+                  </div>
+                  {devis.pdfDisponible && (
+                    <button
+                      type="button"
+                      onClick={handlePdf}
+                      disabled={pdfEnCours}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-600/30 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-600 hover:text-white transition"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      PDF
+                    </button>
+                  )}
                 </div>
 
                 <div className="p-5 space-y-4">
-
-                  {/*
-                    Le point de vigilance de toute la fonctionnalité : le client a
-                    un email avec un montant, le site affiche la dernière version
-                    enregistrée par la carrière. Quand les deux diffèrent, on le
-                    dit franchement plutôt que de laisser le client face à deux
-                    chiffres contradictoires.
-                  */}
                   {devis.montantModifie && (
-                    <div className="bg-amber-50 border border-amber-300/60 rounded-sm p-3 flex gap-2.5">
+                    <div className="bg-amber-50/80 border border-amber-300/70 rounded-lg p-3.5 flex gap-3">
                       <AlertTriangle className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" />
                       <div className="text-xs font-body text-amber-900 leading-relaxed">
                         <p className="font-bold">
-                          Ce devis a été mis à jour{devis.updatedAt ? ` le ${formatDate(devis.updatedAt)}` : ''}.
+                          Ce devis a été mis à jour par TVM38{devis.updatedAt ? ` le ${formatDate(devis.updatedAt)}` : ''}.
                         </p>
                         <p className="mt-0.5">
-                          Le montant ci-dessous fait foi
+                          Le montant ci-dessous fait foi.
                           {devis.montantEnvoye !== null && (
-                            <> — l'email du {formatDate(devis.dateEnvoi)} indiquait {formatMontant(devis.montantEnvoye)} € HT</>
+                            <> (L'email du {formatDate(devis.dateEnvoi)} indiquait initialement {formatMontant(devis.montantEnvoye)} € HT)</>
                           )}
-                          .
                         </p>
                       </div>
                     </div>
@@ -248,67 +262,57 @@ export default function AffairePage() {
 
                   <TableauLignes lignes={devis.lignes} />
 
-                  <div className="flex items-end justify-between gap-4 pt-3 border-t-2 border-on-surface/10">
-                    <p className="text-xs uppercase tracking-widest text-secondary font-headline font-bold pb-1">
-                      Total HT
-                    </p>
-                    <p className="text-2xl font-black text-on-surface font-headline leading-none">
-                      {formatMontant(devis.montantHT)} €
+                  <div className="flex items-end justify-between gap-4 pt-3.5 border-t-2 border-on-surface/10">
+                    <div>
+                      <p className="text-xs uppercase tracking-widest text-secondary font-headline font-bold">
+                        Montant Total HT
+                      </p>
+                      <p className="text-xs text-secondary/70 font-body">TVA et frais de transport inclus</p>
+                    </div>
+                    <p className="text-3xl font-black text-on-surface font-headline leading-none">
+                      {formatMontant(devis.montantHT)} € <span className="text-sm font-bold text-secondary">HT</span>
                     </p>
                   </div>
 
-                  <p className="text-[11px] text-secondary/70 font-body">
-                    Le détail du calcul (transport, remises éventuelles) figure sur le PDF du devis.
-                  </p>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     {devis.adresseLivraison && (
-                      <Info icone={<MapPin className="w-4 h-4" />} label="Livraison" valeur={devis.adresseLivraison} />
+                      <Info icone={<MapPin className="w-4 h-4 text-primary" />} label="Lieu de livraison" valeur={devis.adresseLivraison} />
                     )}
                     {devis.datePlanification && (
                       <Info
-                        icone={<Calendar className="w-4 h-4" />}
-                        label="Planifiée le"
+                        icone={<Calendar className="w-4 h-4 text-primary" />}
+                        label="Date planifiée"
                         valeur={`${formatDate(devis.datePlanification)}${devis.creneau ? ` · ${CRENEAU_LABELS[devis.creneau] ?? devis.creneau}` : ''}`}
                       />
                     )}
                   </div>
-
-                  {devis.pdfDisponible ? (
-                    <button
-                      type="button"
-                      onClick={handlePdf}
-                      disabled={pdfEnCours}
-                      className="w-full flex items-center justify-center gap-2 border-2 border-primary text-primary font-headline font-extrabold py-3 px-6 rounded-sm uppercase tracking-tighter text-sm hover:bg-primary/5 active:scale-[0.98] transition-all disabled:opacity-60"
-                    >
-                      <Download className="w-4 h-4" />
-                      {pdfEnCours ? 'Ouverture…' : 'Télécharger le devis (PDF)'}
-                    </button>
-                  ) : (
-                    <p className="text-xs text-secondary/70 font-body text-center">
-                      Le PDF de ce devis n'est pas encore disponible en ligne. Il vous a été envoyé par email.
-                    </p>
-                  )}
                 </div>
               </section>
             )}
 
             {/* Pas encore de devis */}
             {!devis && affaire.statut !== 'sans_suite' && (
-              <section className="bg-tertiary/5 border border-tertiary/20 rounded-sm p-5 text-center">
-                <p className="font-headline font-bold text-on-surface text-sm">
-                  Votre demande est entre les mains de notre équipe
+              <section className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-center">
+                <p className="font-headline font-bold text-on-surface text-base">
+                  Votre demande est actuellement en cours d'étude
                 </p>
-                <p className="text-sm text-secondary font-body mt-1">
-                  Le devis apparaîtra ici dès qu'il vous aura été transmis. Vous le recevrez
-                  également par email.
+                <p className="text-sm text-secondary font-body mt-1.5 max-w-md mx-auto">
+                  L'équipe commerciale TVM38 prépare votre chiffrage. Vous recevrez une notification dès qu'il sera disponible.
                 </p>
+                <div className="mt-4 flex justify-center">
+                  <a
+                    href="mailto:tvm38@midali.fr"
+                    className="inline-flex items-center gap-2 rounded-lg border border-primary/30 bg-white px-4 py-2 text-xs font-bold text-primary hover:bg-primary/5 transition"
+                  >
+                    Question sur ma demande ? Contacter TVM38
+                  </a>
+                </div>
               </section>
             )}
 
             {/* Rappel de la demande */}
             {demande && (
-              <section className="bg-card border border-border/60 rounded-sm shadow-sm overflow-hidden">
+              <section className="bg-card border border-border/75 rounded-xl shadow-sm overflow-hidden">
                 <button
                   type="button"
                   onClick={() => setDemandeOuverte((v) => !v)}
@@ -317,15 +321,15 @@ export default function AffairePage() {
                 >
                   <div>
                     <p className="text-[11px] uppercase tracking-widest text-secondary font-headline font-bold">
-                      Votre demande
+                      Détail de la demande initiale
                     </p>
-                    <p className="text-sm font-body text-on-surface">
-                      Envoyée le {formatDate(demande.createdAt)}
+                    <p className="text-sm font-body text-on-surface font-semibold">
+                      Soumise le {formatDate(demande.createdAt)}
                     </p>
                   </div>
                   <ChevronDown
                     className={cn(
-                      'w-5 h-5 text-secondary shrink-0 transition-transform',
+                      'w-5 h-5 text-secondary shrink-0 transition-transform duration-200',
                       demandeOuverte && 'rotate-180',
                     )}
                   />
@@ -335,27 +339,27 @@ export default function AffairePage() {
                   <div className="px-5 pb-5 space-y-4 border-t border-border/40 pt-4 animate-fade-in">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <Info
-                        icone={<Truck className="w-4 h-4" />}
+                        icone={<Truck className="w-4 h-4 text-primary" />}
                         label="Type de demande"
                         valeur={TYPE_DEMANDE_LABELS[demande.typeDemande] ?? demande.typeDemande}
                       />
                       {demande.adresseLivraison && (
-                        <Info icone={<MapPin className="w-4 h-4" />} label="Adresse" valeur={demande.adresseLivraison} />
+                        <Info icone={<MapPin className="w-4 h-4 text-primary" />} label="Adresse" valeur={demande.adresseLivraison} />
                       )}
                       {demande.dateSouhaitee && (
                         <Info
-                          icone={<Calendar className="w-4 h-4" />}
+                          icone={<Calendar className="w-4 h-4 text-primary" />}
                           label="Date souhaitée"
                           valeur={`${formatDate(demande.dateSouhaitee)}${demande.creneau ? ` · ${CRENEAU_LABELS[demande.creneau] ?? demande.creneau}` : ''}`}
                         />
                       )}
                       {demande.agenceNom && (
-                        <Info icone={<MapPin className="w-4 h-4" />} label="Agence" valeur={demande.agenceNom} />
+                        <Info icone={<MapPin className="w-4 h-4 text-primary" />} label="Agence" valeur={demande.agenceNom} />
                       )}
                     </div>
 
                     <div>
-                      <p className="text-[11px] uppercase tracking-wider text-secondary/70 font-headline font-bold mb-1">
+                      <p className="text-[11px] uppercase tracking-wider text-secondary/70 font-headline font-bold mb-1.5">
                         Matériaux demandés
                       </p>
                       <TableauLignes lignes={demande.lignes} />
@@ -366,7 +370,7 @@ export default function AffairePage() {
                         <p className="text-[11px] uppercase tracking-wider text-secondary/70 font-headline font-bold mb-1">
                           Vos précisions
                         </p>
-                        <p className="text-sm text-on-surface font-body whitespace-pre-wrap">{demande.notes}</p>
+                        <p className="text-sm text-on-surface font-body whitespace-pre-wrap rounded-lg bg-surface-container-low p-3">{demande.notes}</p>
                       </div>
                     )}
                   </div>
@@ -377,7 +381,42 @@ export default function AffairePage() {
         )}
       </main>
 
+      {/* Sticky Bottom Action Bar quand devis prêt */}
+      {!chargement && devis && (
+        <div className="fixed bottom-0 inset-x-0 bg-white/95 border-t border-border/80 p-3 shadow-2xl backdrop-blur-md z-40">
+          <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="hidden sm:block">
+              <p className="text-xs text-secondary font-medium">Devis n° {devis.numero}</p>
+              <p className="text-lg font-black text-on-surface font-headline leading-tight">
+                {formatMontant(devis.montantHT)} € <span className="text-xs font-bold text-secondary">HT</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+              {devis.pdfDisponible && (
+                <button
+                  type="button"
+                  onClick={handlePdf}
+                  disabled={pdfEnCours}
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface hover:bg-surface transition"
+                >
+                  <Download className="w-4 h-4 text-primary" />
+                  PDF
+                </button>
+              )}
+              <a
+                href={`mailto:tvm38@midali.fr?subject=Validation Devis ${devis.numero}`}
+                className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-5 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-white shadow-md transition hover:-translate-y-0.5"
+              >
+                <Check className="w-4 h-4" />
+                Valider la commande
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer compact />
     </div>
   );
 }
+

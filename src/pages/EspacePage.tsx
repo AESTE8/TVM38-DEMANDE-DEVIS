@@ -79,39 +79,42 @@ export default function EspacePage() {
 
         const introduction = racine.querySelectorAll('[data-espace-intro]');
         const indicateurs = racine.querySelectorAll('[data-espace-stat]');
-        const contenu = racine.querySelectorAll('[data-espace-content]');
+        const cartes = racine.querySelectorAll('[data-espace-card]');
 
         const timeline = gsap.timeline({
           defaults: {
-            duration: 0.36,
-            ease: 'power2.out',
+            duration: 0.35,
+            ease: 'power3.out',
             clearProps: 'transform,opacity,visibility',
           },
         });
 
-        timeline
-          .from(introduction, {
+        if (introduction.length > 0) {
+          timeline.from(introduction, {
             autoAlpha: 0,
             y: 16,
             stagger: 0.045,
           });
+        }
 
         if (indicateurs.length > 0) {
           timeline.from(indicateurs, {
             autoAlpha: 0,
             y: 12,
-            scale: 0.985,
+            scale: 0.96,
             stagger: 0.05,
             duration: 0.3,
           }, '-=0.2');
         }
 
-        if (contenu.length > 0) {
-          timeline.from(contenu, {
+        if (cartes.length > 0) {
+          timeline.from(cartes, {
             autoAlpha: 0,
-            y: 18,
-            duration: 0.36,
-          }, indicateurs.length > 0 ? '-=0.16' : '-=0.2');
+            y: 20,
+            scale: 0.98,
+            stagger: 0.04,
+            duration: 0.35,
+          }, '-=0.15');
         }
       },
       pageRef,
@@ -120,7 +123,7 @@ export default function EspacePage() {
     return () => media.revert();
   }, {
     scope: pageRef,
-    dependencies: [chargement, erreur],
+    dependencies: [chargement, erreur, filtre, recherche],
     revertOnUpdate: true,
   });
 
@@ -158,6 +161,15 @@ export default function EspacePage() {
     devis: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'devis_recu')).length,
   }), [affaires]);
 
+  const filtresAvecCompte = useMemo(() => {
+    return [
+      { cle: 'toutes' as FiltreAffaires, label: 'Toutes', count: affaires.length },
+      { cle: 'en_cours' as FiltreAffaires, label: 'En cours', count: statistiques.enCours },
+      { cle: 'devis_recu' as FiltreAffaires, label: 'Devis reçus', count: statistiques.devis, highlight: true },
+      { cle: 'historique' as FiltreAffaires, label: 'Historique', count: affaires.filter((a) => estDansGroupe(a.statut, 'historique')).length },
+    ];
+  }, [affaires, statistiques]);
+
   const affairesFiltrees = useMemo(() => {
     const terme = normaliserRecherche(recherche);
 
@@ -191,32 +203,42 @@ export default function EspacePage() {
             <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
               <div className="max-w-2xl">
                 <p data-espace-intro className="text-xs font-bold uppercase tracking-[0.18em] text-primary">
-                  Espace client
+                  Espace client TVM38
                 </p>
                 <h1 data-espace-intro className="mt-2 font-headline text-3xl font-black tracking-tight text-on-surface sm:text-4xl">
                   {prenomOuNom ? `Bonjour, ${prenomOuNom}` : 'Bonjour'}
                 </h1>
                 <p data-espace-intro className="mt-2 max-w-xl text-sm leading-relaxed text-secondary sm:text-base">
-                  Retrouvez vos demandes, suivez leur avancement et consultez les devis transmis par TVM38.
+                  Retrouvez vos demandes, suivez l'avancement de vos chiffrages et téléchargez vos devis TVM38 en temps réel.
                 </p>
               </div>
 
-              <Link
-                to="/formulaire"
-                data-espace-intro
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-5 py-3 font-headline text-sm font-extrabold uppercase tracking-tight text-on-primary shadow-lg shadow-destructive/15 transition duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-destructive/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive focus-visible:ring-offset-2 active:translate-y-0 md:w-auto motion-reduce:transform-none"
-              >
-                <Plus aria-hidden="true" className="h-5 w-5" />
-                Nouvelle demande
-              </Link>
+              <div data-espace-intro className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <a
+                  href="mailto:tvm38@midali.fr"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  title="Contact direct carrière"
+                >
+                  <Mail aria-hidden="true" className="h-4 w-4 text-primary" />
+                  Contact Carrière
+                </a>
+
+                <Link
+                  to="/formulaire"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-5 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-on-primary shadow-md shadow-destructive/15 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive active:translate-y-0 motion-reduce:transform-none"
+                >
+                  <Plus aria-hidden="true" className="h-4 w-4" />
+                  Nouvelle demande
+                </Link>
+              </div>
             </div>
 
             {!chargement && !erreur && affaires.length > 0 && (
               <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
                 {[
                   { label: 'Dossiers suivis', valeur: statistiques.total, icone: Files },
-                  { label: 'En cours', valeur: statistiques.enCours, icone: Clock3 },
-                  { label: 'Devis reçus', valeur: statistiques.devis, icone: FileCheck2 },
+                  { label: 'En chiffrage', valeur: statistiques.enCours, icone: Clock3 },
+                  { label: 'Devis prêts', valeur: statistiques.devis, icone: FileCheck2 },
                 ].map(({ label, valeur, icone: Icone }) => (
                   <div
                     key={label}
@@ -323,10 +345,10 @@ export default function EspacePage() {
             <div className="mb-6 flex flex-col gap-4">
               <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Historique</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Historique & Chiffrages</p>
                   <h2 className="mt-1 font-headline text-2xl font-black text-on-surface">Vos dossiers</h2>
                 </div>
-                <p className="text-sm text-secondary">
+                <p className="text-sm font-semibold text-secondary">
                   {affairesFiltrees.length} résultat{affairesFiltrees.length > 1 ? 's' : ''}
                 </p>
               </div>
@@ -358,22 +380,38 @@ export default function EspacePage() {
                   )}
                 </div>
 
-                <div className="flex gap-1 overflow-x-auto rounded-lg bg-surface-container-low/70 p-1" aria-label="Filtrer les dossiers">
-                  {FILTRES.map((item) => (
-                    <button
-                      key={item.cle}
-                      type="button"
-                      onClick={() => setFiltre(item.cle)}
-                      aria-pressed={filtre === item.cle}
-                      className={`min-h-10 shrink-0 rounded-md px-3 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
-                        filtre === item.cle
-                          ? 'bg-white text-primary shadow-sm'
-                          : 'text-secondary hover:bg-white/70 hover:text-on-surface'
-                      }`}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                <div className="flex gap-1.5 overflow-x-auto rounded-lg bg-surface-container-low/70 p-1.5 scrollbar-none" aria-label="Filtrer les dossiers">
+                  {filtresAvecCompte.map((item) => {
+                    const estActif = filtre === item.cle;
+                    const aDesItems = item.count > 0;
+
+                    return (
+                      <button
+                        key={item.cle}
+                        type="button"
+                        onClick={() => setFiltre(item.cle)}
+                        aria-pressed={estActif}
+                        className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-md px-3.5 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${
+                          estActif
+                            ? 'bg-white text-primary shadow-sm'
+                            : 'text-secondary hover:bg-white/70 hover:text-on-surface'
+                        }`}
+                      >
+                        <span>{item.label}</span>
+                        <span
+                          className={`inline-flex h-5 min-w-[20px] items-center justify-center rounded-full px-1.5 text-[11px] font-extrabold ${
+                            estActif
+                              ? 'bg-primary/10 text-primary'
+                              : item.highlight && aDesItems
+                              ? 'bg-emerald-600 text-white animate-pulse'
+                              : 'bg-border/60 text-secondary'
+                          }`}
+                        >
+                          {item.count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -381,7 +419,7 @@ export default function EspacePage() {
             {affairesFiltrees.length > 0 ? (
               <ul className="grid gap-4 lg:grid-cols-2">
                 {affairesFiltrees.map((affaire) => (
-                  <li key={affaire.id}>
+                  <li key={affaire.id} data-espace-card className="will-change-transform">
                     <AffaireCard affaire={affaire} />
                   </li>
                 ))}
