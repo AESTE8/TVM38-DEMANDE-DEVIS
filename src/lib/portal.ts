@@ -118,34 +118,61 @@ export function fetchAffaire(id: string): Promise<AffaireDetail> {
   return appel<AffaireDetail>(`affaires/${encodeURIComponent(id)}`);
 }
 
-/**
- * Ouvre le PDF du devis.
- *
- * Le fichier Drive est privé : il faut passer par l'edge function avec le jeton
- * du client. On récupère donc le PDF en mémoire puis on l'ouvre via une URL
- * blob temporaire — le lien Drive n'apparaît jamais côté navigateur.
- */
 export async function ouvrirPdfDevis(devisId: string): Promise<void> {
-  const res = await fetch(
-    `${SUPABASE_URL}/functions/v1/devis-pdf?devisId=${encodeURIComponent(devisId)}`,
-    { headers: authHeaders() },
-  );
-
-  if (res.status === 401) {
-    clearSession();
-    throw new SessionExpiree();
+  // Ouverture synchrone de l'onglet pour contourner les bloqueurs de pop-ups navigateur
+  const popup = typeof window !== 'undefined' ? window.open('', '_blank') : null;
+  if (popup && popup.document) {
+    popup.document.title = 'Chargement du devis PDF — TVM38';
+    popup.document.body.innerHTML = `
+      <div style="font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; align-items: center; justify-content: center; background-color: #f8fafc; color: #0f172a;">
+        <div style="text-align: center; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; max-width: 380px;">
+          <div style="width: 32px; height: 32px; border: 3px solid #1e293b; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px auto;"></div>
+          <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+          <p style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0;">Chargement du devis PDF</p>
+          <p style="font-size: 13px; color: #64748b; margin: 0;">Veuillez patienter un instant pendant la préparation du document TVM38...</p>
+        </div>
+      </div>
+    `;
   }
 
-  if (!res.ok) {
-    throw new Error("Le PDF n'est pas disponible pour ce devis.");
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/functions/v1/devis-pdf?devisId=${encodeURIComponent(devisId)}`,
+      { headers: authHeaders() },
+    );
+
+    if (res.status === 401) {
+      if (popup && !popup.closed) popup.close();
+      clearSession();
+      throw new SessionExpiree();
+    }
+
+    if (!res.ok) {
+      if (popup && !popup.closed) popup.close();
+      throw new Error("Le PDF n'est pas disponible pour ce devis.");
+    }
+
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+
+    if (popup && !popup.closed) {
+      popup.location.href = url;
+    } else {
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // L'onglet a le temps de charger le blob avant qu'on libère la mémoire.
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  } catch (err) {
+    if (popup && !popup.closed) popup.close();
+    throw err;
   }
-
-  const blob = await res.blob();
-  const url = URL.createObjectURL(blob);
-  window.open(url, '_blank', 'noopener');
-
-  // L'onglet a le temps de charger le blob avant qu'on libère la mémoire.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 // ---------------------------------------------------------------------------
