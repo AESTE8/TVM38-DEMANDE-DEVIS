@@ -95,11 +95,11 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
             onMouseLeave={stopAdjusting}
             onTouchStart={(e) => { e.preventDefault(); startAdjusting(-1); }}
             onTouchEnd={(e) => { e.preventDefault(); stopAdjusting(); }}
-            className="w-10 h-10 rounded-sm bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-colors select-none active:bg-surface-dim"
+            className="w-11 h-11 rounded-lg bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-all select-none active:scale-95 text-on-surface"
           >
-            <Minus size={18} />
+            <Minus size={20} strokeWidth={2.5} />
           </button>
-          <div className="flex items-center w-36 relative">
+          <div className="flex items-center w-36 relative bg-surface border border-border/80 rounded-lg px-2 py-1.5 shadow-inner">
             <input
               type="number"
               step="1"
@@ -110,7 +110,7 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
               onWheel={(e) => (e.target as HTMLElement).blur()}
               className="w-full text-center text-2xl font-black font-headline border-none outline-none focus:ring-0 bg-transparent p-0 text-on-surface"
             />
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary font-bold">
+            <span className="text-secondary font-extrabold text-sm pr-1">
               {isTonnes ? 't' : 'm³'}
             </span>
           </div>
@@ -121,14 +121,31 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
             onMouseLeave={stopAdjusting}
             onTouchStart={(e) => { e.preventDefault(); startAdjusting(1); }}
             onTouchEnd={(e) => { e.preventDefault(); stopAdjusting(); }}
-            className="w-10 h-10 rounded-sm bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-colors select-none active:bg-surface-dim"
+            className="w-11 h-11 rounded-lg bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-all select-none active:scale-95 text-on-surface"
           >
-            <Plus size={18} />
+            <Plus size={20} strokeWidth={2.5} />
           </button>
+        </div>
+
+        {/* Boutons de préréglages rapides */}
+        <div className="flex items-center gap-1.5 mt-3">
+          {[1, 5, 10, 20].map((amount) => (
+            <button
+              key={amount}
+              type="button"
+              onClick={() => {
+                const current = isTonnes ? (ligne.quantiteTonnes || 0) : (ligne.quantiteM3 || 0);
+                updateInput(current + amount);
+              }}
+              className="px-2.5 py-1 text-xs font-bold rounded-md bg-primary/10 text-primary border border-primary/20 hover:bg-primary hover:text-white transition-all active:scale-95"
+            >
+              +{amount}{isTonnes ? 't' : 'm³'}
+            </button>
+          ))}
         </div>
         
         {ligne.quantiteTonnes > 0 && (
-          <div className="mt-3 text-xs text-secondary font-bold tracking-wider">
+          <div className="mt-2.5 text-xs text-secondary font-bold tracking-wider bg-surface-container/60 px-3 py-1 rounded-full">
             {isTonnes ? `≈ ${ligne.quantiteM3} m³` : `≈ ${ligne.quantiteTonnes} t`}
           </div>
         )}

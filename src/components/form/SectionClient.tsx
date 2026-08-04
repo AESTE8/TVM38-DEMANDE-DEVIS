@@ -7,7 +7,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
 import { cn, formatPhoneInput } from '@/lib/utils';
 import { authHeaders } from '@/lib/auth';
-import { Trash2, Pencil } from 'lucide-react';
+import { Trash2, Pencil, ShieldCheck } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
 import Badge from '../ui/badge';
@@ -944,6 +944,14 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 <Input id="fonction" placeholder="Ex: Conducteur de travaux" {...register('fonction')} />
               </div>
             )}
+          </div>
+
+          {/* Bandeau de réassurance confidentialité */}
+          <div className="mt-6 flex items-center gap-3 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-on-surface text-xs font-body animate-fade-in">
+            <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
+            <span>
+              <strong className="text-primary font-headline">Confidentialité 100% garantie :</strong> Vos données restent strictement confidentielles et servent uniquement à l'établissement immédiat de votre devis.
+            </span>
           </div>
         </div>
       </div>

@@ -330,8 +330,9 @@ export default function EstimationPage() {
         .est-stars-widget {
           display: flex;
           justify-content: center;
-          gap: 10px;
-          padding: 12px 0;
+          align-items: center;
+          gap: 6px;
+          padding: 16px 0;
           animation: estFadeIn .6s ease .2s both;
           direction: rtl;
         }
@@ -339,12 +340,22 @@ export default function EstimationPage() {
           background: none;
           border: none;
           cursor: pointer;
-          padding: 4px;
-          font-size: 48px;
+          padding: 8px 10px;
+          min-width: 48px;
+          min-height: 48px;
+          font-size: 40px;
           line-height: 1;
           color: #f5a623;
           transition: transform .15s ease, color .15s ease;
           direction: ltr;
+          touch-action: manipulation;
+          border-radius: 8px;
+        }
+        @media (min-width: 640px) {
+          .est-star-btn {
+            font-size: 48px;
+            padding: 8px 12px;
+          }
         }
         .est-stars-widget:hover .est-star-btn            { color: #d4d4d4; }
         .est-stars-widget .est-star-btn:hover,

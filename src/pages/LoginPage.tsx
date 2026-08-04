@@ -104,56 +104,57 @@ export default function LoginPage() {
       <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-12">
         <div className="w-full max-w-md">
 
-          {/* Titre */}
-          <div className="text-center mb-6">
-            <img src="/logo-tvm38.png" alt="TVM38" className="h-16 md:h-24 mx-auto mb-4 object-contain" />
-            <h1 className="text-3xl font-black tracking-tighter text-white uppercase font-headline">
+          {/* Titre & Logo */}
+          <div className="text-center mb-6 animate-slide-up">
+            <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-20 md:h-28 mx-auto mb-4 object-contain transition-transform duration-300 hover:scale-105" />
+            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase font-headline drop-shadow-md">
               Votre devis granulats en 3 minutes
             </h1>
           </div>
 
-          {/* Preuve sociale */}
-          <div className="flex items-center justify-center gap-6 mb-6 py-4 px-4 rounded-sm shadow-md backdrop-blur-md" style={{ backgroundColor: 'rgba(0, 83, 161, 0.65)' }}>
+          {/* Preuve sociale avec Glassmorphism */}
+          <div className="flex items-center justify-center gap-6 mb-6 py-4 px-6 rounded-xl shadow-xl backdrop-blur-lg border border-white/20 bg-primary/70 transition-all hover:bg-primary/80">
             <div className="text-center">
-              <p className="text-xl font-black text-white font-headline leading-none">350+</p>
-              <p className="text-[10px] text-white/70 font-body mt-0.5 leading-tight">professionnels<br/>du BTP</p>
+              <p className="text-2xl font-black text-white font-headline leading-none drop-shadow">350+</p>
+              <p className="text-[11px] font-bold text-white/90 font-body mt-1 leading-tight">professionnels<br/>du BTP</p>
             </div>
-            <div className="w-px h-8 bg-white/20" />
+            <div className="w-px h-9 bg-white/25" />
             <div className="text-center">
-              <p className="text-xl font-black text-white font-headline leading-none">{new Date().getFullYear() - 1937}</p>
-              <p className="text-[10px] text-white/70 font-body mt-0.5 leading-tight">ans<br/>d'expertise</p>
+              <p className="text-2xl font-black text-white font-headline leading-none drop-shadow">{new Date().getFullYear() - 1937}</p>
+              <p className="text-[11px] font-bold text-white/90 font-body mt-1 leading-tight">ans<br/>d'expertise</p>
             </div>
           </div>
 
           {/* Carte login */}
-          <div className="bg-white border border-border/40 rounded-sm shadow-xl shadow-primary/5 p-8">
+          <div className="bg-white/95 backdrop-blur-md border border-white/40 rounded-xl shadow-2xl p-6 md:p-8 transition-all">
             <form onSubmit={handleLogin} className="space-y-5">
               {/* Identifiant */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                  Identifiant client
+                <label className="text-xs font-bold uppercase tracking-wider text-secondary font-headline flex items-center justify-between">
+                  <span>Identifiant client</span>
+                  <span className="text-[10px] text-secondary/60 font-normal">Ex: CTVM01</span>
                 </label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/50" />
+                  <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
                   <input
                     type="text"
                     value={identifiant}
                     onChange={e => { setIdentifiant(e.target.value); setError(null); }}
-                    placeholder="Ex : CTVM01"
+                    placeholder="Saisissez votre identifiant"
                     autoComplete="username"
                     required
-                    className="w-full pl-10 pr-4 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="w-full pl-10 pr-4 py-3 border border-border/80 rounded-lg text-sm font-body text-on-surface bg-surface min-h-[44px] placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                   />
                 </div>
               </div>
 
               {/* Mot de passe */}
               <div className="space-y-1.5">
-                <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
+                <label className="text-xs font-bold uppercase tracking-wider text-secondary font-headline">
                   Mot de passe
                 </label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/50" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary/70" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
@@ -161,12 +162,12 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     autoComplete="current-password"
                     required
-                    className="w-full pl-10 pr-10 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
+                    className="w-full pl-10 pr-10 py-3 border border-border/80 rounded-lg text-sm font-body text-on-surface bg-surface min-h-[44px] placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary/50 hover:text-secondary transition-colors"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-secondary/60 hover:text-primary transition-colors rounded-md focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -175,7 +176,7 @@ export default function LoginPage() {
 
               {/* Message d'erreur */}
               {error && (
-                <div className="bg-destructive/10 border border-destructive/20 rounded-sm p-3 text-sm text-destructive font-body">
+                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3.5 text-sm text-destructive font-semibold font-body animate-shake">
                   {error}
                 </div>
               )}
@@ -184,16 +185,16 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold py-3.5 px-6 rounded-sm uppercase tracking-tighter text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold py-3.5 px-6 rounded-lg uppercase tracking-tight text-sm shadow-xl shadow-red-900/20 hover:brightness-110 active:scale-[0.98] transition-all min-h-[48px] disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {loading ? 'Connexion en cours...' : 'Se connecter'}
               </button>
 
               {/* Lien identifiants oubliés */}
-              <div className="text-center">
+              <div className="text-center pt-1">
                 <Link
                   to="/identifiants-oublies"
-                  className="text-xs text-primary hover:underline font-body"
+                  className="text-xs text-primary hover:underline font-semibold font-body transition-colors"
                 >
                   Identifiants inconnus ou oubliés ?
                 </Link>
@@ -202,29 +203,30 @@ export default function LoginPage() {
 
             {/* Séparateur */}
             <div className="flex items-center gap-3 my-6">
-              <div className="flex-1 h-px bg-border/40" />
-              <span className="text-xs text-secondary/50 font-body">ou</span>
-              <div className="flex-1 h-px bg-border/40" />
+              <div className="flex-1 h-px bg-border/60" />
+              <span className="text-xs font-bold uppercase tracking-widest text-secondary/60 font-body">ou</span>
+              <div className="flex-1 h-px bg-border/60" />
             </div>
 
             {/* Section sans compte */}
             {!showAccountRequest ? (
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <button
                   type="button"
                   onClick={handleGuest}
-                  className="w-full border border-secondary/30 text-secondary/70 font-headline font-bold py-2.5 px-6 rounded-sm uppercase tracking-tighter text-xs hover:bg-surface-container active:scale-[0.98] transition-all"
+                  className="w-full bg-primary/10 hover:bg-primary/20 border-2 border-primary/30 text-primary font-headline font-extrabold py-3 px-6 rounded-lg uppercase tracking-tight text-xs active:scale-[0.98] transition-all min-h-[46px] flex items-center justify-center gap-2 shadow-sm"
                 >
-                  Continuer sans compte
+                  <span>Continuer sans compte</span>
+                  <span className="text-base font-normal">→</span>
                 </button>
-                <p className="text-center text-[11px] text-secondary/40 font-body -mt-1">
-                  Professionnel sans compte · Particuliers
+                <p className="text-center text-[11px] font-semibold text-secondary/70 font-body">
+                  ⚡ Pour particuliers & professionnels sans identifiant
                 </p>
                 <div className="text-center pt-1">
                   <button
                     type="button"
                     onClick={() => setShowAccountRequest(true)}
-                    className="text-xs text-primary hover:underline font-body"
+                    className="text-xs font-bold text-primary hover:underline font-body transition-colors"
                   >
                     Pas encore client TVM ? Demander l'ouverture d'un compte →
                   </button>
@@ -235,15 +237,15 @@ export default function LoginPage() {
               </div>
             ) : accountRequestSent ? (
               <div className="text-center py-4 space-y-2">
-                <div className="text-2xl">✓</div>
-                <p className="text-sm font-bold text-on-surface font-headline">Demande envoyée !</p>
-                <p className="text-xs text-secondary font-body">Notre équipe vous contactera dans les meilleurs délais.</p>
+                <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center mx-auto text-xl font-bold">✓</div>
+                <p className="text-sm font-bold text-on-surface font-headline">Demande envoyée avec succès !</p>
+                <p className="text-xs text-secondary font-body">Notre équipe commerciale vous contactera très rapidement.</p>
                 <button
                   type="button"
                   onClick={() => { setShowAccountRequest(false); setAccountRequestSent(false); }}
-                  className="text-xs text-primary hover:underline font-body mt-2"
+                  className="text-xs text-primary font-bold hover:underline font-body mt-2 inline-block"
                 >
-                  Retour à la connexion
+                  ← Retour à la connexion
                 </button>
               </div>
             ) : (

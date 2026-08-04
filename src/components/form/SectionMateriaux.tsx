@@ -187,40 +187,41 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
         </div>
       </div>
 
-      {/* Bandeau flottant récapitulatif */}
+      {/* Bandeau flottant récapitulatif (Mobile & Desktop) */}
       {selectedLignes.length > 0 && (
-        <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-primary text-on-primary rounded-full px-2 py-2 shadow-xl items-center gap-3 text-sm font-bold animate-fade-in">
+        <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-primary/95 backdrop-blur-md text-on-primary rounded-2xl md:rounded-full px-4 py-3 md:px-5 md:py-2.5 shadow-2xl flex items-center justify-between gap-3 text-xs md:text-sm font-bold animate-slide-up border border-white/20">
           {isCombi ? (
-            <>
-              <span className="pl-4 flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-2">
                 {selectedLivraisonLignes.length > 0 && (
-                  <span className="flex items-center gap-1"><Package className="w-3.5 h-3.5" /> {selectedLivraisonLignes.length}</span>
+                  <span className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-full"><Package className="w-3.5 h-3.5" /> {selectedLivraisonLignes.length}</span>
                 )}
                 {selectedLivraisonLignes.length > 0 && selectedDechargeLignes.length > 0 && <span className="opacity-60">·</span>}
                 {selectedDechargeLignes.length > 0 && (
-                  <span className="flex items-center gap-1"><Trash2 className="w-3.5 h-3.5 text-purple-300" /> {selectedDechargeLignes.length}</span>
+                  <span className="flex items-center gap-1 bg-purple-500/30 text-purple-200 px-2 py-0.5 rounded-full"><Trash2 className="w-3.5 h-3.5 text-purple-300" /> {selectedDechargeLignes.length}</span>
                 )}
               </span>
               <span className="opacity-60">·</span>
-              <span>{Math.round(totalTonnes * 10) / 10} t</span>
-            </>
+              <span className="text-amber-300">{Math.round(totalTonnes * 10) / 10} t</span>
+            </div>
           ) : (
-            <>
-              <span className="pl-4">
+            <div className="flex items-center gap-2">
+              <span>
                 {selectedLignes.length} matériau{selectedLignes.length > 1 ? 'x' : ''} sélectionné{selectedLignes.length > 1 ? 's' : ''}
               </span>
               <span className="opacity-60">·</span>
-              <span>{Math.round(totalTonnes * 10) / 10} t au total</span>
-            </>
+              <span className="text-amber-300">{Math.round(totalTonnes * 10) / 10} t au total</span>
+            </div>
           )}
           {onNext && (
             <button
               type="button"
               onClick={onNext}
-              className="ml-2 bg-white text-primary rounded-full w-9 h-9 flex items-center justify-center hover:bg-white/90 transition-colors shrink-0"
+              className="bg-industrial-gradient text-white rounded-xl md:rounded-full px-3.5 py-1.5 md:px-4 md:py-1.5 flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0 text-xs uppercase font-extrabold"
               title="Étape suivante"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+              <span>Continuer</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
             </button>
           )}
         </div>

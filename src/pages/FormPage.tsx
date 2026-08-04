@@ -927,16 +927,16 @@ export default function FormPage() {
                       <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold px-12 py-5 rounded-md hover:shadow-xl active:scale-[0.98] transition-all uppercase tracking-tighter text-base md:text-xl"
+                        className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold px-8 py-4.5 md:py-5 rounded-xl shadow-xl shadow-red-900/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-tight text-base md:text-xl flex items-center justify-center gap-3 min-h-[52px]"
                       >
-                        {isSubmitting ? 'Envoi en cours...' : 'Obtenir mon devis →'}
+                        <span>{isSubmitting ? 'Transmission en cours...' : '🚀 Obtenir mon devis gratuit'}</span>
                       </button>
-                      <div className="space-y-2 mt-3">
-                        <p className="text-xs text-secondary text-center max-w-xs mx-auto">
-                          Vos données restent confidentielles et servent uniquement à l'établissement de votre devis par MIDALI - TVM38.
+                      <div className="space-y-2 mt-3.5">
+                        <p className="text-xs text-secondary text-center max-w-xs mx-auto font-medium">
+                          Vos données restent 100% confidentielles et servent uniquement à l'établissement de votre devis.
                         </p>
-                        <p className="text-xs text-secondary text-center max-w-xs mx-auto">
-                          Réponse par email : sous 48h (selon disponibilité des stocks).
+                        <p className="text-xs text-primary font-bold text-center max-w-xs mx-auto">
+                          ⚡ Réponse sous 24-48h par nos équipes MIDALI - TVM38.
                         </p>
                       </div>
                     </div>
@@ -947,24 +947,25 @@ export default function FormPage() {
 
                   {/* Boutons de navigation */}
                   {currentStep < 4 && (
-                    <div className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 border-t border-border bg-surface/95 backdrop-blur-sm md:static md:inset-auto md:z-auto md:mt-10 md:pt-6 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none">
+                    <div className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 border-t border-border/80 bg-white/95 backdrop-blur-md shadow-2xl md:static md:inset-auto md:z-auto md:mt-10 md:pt-6 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:shadow-none">
                       {currentStep > 1 ? (
                         <button
                           type="button"
                           onClick={handleBack}
-                          className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors font-medium"
+                          className="flex items-center gap-1.5 text-sm text-secondary hover:text-primary transition-colors font-bold min-h-[44px] px-3 rounded-lg border border-border/60 md:border-none bg-surface md:bg-transparent"
                         >
-                          <ChevronLeft className="w-4 h-4" /> Retour
+                          <ChevronLeft className="w-4 h-4 stroke-[2.5]" />
+                          <span>Retour</span>
                         </button>
                       ) : <div />}
                       <button
                         type="button"
                         onClick={handleNext}
-                        className="ml-auto bg-primary text-on-primary font-headline font-bold px-8 py-3 rounded-md hover:shadow-md active:scale-[0.98] transition-all uppercase tracking-tight text-sm"
+                        className="ml-auto bg-primary hover:bg-primary/95 text-on-primary font-headline font-extrabold px-6 md:px-8 py-3 rounded-xl shadow-md active:scale-[0.98] transition-all uppercase tracking-tight text-xs md:text-sm min-h-[44px] flex items-center justify-center gap-2"
                       >
-                        {currentStep === 1 && 'Votre demande →'}
-                        {currentStep === 2 && 'Choisir les matériaux →'}
-                        {currentStep === 3 && (watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison' ? 'Passer à la décharge →' : 'Vérifier ma demande →')}
+                        {currentStep === 1 && <span>Votre demande →</span>}
+                        {currentStep === 2 && <span>Choisir les matériaux →</span>}
+                        {currentStep === 3 && (watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison' ? <span>Passer à la décharge →</span> : <span>Vérifier ma demande →</span>)}
                       </button>
                     </div>
                   )}
