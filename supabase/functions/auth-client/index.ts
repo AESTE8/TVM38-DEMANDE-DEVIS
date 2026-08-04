@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
 
   const { data: client, error } = await supabase
     .from('clients')
-    .select('id, nom, prenom, code, type, email, telephone, adresse, contacts, agences, liste_noire, password, password_hash')
+    .select('id, nom, prenom, code, type, identifiant, email, telephone, adresse, contacts, agences, liste_noire, password, password_hash')
     .eq('identifiant', identifiant)
     .maybeSingle();
 
@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
     prenom: client.prenom,
     code: client.code,
     type: client.type,
+    identifiant: client.identifiant,
     email: client.email,
     telephone: client.telephone,
     adresse: client.adresse,
