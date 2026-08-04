@@ -31,7 +31,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 // refuse, planifie, termine, archive.
 
 /** États d'un devis considérés comme transmis au client. */
-const ETATS_VISIBLES = ['envoye', 'accepte', 'planifie', 'termine'];
+const ETATS_VISIBLES = ['envoye', 'accepte', 'refuse', 'planifie', 'termine'];
 
 /**
  * États d'un devis qui signifient « le dispatcher a la demande en main ».
@@ -60,6 +60,7 @@ type Statut =
   | 'acceptee'     // le client a donné son accord
   | 'planifiee'    // la livraison est calée à une date
   | 'terminee'     // livrée / réalisée
+  | 'modification_demandee'
   | 'sans_suite';
 
 interface LigneDevis {
@@ -88,6 +89,11 @@ interface DevisRow {
   montant_envoye: number | null;
   updated_at: string | null;
   drive_file_id: string | null;
+  nom_chantier: string | null;
+  reference_client: string | null;
+  client_action: string | null;
+  client_action_at: string | null;
+  client_action_message: string | null;
   created_at: string;
 }
 
@@ -106,6 +112,19 @@ interface DemandeRow {
   contact_prenom: string | null;
   lignes: unknown;
   notes: string | null;
+  nom_chantier: string | null;
+  reference_client: string | null;
+  created_at: string;
+}
+
+interface MessageRow {
+  id: string;
+  demande_id: string | null;
+  devis_id: string | null;
+  auteur: 'client' | 'tvm38';
+  type: 'message' | 'demande_modification';
+  contenu: string;
+  lu_par_client_at: string | null;
   created_at: string;
 }
 
@@ -115,7 +134,8 @@ type Materiaux = Map<string, { nom: string; code: string }>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-function statutDepuisDevis(etat: string): Statut {
+function statutDepuisDevis(etat: string, clientAction?: string | null): Statut {
+  if (etat === 'envoye' && clientAction === 'modification_demandee') return 'modification_demandee';
   if (etat === 'accepte') return 'acceptee';
   if (etat === 'planifie') return 'planifiee';
   if (etat === 'termine') return 'terminee';
@@ -146,7 +166,7 @@ function statutAffaire(
   devisVisible: DevisRow | null,
   devisLies: DevisRow[],
 ): Statut {
-  if (devisVisible) return statutDepuisDevis(devisVisible.etat);
+  if (devisVisible) return statutDepuisDevis(devisVisible.etat, devisVisible.client_action);
   if (dem.statut === 'sans_suite') return 'sans_suite';
   if (devisLies.some((d) => ETATS_EN_COURS.includes(d.etat))) return 'en_chiffrage';
   // Plus aucun devis vivant sur cette demande : l'affaire est close.
@@ -200,7 +220,7 @@ async function chargerMateriaux(): Promise<Materiaux> {
  * le contenu.
  */
 async function chargerAffaires(clientId: string) {
-  const [demandesRes, devisRes] = await Promise.all([
+  const [demandesRes, devisRes, messagesRes] = await Promise.all([
     supabase
       .from('demandes')
       .select('*')
@@ -211,15 +231,26 @@ async function chargerAffaires(clientId: string) {
       .select(
         'id, numero_devis, demande_id, type_devis, etat, date_devis, date_envoi, date_envoi_at, ' +
         'adresse_livraison, creneau_livraison, date_planification, lignes, montant_total_ht, ' +
-        'montant_envoye, updated_at, drive_file_id, created_at',
+        'montant_envoye, updated_at, drive_file_id, nom_chantier, reference_client, ' +
+        'client_action, client_action_at, client_action_message, created_at',
       )
       .eq('client_id', clientId)
       .order('created_at', { ascending: false }),
+    supabase
+      .from('messages_affaire')
+      .select('id, demande_id, devis_id, auteur, type, contenu, lu_par_client_at, created_at')
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: true }),
   ]);
+
+  if (demandesRes.error) throw demandesRes.error;
+  if (devisRes.error) throw devisRes.error;
+  if (messagesRes.error) throw messagesRes.error;
 
   return {
     demandes: (demandesRes.data ?? []) as DemandeRow[],
     devis: (devisRes.data ?? []) as DevisRow[],
+    messages: (messagesRes.data ?? []) as MessageRow[],
   };
 }
 
@@ -251,7 +282,29 @@ function devisTransmis(devisLies: DevisRow[]): DevisRow | null {
   return devisLies.find((d) => ETATS_VISIBLES.includes(d.etat)) ?? null;
 }
 
-function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Materiaux) {
+function messagesAffaire(messages: MessageRow[], demandeId: string | null, devisId: string | null) {
+  return messages.filter((message) =>
+    (demandeId !== null && message.demande_id === demandeId) ||
+    (devisId !== null && message.devis_id === devisId)
+  );
+}
+
+function messagePublic(message: MessageRow) {
+  return {
+    id: message.id,
+    auteur: message.auteur,
+    type: message.type,
+    contenu: message.contenu,
+    createdAt: message.created_at,
+  };
+}
+
+function construireFil(
+  demandes: DemandeRow[],
+  devis: DevisRow[],
+  messages: MessageRow[],
+  materiaux: Materiaux,
+) {
   const devisParDemande = grouperParDemande(devis);
 
   const affaires = [];
@@ -269,6 +322,7 @@ function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Mat
     // liste. La demande reste consultable telle qu'envoyée, sur le détail.
     const source = devisVisible ?? dem;
     const lignes = mapLignes(source.lignes, materiaux);
+    const messagesDuDossier = messagesAffaire(messages, dem.id, devisVisible?.id ?? null);
 
     affaires.push({
       id: `d:${dem.id}`,
@@ -282,6 +336,11 @@ function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Mat
       montantHT: devisVisible ? devisVisible.montant_total_ht : null,
       montantModifie: devisVisible ? montantModifie(devisVisible) : false,
       pdfDisponible: Boolean(devisVisible?.drive_file_id),
+      devisId: devisVisible?.id ?? null,
+      nomChantier: devisVisible?.nom_chantier || dem.nom_chantier || null,
+      referenceClient: devisVisible?.reference_client || dem.reference_client || null,
+      messagesNonLus: messagesDuDossier.filter((m) => m.auteur === 'tvm38' && !m.lu_par_client_at).length,
+      derniereActivite: messagesDuDossier.at(-1)?.created_at ?? null,
     });
   }
 
@@ -290,10 +349,11 @@ function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Mat
   for (const d of devis) {
     if (d.demande_id && demandes.some((dem) => dem.id === d.demande_id)) continue;
     if (!ETATS_VISIBLES.includes(d.etat)) continue;
+    const messagesDuDossier = messagesAffaire(messages, null, d.id);
 
     affaires.push({
       id: `q:${d.id}`,
-      statut: statutDepuisDevis(d.etat),
+      statut: statutDepuisDevis(d.etat, d.client_action),
       date: d.date_envoi_at ?? d.created_at,
       dateDemande: null,
       typeDemande: d.type_devis,
@@ -303,6 +363,11 @@ function construireFil(demandes: DemandeRow[], devis: DevisRow[], materiaux: Mat
       montantHT: d.montant_total_ht,
       montantModifie: montantModifie(d),
       pdfDisponible: Boolean(d.drive_file_id),
+      devisId: d.id,
+      nomChantier: d.nom_chantier || null,
+      referenceClient: d.reference_client || null,
+      messagesNonLus: messagesDuDossier.filter((m) => m.auteur === 'tvm38' && !m.lu_par_client_at).length,
+      derniereActivite: messagesDuDossier.at(-1)?.created_at ?? null,
     });
   }
 
@@ -330,6 +395,11 @@ function detailDevis(d: DevisRow, materiaux: Materiaux) {
     montantModifie: montantModifie(d),
     updatedAt: d.updated_at ?? null,
     pdfDisponible: Boolean(d.drive_file_id),
+    nomChantier: d.nom_chantier || null,
+    referenceClient: d.reference_client || null,
+    clientAction: d.client_action || null,
+    clientActionAt: d.client_action_at || null,
+    clientActionMessage: d.client_action_message || null,
     // Volontairement absents : notes internes, coûts de péage, taux de remise,
     // chauffeur, statut de paiement. Ce sont des données de gestion interne.
   };
@@ -348,18 +418,29 @@ function detailDemande(dem: DemandeRow, materiaux: Materiaux) {
     contact: [dem.contact_prenom, dem.contact_nom].filter(Boolean).join(' ') || null,
     lignes: mapLignes(dem.lignes, materiaux),
     notes: dem.notes || null,
+    nomChantier: dem.nom_chantier || null,
+    referenceClient: dem.reference_client || null,
   };
 }
 
 function construireTimeline(
   statut: Statut,
   dateDemande: string | null,
-  devis: { dateEnvoiAt: string | null; datePlanification: string | null } | null,
+  devis: { dateEnvoiAt: string | null; datePlanification: string | null; clientActionAt?: string | null } | null,
 ) {
   if (statut === 'sans_suite') {
     return [
       { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
       { cle: 'sans_suite', label: 'Sans suite', date: null, atteint: true },
+    ];
+  }
+
+  if (statut === 'modification_demandee') {
+    return [
+      { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
+      { cle: 'en_chiffrage', label: 'En cours de chiffrage', date: null, atteint: true },
+      { cle: 'devis_recu', label: 'Devis reçu', date: devis?.dateEnvoiAt ?? null, atteint: true },
+      { cle: 'modification_demandee', label: 'Modification demandée', date: devis?.clientActionAt ?? null, atteint: true },
     ];
   }
 
@@ -420,14 +501,24 @@ Deno.serve(async (req) => {
   const segments = url.pathname.split('/').filter(Boolean);
   const apres = segments.slice(segments.indexOf('client-portal') + 1);
 
+  if (apres[0] === 'profil') {
+    const { data: client, error } = await supabase
+      .from('clients')
+      .select('id, nom, prenom, code, type, identifiant, email, telephone, adresse, contacts, agences')
+      .eq('id', token.sub)
+      .single();
+    if (error || !client) return json(404, { error: 'CLIENT_NOT_FOUND' });
+    return json(200, { client });
+  }
+
   if (apres[0] !== 'affaires') return json(404, { error: 'NOT_FOUND' });
 
   const materiaux = await chargerMateriaux();
-  const { demandes, devis } = await chargerAffaires(token.sub);
+  const { demandes, devis, messages } = await chargerAffaires(token.sub);
 
   // ---- Liste ----
   if (apres.length === 1) {
-    return json(200, { affaires: construireFil(demandes, devis, materiaux) });
+    return json(200, { affaires: construireFil(demandes, devis, messages, materiaux) });
   }
 
   // ---- Détail ----
@@ -452,9 +543,12 @@ Deno.serve(async (req) => {
       id: affaireId,
       statut,
       devisId: devisVisible?.id ?? null,
+      nomChantier: devisVisible?.nom_chantier || dem.nom_chantier || null,
+      referenceClient: devisVisible?.reference_client || dem.reference_client || null,
       demande: detailDemande(dem, materiaux),
       devis: devisDetail,
       timeline: construireTimeline(statut, dem.created_at, devisDetail),
+      messages: messagesAffaire(messages, dem.id, devisVisible?.id ?? null).map(messagePublic),
     });
   }
 
@@ -462,16 +556,19 @@ Deno.serve(async (req) => {
     const d = devis.find((x) => x.id === brutId && ETATS_VISIBLES.includes(x.etat));
     if (!d) return json(404, { error: 'NOT_FOUND' });
 
-    const statut = statutDepuisDevis(d.etat);
+    const statut = statutDepuisDevis(d.etat, d.client_action);
     const devisDetail = detailDevis(d, materiaux);
 
     return json(200, {
       id: affaireId,
       statut,
       devisId: d.id,
+      nomChantier: d.nom_chantier || null,
+      referenceClient: d.reference_client || null,
       demande: null,
       devis: devisDetail,
       timeline: construireTimeline(statut, null, devisDetail),
+      messages: messagesAffaire(messages, null, d.id).map(messagePublic),
     });
   }
 

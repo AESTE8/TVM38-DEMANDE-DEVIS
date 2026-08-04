@@ -6,6 +6,7 @@ export type StatutAffaire =
   | 'envoyee'
   | 'en_chiffrage'
   | 'devis_recu'
+  | 'modification_demandee'
   | 'acceptee'
   | 'planifiee'
   | 'terminee'
@@ -33,6 +34,10 @@ export interface Affaire {
   montantModifie: boolean;
   pdfDisponible: boolean;
   devisId: string | null;
+  nomChantier: string | null;
+  referenceClient: string | null;
+  messagesNonLus: number;
+  derniereActivite: string | null;
 }
 
 export interface DevisDetail {
@@ -50,6 +55,11 @@ export interface DevisDetail {
   montantModifie: boolean;
   updatedAt: string | null;
   pdfDisponible: boolean;
+  nomChantier: string | null;
+  referenceClient: string | null;
+  clientAction: 'accepte' | 'refuse' | 'modification_demandee' | null;
+  clientActionAt: string | null;
+  clientActionMessage: string | null;
 }
 
 export interface DemandeDetail {
@@ -64,6 +74,16 @@ export interface DemandeDetail {
   contact: string | null;
   lignes: LignePortail[];
   notes: string | null;
+  nomChantier: string | null;
+  referenceClient: string | null;
+}
+
+export interface MessageAffaire {
+  id: string;
+  auteur: 'client' | 'tvm38';
+  type: 'message' | 'demande_modification';
+  contenu: string;
+  createdAt: string;
 }
 
 export interface EtapeTimeline {
@@ -77,9 +97,12 @@ export interface AffaireDetail {
   id: string;
   statut: StatutAffaire;
   devisId: string | null;
+  nomChantier: string | null;
+  referenceClient: string | null;
   demande: DemandeDetail | null;
   devis: DevisDetail | null;
   timeline: EtapeTimeline[];
+  messages: MessageAffaire[];
 }
 
 /** Erreur levée quand le jeton est absent, expiré ou invalide. */
@@ -116,6 +139,48 @@ export async function fetchAffaires(): Promise<Affaire[]> {
 
 export function fetchAffaire(id: string): Promise<AffaireDetail> {
   return appel<AffaireDetail>(`affaires/${encodeURIComponent(id)}`);
+}
+
+async function action<T>(operation: string, affaireId: string, data: Record<string, unknown> = {}): Promise<T> {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/client-actions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify({ operation, affaireId, data }),
+  });
+
+  if (res.status === 401) {
+    clearSession();
+    throw new SessionExpiree();
+  }
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error(String(payload.error ?? `Requête échouée (${res.status})`));
+  }
+  return (await res.json()) as T;
+}
+
+export function updateAffaireMetadata(
+  affaireId: string,
+  data: { nomChantier: string; referenceClient: string },
+) {
+  return action<{ success: true }>('update_metadata', affaireId, data);
+}
+
+export function deciderDevis(
+  affaireId: string,
+  decision: 'accepte' | 'refuse' | 'modification_demandee',
+  message = '',
+) {
+  return action<{ success: true; decision: string }>('decide_quote', affaireId, { decision, message });
+}
+
+export async function envoyerMessage(affaireId: string, contenu: string): Promise<MessageAffaire> {
+  const data = await action<{ success: true; message: MessageAffaire }>('send_message', affaireId, { contenu });
+  return data.message;
+}
+
+export function marquerMessagesLus(affaireId: string) {
+  return action<{ success: true }>('mark_messages_read', affaireId);
 }
 
 export async function ouvrirPdfDevis(devisId: string): Promise<void> {
@@ -180,6 +245,7 @@ export async function ouvrirPdfDevis(devisId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export const STATUT_LABELS: Record<StatutAffaire, string> = {
+  modification_demandee: 'Modification demandée',
   envoyee: 'Demande envoyée',
   en_chiffrage: 'En cours de chiffrage',
   devis_recu: 'Devis reçu',
@@ -203,7 +269,7 @@ export const STATUT_LABELS: Record<StatutAffaire, string> = {
  * chaque carte distingue les deux, le libellé du groupe n'a pas à trancher.
  */
 export const GROUPES_AFFAIRE = {
-  en_cours: ['envoyee', 'en_chiffrage', 'acceptee', 'planifiee'],
+  en_cours: ['envoyee', 'en_chiffrage', 'modification_demandee', 'acceptee', 'planifiee'],
   devis_recu: ['devis_recu'],
   historique: ['terminee', 'sans_suite'],
 } as const satisfies Record<string, readonly StatutAffaire[]>;
@@ -216,6 +282,7 @@ export function estDansGroupe(statut: StatutAffaire, groupe: GroupeAffaire): boo
 
 /** Classes Tailwind de la pastille de statut, du plus actif au plus neutre. */
 export const STATUT_STYLES: Record<StatutAffaire, { pastille: string; texte: string; fond: string }> = {
+  modification_demandee: { pastille: 'bg-amber-500', texte: 'text-amber-800', fond: 'bg-amber-500/10' },
   envoyee:      { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },
   en_chiffrage: { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },
   devis_recu:   { pastille: 'bg-primary',       texte: 'text-primary',       fond: 'bg-primary/10' },

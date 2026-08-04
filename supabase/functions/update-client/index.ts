@@ -55,13 +55,15 @@ async function broadcastClientUpdate(client_id: string) {
 const ALLOWED_OPERATIONS = [
   'add_contact', 'update_contact', 'delete_contact',
   'add_agence', 'update_agence', 'delete_agence',
-  'update_adresse',
+  'update_adresse', 'update_profile', 'set_primary_contact',
 ] as const;
 
 type Operation = typeof ALLOWED_OPERATIONS[number];
 
 interface Contact { id: string; [k: string]: unknown }
 interface Agence { id: string; [k: string]: unknown }
+
+const CHAMPS_PROFIL = 'id, nom, prenom, code, type, identifiant, email, telephone, adresse, contacts, agences';
 
 /** Texte normalisé : pas de saut de ligne, longueur bornée. */
 function texte(valeur: unknown, max: number): string {
@@ -106,6 +108,22 @@ function identifiant(valeur: unknown): string | null {
   return /^[A-Za-z0-9_-]{1,64}$/.test(id) ? id : null;
 }
 
+function profilSecurise(client: Record<string, unknown>) {
+  return {
+    id: client.id,
+    nom: client.nom,
+    prenom: client.prenom,
+    code: client.code,
+    type: client.type,
+    identifiant: client.identifiant,
+    email: client.email,
+    telephone: client.telephone,
+    adresse: client.adresse,
+    contacts: Array.isArray(client.contacts) ? client.contacts : [],
+    agences: Array.isArray(client.agences) ? client.agences : [],
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return preflight();
   if (req.method !== 'POST') return json(405, { error: 'METHOD_NOT_ALLOWED' });
@@ -144,7 +162,7 @@ Deno.serve(async (req) => {
 
   const { data: existing, error: fetchErr } = await supabase
     .from('clients')
-    .select('id, contacts, agences, adresse')
+    .select(CHAMPS_PROFIL)
     .eq('id', clientId)
     .single();
 
@@ -155,14 +173,19 @@ Deno.serve(async (req) => {
   const contacts = (existing.contacts ?? []) as Contact[];
   const agences = (existing.agences ?? []) as Agence[];
 
+  async function appliquer(changements: Record<string, unknown>) {
+    const { error } = await supabase
+      .from('clients')
+      .update(changements)
+      .eq('id', clientId);
+    if (error) throw error;
+  }
+
   try {
     switch (operation as Operation) {
       case 'add_contact': {
         const id = identifiant(data.id) ?? crypto.randomUUID();
-        await supabase
-          .from('clients')
-          .update({ contacts: [...contacts, normaliser(CHAMPS_CONTACT, data, id, false)] })
-          .eq('id', clientId);
+        await appliquer({ contacts: [...contacts, normaliser(CHAMPS_CONTACT, data, id, false)] });
         break;
       }
 
@@ -173,7 +196,7 @@ Deno.serve(async (req) => {
         const maj = contacts.map((c) =>
           c.id === id ? { ...c, ...normaliser(CHAMPS_CONTACT, data, id, true) } : c
         );
-        await supabase.from('clients').update({ contacts: maj }).eq('id', clientId);
+        await appliquer({ contacts: maj });
         break;
       }
 
@@ -181,19 +204,13 @@ Deno.serve(async (req) => {
         const id = identifiant(data.id);
         if (!id) return json(400, { error: 'ID du contact manquant' });
 
-        await supabase
-          .from('clients')
-          .update({ contacts: contacts.filter((c) => c.id !== id) })
-          .eq('id', clientId);
+        await appliquer({ contacts: contacts.filter((c) => c.id !== id) });
         break;
       }
 
       case 'add_agence': {
         const id = identifiant(data.id) ?? crypto.randomUUID();
-        await supabase
-          .from('clients')
-          .update({ agences: [...agences, normaliser(CHAMPS_AGENCE, data, id, false)] })
-          .eq('id', clientId);
+        await appliquer({ agences: [...agences, normaliser(CHAMPS_AGENCE, data, id, false)] });
         break;
       }
 
@@ -204,7 +221,7 @@ Deno.serve(async (req) => {
         const maj = agences.map((a) =>
           a.id === id ? { ...a, ...normaliser(CHAMPS_AGENCE, data, id, true) } : a
         );
-        await supabase.from('clients').update({ agences: maj }).eq('id', clientId);
+        await appliquer({ agences: maj });
         break;
       }
 
@@ -212,18 +229,53 @@ Deno.serve(async (req) => {
         const id = identifiant(data.id);
         if (!id) return json(400, { error: "ID de l'agence manquant" });
 
-        await supabase
-          .from('clients')
-          .update({ agences: agences.filter((a) => a.id !== id) })
-          .eq('id', clientId);
+        await appliquer({ agences: agences.filter((a) => a.id !== id) });
         break;
       }
 
       case 'update_adresse': {
-        await supabase
-          .from('clients')
-          .update({ adresse: texte(data.adresse, 300) })
-          .eq('id', clientId);
+        await appliquer({ adresse: texte(data.adresse, 300) });
+        break;
+      }
+
+      case 'update_profile': {
+        const changements: Record<string, string> = {};
+        if ('telephone' in data) changements.telephone = texte(data.telephone, 30);
+        if ('email' in data) {
+          const email = texte(data.email, 200);
+          if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            return json(400, { error: 'INVALID_EMAIL' });
+          }
+          changements.email = email;
+        }
+        if ('adresse' in data) changements.adresse = texte(data.adresse, 300);
+
+        // La raison sociale reste administrée par TVM38. Un particulier peut
+        // en revanche corriger son identité depuis son espace personnel.
+        if (existing.type === 'particulier') {
+          if ('nom' in data) changements.nom = texte(data.nom, 100);
+          if ('prenom' in data) changements.prenom = texte(data.prenom, 100);
+          if ('nom' in data && !changements.nom) return json(400, { error: 'INVALID_NAME' });
+        }
+
+        if (Object.keys(changements).length === 0) {
+          return json(400, { error: 'NO_CHANGES' });
+        }
+        await appliquer(changements);
+        break;
+      }
+
+      case 'set_primary_contact': {
+        const id = identifiant(data.id);
+        if (!id || !contacts.some((contact) => contact.id === id)) {
+          return json(400, { error: 'CONTACT_NOT_FOUND' });
+        }
+        await appliquer({
+          contacts: contacts.map((contact) => ({
+            ...contact,
+            principal: contact.id === id,
+          })),
+        });
         break;
       }
     }
@@ -231,7 +283,17 @@ Deno.serve(async (req) => {
     // Diffusion temps réel vers l'app interne (non bloquant)
     await broadcastClientUpdate(clientId);
 
-    return json(200, { success: true });
+    const { data: actualise, error: reloadError } = await supabase
+      .from('clients')
+      .select(CHAMPS_PROFIL)
+      .eq('id', clientId)
+      .single();
+    if (reloadError || !actualise) throw reloadError ?? new Error('CLIENT_RELOAD_FAILED');
+
+    return json(200, {
+      success: true,
+      client: profilSecurise(actualise as Record<string, unknown>),
+    });
   } catch (err) {
     console.error('Mise à jour échouée pour le client', clientId, err);
     return json(500, { error: 'UPDATE_FAILED' });

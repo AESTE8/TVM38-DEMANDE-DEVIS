@@ -18,6 +18,8 @@ import {
   Plus,
   Search,
   Send,
+  Settings2,
+  Sparkles,
   X,
 } from 'lucide-react';
 
@@ -39,13 +41,6 @@ import {
 gsap.registerPlugin(useGSAP);
 
 type FiltreAffaires = 'toutes' | GroupeAffaire;
-
-const FILTRES: Array<{ cle: FiltreAffaires; label: string }> = [
-  { cle: 'toutes', label: 'Toutes' },
-  { cle: 'en_cours', label: 'En cours' },
-  { cle: 'devis_recu', label: 'Devis reçu' },
-  { cle: 'historique', label: 'Historique' },
-];
 
 function normaliserRecherche(valeur: string): string {
   return valeur.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
@@ -194,7 +189,13 @@ export default function EspacePage() {
     total: affaires.length,
     enCours: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'en_cours')).length,
     devis: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'devis_recu')).length,
+    actions: affaires.filter((affaire) => estDansGroupe(affaire.statut, 'devis_recu') || affaire.messagesNonLus > 0).length,
   }), [affaires]);
+
+  const premiereAction = useMemo(
+    () => affaires.find((affaire) => estDansGroupe(affaire.statut, 'devis_recu') || affaire.messagesNonLus > 0) ?? null,
+    [affaires],
+  );
 
   const filtresAvecCompte = useMemo(() => {
     return [
@@ -218,6 +219,8 @@ export default function EspacePage() {
       const contenu = [
         affaire.numeroDevis,
         affaire.lieu,
+        affaire.nomChantier,
+        affaire.referenceClient,
         TYPE_DEMANDE_LABELS[affaire.typeDemande],
         ...affaire.lignes.flatMap((ligne) => [ligne.nom, ligne.code]),
       ]
@@ -249,6 +252,13 @@ export default function EspacePage() {
               </div>
 
               <div data-espace-intro className="flex flex-wrap items-center gap-2 sm:gap-3">
+                <Link
+                  to="/espace/profil"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                >
+                  <Settings2 aria-hidden="true" className="h-4 w-4 text-primary" />
+                  Mes informations
+                </Link>
                 <div className="relative">
                   <button
                     type="button"
@@ -371,6 +381,34 @@ export default function EspacePage() {
         </section>
 
         <div className="mx-auto w-full max-w-6xl px-4 pt-8 sm:px-6 lg:px-8">
+
+        {!chargement && !erreur && statistiques.actions > 0 && premiereAction && (
+          <section className="mb-6 flex flex-col gap-4 rounded-xl border border-primary/20 bg-primary/[0.06] p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-primary text-white">
+                <Sparkles aria-hidden="true" className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-headline text-sm font-black text-on-surface">
+                  {statistiques.actions === 1
+                    ? 'Une action attend votre attention'
+                    : `${statistiques.actions} actions attendent votre attention`}
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-secondary sm:text-sm">
+                  {premiereAction.messagesNonLus > 0
+                    ? 'TVM38 vous a envoyé un nouveau message dans ce dossier.'
+                    : 'Un devis est prêt : vous pouvez l’accepter, le refuser ou demander une modification.'}
+                </p>
+              </div>
+            </div>
+            <Link
+              to={`/espace/${encodeURIComponent(premiereAction.id)}`}
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-xs font-extrabold uppercase tracking-tight text-white transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Consulter le dossier
+            </Link>
+          </section>
+        )}
 
         {/* États de chargement / erreur */}
         {chargement && (

@@ -24,6 +24,9 @@ verify_jwt = false
 [functions.client-portal]
 verify_jwt = false
 
+[functions.client-actions]
+verify_jwt = false
+
 [functions.devis-pdf]
 verify_jwt = false
 

@@ -6,6 +6,7 @@ export interface ClientData {
   nom: string;
   prenom?: string;
   code: string;
+  identifiant?: string;
   type: 'professionnel' | 'particulier' | 'professionnel_sans_compte';
   email?: string;
   telephone?: string;
@@ -57,6 +58,13 @@ export function getSession(): ClientSession | null {
 export function setSession(client: ClientData, token: string, expiresAt: number): void {
   const session: ClientSession = { client, token, expiresAt };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+}
+
+/** Actualise les données d'affichage sans renouveler ni remplacer le jeton. */
+export function updateSessionClient(client: ClientData): void {
+  const session = getSession();
+  if (!session) return;
+  setSession(client, session.token, session.expiresAt);
 }
 
 export function clearSession(): void {

@@ -12,6 +12,7 @@ const EstimationPage = lazy(() => import('@/pages/EstimationPage'));
 const CredentialsContactPage = lazy(() => import('@/pages/CredentialsContactPage'));
 const EspacePage = lazy(() => import('@/pages/EspacePage'));
 const AffairePage = lazy(() => import('@/pages/AffairePage'));
+const ProfilPage = lazy(() => import('@/pages/ProfilPage'));
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
           {/* Espace personnel — réservé aux clients disposant d'un compte */}
           <Route element={<ProtectedRoute sessionRequise />}>
             <Route path="/espace" element={<EspacePage />} />
+            <Route path="/espace/profil" element={<ProfilPage />} />
             <Route path="/espace/:id" element={<AffairePage />} />
           </Route>
         </Routes>

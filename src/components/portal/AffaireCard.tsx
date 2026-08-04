@@ -5,7 +5,9 @@ import {
   Download,
   FileText,
   MapPin,
+  MessageCircle,
   Package,
+  Tag,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -39,6 +41,7 @@ function getStepIndex(statut: StatutAffaire): number {
     case 'en_chiffrage':
       return 2;
     case 'devis_recu':
+    case 'modification_demandee':
     case 'acceptee':
     case 'planifiee':
     case 'terminee':
@@ -98,7 +101,7 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
       } else {
         toast.error("Le PDF de ce devis n'est pas encore disponible.");
       }
-    } catch (err) {
+    } catch {
       toast.error("Le PDF n'a pas pu être ouvert. Réessayez dans un instant.");
     } finally {
       setPdfEnCours(false);
@@ -117,7 +120,15 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
       />
 
       <div className="flex items-start justify-between gap-3">
-        <StatutBadge statut={affaire.statut} />
+        <div className="flex flex-wrap items-center gap-2">
+          <StatutBadge statut={affaire.statut} />
+          {affaire.messagesNonLus > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-destructive px-2 py-1 text-[10px] font-black text-white">
+              <MessageCircle aria-hidden="true" className="h-3 w-3" />
+              {affaire.messagesNonLus} nouveau{affaire.messagesNonLus > 1 ? 'x' : ''}
+            </span>
+          )}
+        </div>
         <span className="inline-flex shrink-0 items-center gap-1.5 pt-1 text-xs font-medium text-secondary/80">
           <CalendarDays aria-hidden="true" className="h-3.5 w-3.5 text-primary/70" />
           {formatDate(affaire.date)}
@@ -169,8 +180,11 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
           </span>
           <div className="min-w-0">
             <h2 className="font-headline text-base font-extrabold leading-snug text-on-surface group-hover:text-primary transition-colors">
-              {materiaux.titre}
+              {affaire.nomChantier || materiaux.titre}
             </h2>
+            {affaire.nomChantier && (
+              <p className="mt-0.5 truncate text-xs font-semibold text-secondary">{materiaux.titre}</p>
+            )}
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs font-medium text-secondary">
               <span className="rounded bg-surface-container px-1.5 py-0.5 font-bold text-on-surface-variant">
                 {libelleType}
@@ -180,6 +194,12 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
                   <span aria-hidden="true" className="h-1 w-1 rounded-full bg-secondary/40" />
                   <span className="font-bold text-on-surface">{materiaux.quantite}</span>
                 </>
+              )}
+              {affaire.referenceClient && (
+                <span className="inline-flex items-center gap-1 rounded bg-primary/8 px-1.5 py-0.5 font-bold text-primary">
+                  <Tag aria-hidden="true" className="h-3 w-3" />
+                  Réf. {affaire.referenceClient}
+                </span>
               )}
             </div>
           </div>
