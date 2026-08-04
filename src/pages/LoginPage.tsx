@@ -220,7 +220,7 @@ export default function LoginPage() {
                   <span className="text-base font-normal">→</span>
                 </button>
                 <p className="text-center text-[11px] font-semibold text-secondary/70 font-body">
-                  ⚡ Pour particuliers & professionnels sans identifiant
+                  Pour particuliers & professionnels sans identifiant
                 </p>
                 <div className="text-center pt-1">
                   <button

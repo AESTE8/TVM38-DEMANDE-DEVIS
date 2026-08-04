@@ -936,7 +936,7 @@ export default function FormPage() {
                           Vos données restent 100% confidentielles et servent uniquement à l'établissement de votre devis.
                         </p>
                         <p className="text-xs text-primary font-bold text-center max-w-xs mx-auto">
-                          ⚡ Réponse sous 24-48h par nos équipes MIDALI - TVM38.
+                          Réponse sous 24-48h par nos équipes MIDALI - TVM38.
                         </p>
                       </div>
                     </div>
