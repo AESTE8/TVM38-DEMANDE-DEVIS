@@ -222,21 +222,22 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
                     type="button"
                     onClick={handlePdfClick}
                     disabled={pdfEnCours}
-                    className="inline-flex items-center gap-1.5 rounded-md border border-emerald-600/30 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 transition hover:bg-emerald-600 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
-                    title="Télécharger le PDF"
+                    className="inline-flex min-h-[38px] items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60 uppercase tracking-tight"
+                    title="Télécharger le devis au format PDF"
                   >
-                    <Download aria-hidden="true" className={`h-3.5 w-3.5 ${pdfEnCours ? 'animate-spin' : ''}`} />
-                    {pdfEnCours ? '...' : 'PDF'}
+                    <Download aria-hidden="true" className={`h-4 w-4 ${pdfEnCours ? 'animate-spin' : ''}`} />
+                    <span>{pdfEnCours ? 'Téléchargement...' : 'Télécharger Devis (PDF)'}</span>
                   </button>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-xs font-medium text-secondary">
-                TVM38 prépare votre chiffrage.
+            <div className="flex items-center justify-between gap-4 py-1">
+              <p className="text-xs font-semibold text-secondary flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span>Chiffrage en cours (réponse sous 24-48h)</span>
               </p>
-              <span className="text-xs font-bold text-primary">Suivre le dossier</span>
+              <span className="text-xs font-extrabold text-primary group-hover:underline">Suivre le dossier →</span>
             </div>
           )}
         </div>

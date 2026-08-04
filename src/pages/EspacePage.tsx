@@ -25,6 +25,7 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import ClientBadge from '@/components/ClientBadge';
 import AffaireCard from '@/components/portal/AffaireCard';
+import { cn } from '@/lib/utils';
 import { getConnectedClient } from '@/lib/auth';
 import {
   Affaire,
@@ -341,23 +342,28 @@ export default function EspacePage() {
             {!chargement && !erreur && affaires.length > 0 && (
               <div className="mt-8 grid grid-cols-3 gap-2 sm:gap-3">
                 {[
-                  { label: 'Dossiers suivis', valeur: statistiques.total, icone: Files },
-                  { label: 'En chiffrage', valeur: statistiques.enCours, icone: Clock3 },
-                  { label: 'Devis prêts', valeur: statistiques.devis, icone: FileCheck2 },
-                ].map(({ label, valeur, icone: Icone }) => (
-                  <div
+                  { cle: 'toutes' as FiltreAffaires, label: 'Dossiers suivis', valeur: statistiques.total, icone: Files, color: 'text-primary bg-primary/10' },
+                  { cle: 'en_cours' as FiltreAffaires, label: 'En chiffrage', valeur: statistiques.enCours, icone: Clock3, color: 'text-amber-600 bg-amber-500/10' },
+                  { cle: 'devis_recu' as FiltreAffaires, label: 'Devis prêts', valeur: statistiques.devis, icone: FileCheck2, color: 'text-emerald-600 bg-emerald-500/10' },
+                ].map(({ cle, label, valeur, icone: Icone, color }) => (
+                  <button
                     key={label}
+                    type="button"
+                    onClick={() => setFiltre(cle)}
                     data-espace-stat
-                    className="flex min-w-0 flex-col items-start gap-2 rounded-xl border border-border/75 bg-white/85 px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3.5"
+                    className={cn(
+                      "flex min-w-0 flex-col items-start gap-2 rounded-xl border px-3 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:gap-3 sm:px-4 sm:py-3.5 text-left transition-all duration-200 hover:-translate-y-1 hover:shadow-md cursor-pointer",
+                      filtre === cle ? "border-primary bg-white ring-2 ring-primary/20" : "border-border/75 bg-white/85 hover:bg-white"
+                    )}
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/8 text-primary sm:h-10 sm:w-10">
-                      <Icone aria-hidden="true" className="h-4 w-4 sm:h-5 sm:w-5" />
+                    <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-lg sm:h-10 sm:w-10", color)}>
+                      <Icone aria-hidden="true" className="h-4 w-4 sm:h-5 sm:w-5 stroke-[2.2]" />
                     </span>
                     <div className="min-w-0">
-                      <p className="font-headline text-xl font-black leading-none text-on-surface">{valeur}</p>
-                      <p className="mt-1 text-[11px] font-medium leading-tight text-secondary sm:text-xs">{label}</p>
+                      <p className="font-headline text-xl sm:text-2xl font-black leading-none text-on-surface">{valeur}</p>
+                      <p className="mt-1 text-[11px] font-bold leading-tight text-secondary sm:text-xs">{label}</p>
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
