@@ -86,9 +86,9 @@ async function diffuser(event: string, clientId: string, payload: Record<string,
       },
       body: JSON.stringify({
         messages: [{
-          topic: 'realtime:client-updates',
-          event: 'broadcast',
-          payload: { type: 'broadcast', event, payload: { client_id: clientId, ...payload } },
+          topic: 'realtime:client-actions-updates',
+          event,
+          payload: { client_id: clientId, ...payload },
         }],
       }),
     });
@@ -162,6 +162,10 @@ Deno.serve(async (req) => {
         client_action: decision,
         client_action_at: new Date().toISOString(),
         client_action_message: message || null,
+        // Une nouvelle décision redevient visible, même si une réponse
+        // précédente à ce devis avait déjà été consultée.
+        client_action_seen_at: null,
+        client_action_seen_by: null,
       };
       if (decision === 'accepte') changements.etat = 'accepte';
       if (decision === 'refuse') changements.etat = 'refuse';
@@ -186,6 +190,9 @@ Deno.serve(async (req) => {
           type: decision === 'modification_demandee' ? 'demande_modification' : 'message',
           contenu: message,
           lu_par_client_at: new Date().toISOString(),
+          // La décision possède sa propre notification détaillée dans le
+          // logiciel. Le message reste dans le fil sans créer un doublon.
+          lu_par_tvm38_at: new Date().toISOString(),
         });
         await verifier(messageError);
       }

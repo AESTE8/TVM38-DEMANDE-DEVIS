@@ -106,7 +106,11 @@ export default function AffairePage() {
     try {
       const data = await fetchAffaire(id);
       setAffaire(data);
-      setMeta({ nomChantier: data.nomChantier ?? '', referenceClient: data.referenceClient ?? '' });
+      // Un rafraîchissement silencieux de la messagerie ne doit pas effacer un
+      // chantier ou une référence que le client est en train de saisir.
+      if (!silencieux) {
+        setMeta({ nomChantier: data.nomChantier ?? '', referenceClient: data.referenceClient ?? '' });
+      }
       setErreur(null);
       if (data.messages.some((message) => message.auteur === 'tvm38')) {
         void marquerMessagesLus(id).catch(() => undefined);
@@ -122,6 +126,20 @@ export default function AffairePage() {
     document.title = 'Détail de la demande — TVM38';
     const frame = window.requestAnimationFrame(() => void charger());
     return () => window.cancelAnimationFrame(frame);
+  }, [charger]);
+
+  useEffect(() => {
+    const rafraichir = () => {
+      if (document.visibilityState === 'visible') void charger(true);
+    };
+    const interval = window.setInterval(rafraichir, 30_000);
+    window.addEventListener('focus', rafraichir);
+    document.addEventListener('visibilitychange', rafraichir);
+    return () => {
+      window.clearInterval(interval);
+      window.removeEventListener('focus', rafraichir);
+      document.removeEventListener('visibilitychange', rafraichir);
+    };
   }, [charger]);
 
   async function handlePdf() {

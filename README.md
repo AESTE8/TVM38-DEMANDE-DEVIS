@@ -7,7 +7,7 @@ Ce projet est une application web React (Vite) permettant aux clients de TVM38 d
 - **Formulaires** : React Hook Form + Zod
 - **Backend & DB** : Supabase (PostgreSQL)
 - **Emails** : Web3Forms / Resend
-- **Déploiement** : Prêt pour Netlify
+- **Déploiement** : Vercel, connecté au dépôt GitHub
 
 ## 🚀 Installation locale
 
@@ -34,6 +34,17 @@ Ce projet est une application web React (Vite) permettant aux clients de TVM38 d
    ```bash
    npm run dev
    ```
+
+## ▲ Déploiement Vercel
+
+Le dépôt GitHub `AESTE8/TVM38-DEMANDE-DEVIS` est connecté à Vercel. Chaque push
+sur `main` déclenche automatiquement un nouveau déploiement de production.
+
+Le fichier `vercel.json` configure Vite, `npm ci`, `npm run build`, le dossier
+de sortie `dist` et le repli des routes de l'application vers `index.html`.
+
+Les variables `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` et
+`VITE_WEB3FORMS_KEY` doivent rester configurées dans l'environnement Vercel.
 
 ## 📄 Pages principales
 - `/` : Formulaire de demande de devis (principal).
