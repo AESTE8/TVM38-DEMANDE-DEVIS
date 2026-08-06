@@ -173,7 +173,7 @@ Deno.serve(async (req) => {
   // dans la décision. Il sera revérifié sous verrou juste avant l'insertion.
   const { data: devis, error: devisError } = await supabase
     .from('devis')
-    .select('id, numero_devis, client_id, etat, document_version, pdf_sha256, acceptation_status')
+    .select('id, numero_devis, client_id, etat, document_version, pdf_sha256, drive_file_id, acceptation_status')
     .eq('id', devisId)
     .eq('client_id', token.sub)
     .maybeSingle();
