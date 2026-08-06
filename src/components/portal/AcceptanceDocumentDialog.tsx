@@ -32,13 +32,29 @@ const MESSAGES: Record<string, string> = {
   FILE_REQUIRED: 'Joignez votre document.',
   FILE_TOO_LARGE: 'Le fichier dépasse 15 Mo. Réduisez sa taille ou envoyez moins de photos.',
   INVALID_PDF: 'Le fichier n’est pas un PDF lisible.',
-  UPLOAD_FAILED: 'Le document n’a pas pu être transmis. Réessayez dans quelques instants.',
+  UPLOAD_FAILED: 'Le dépôt sur notre espace de stockage a échoué. Réessayez dans quelques instants.',
   SERVER_MISCONFIGURED: 'Le dépôt est momentanément indisponible. Contactez TVM38.',
+  SERVER_ERROR: 'Une erreur est survenue de notre côté. Réessayez, et signalez-le nous si cela persiste.',
+  AFFAIRE_NOT_FOUND: 'Ce devis n’est plus rattaché à votre compte. Contactez TVM38.',
+  MISSING_QUOTE: 'Devis introuvable. Rechargez la page et réessayez.',
+  INVALID_DOCUMENT_TYPE: 'Choisissez le devis signé ou le bon de commande.',
+  CONFIRMATIONS_REQUIRED: 'Les confirmations n’ont pas été transmises. Rechargez la page.',
+  INVALID_FORM_DATA: 'Le formulaire n’a pas pu être lu. Réessayez.',
+  UNAUTHENTICATED: 'Votre session a expiré. Reconnectez-vous et recommencez.',
 };
 
+/**
+ * Un message générique sur toute erreur inconnue rend le diagnostic
+ * impossible : ni le client ni TVM38 ne savent ce qui a bloqué. Le code brut
+ * est affiché en clair quand il n'est pas reconnu — laid, mais exploitable.
+ */
 function messageErreur(raison: unknown): string {
   const code = raison instanceof Error ? raison.message : String(raison);
-  return MESSAGES[code] ?? 'Le document n’a pas pu être transmis. Réessayez.';
+  if (MESSAGES[code]) return MESSAGES[code];
+  if (/^[A-Z_]{3,60}$/.test(code)) {
+    return `Le document n’a pas pu être transmis (${code}). Signalez ce code à TVM38.`;
+  }
+  return 'Le document n’a pas pu être transmis. Vérifiez votre connexion et réessayez.';
 }
 
 function poidsLisible(octets: number): string {

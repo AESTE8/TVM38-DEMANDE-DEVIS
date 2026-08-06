@@ -115,7 +115,14 @@ Deno.serve(async (req) => {
   }
 
   const token = await requireClient(req, jwtSecret);
-  if (!token) return json(401, { error: 'UNAUTHENTICATED' });
+  if (!token) {
+    // Répondre sans avoir lu le corps laisse le navigateur téléverser dans le
+    // vide : la connexion cale au lieu de recevoir le 401, et l'utilisateur
+    // voit une erreur réseau incompréhensible au bout d'une minute. On draine
+    // avant de refuser.
+    await req.arrayBuffer().catch(() => undefined);
+    return json(401, { error: 'UNAUTHENTICATED' });
+  }
 
   let form: FormData;
   try {
