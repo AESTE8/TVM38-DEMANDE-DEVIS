@@ -21,7 +21,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const ETATS_VISIBLES = ['envoye', 'accepte', 'termine'];
+// `planifie` manquait : le client ne pouvait plus rouvrir son propre devis une
+// fois la livraison programmée. `archive` y figure parce qu'un devis remplacé
+// reste consultable — il n'est plus actionnable, ce n'est pas la même chose.
+const ETATS_VISIBLES = ['envoye', 'accepte', 'refuse', 'planifie', 'termine', 'archive'];
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return preflight();
@@ -38,12 +41,14 @@ Deno.serve(async (req) => {
   const token = await requireClient(req, jwtSecret);
   if (!token) return json(401, { error: 'UNAUTHENTICATED' });
 
-  const devisId = new URL(req.url).searchParams.get('devisId')?.trim();
+  const parametres = new URL(req.url).searchParams;
+  const devisId = parametres.get('devisId')?.trim();
+  const versionDemandee = Number(parametres.get('version') || 0);
   if (!devisId) return json(400, { error: 'MISSING_DEVIS_ID' });
 
   const { data: devis, error } = await supabase
     .from('devis')
-    .select('id, numero_devis, client_id, etat, drive_file_id')
+    .select('id, numero_devis, client_id, etat, drive_file_id, document_version')
     .eq('id', devisId)
     .maybeSingle();
 
@@ -53,11 +58,30 @@ Deno.serve(async (req) => {
     return json(404, { error: 'NOT_FOUND' });
   }
 
-  if (!devis.drive_file_id) return json(404, { error: 'PDF_UNAVAILABLE' });
+  // Une version antérieure reste consultable : c'est le document sur lequel le
+  // client a pu donner son accord, et le seul moyen de comprendre ce qui a
+  // changé depuis. Elle est servie depuis son fichier figé, pas depuis le
+  // fichier courant.
+  let fileId = devis.drive_file_id;
+  let version = Number(devis.document_version || 1);
+
+  if (versionDemandee > 0 && versionDemandee !== version) {
+    const { data: figee } = await supabase
+      .from('devis_versions')
+      .select('drive_file_id, version_number')
+      .eq('devis_id', devis.id)
+      .eq('version_number', versionDemandee)
+      .maybeSingle();
+    if (!figee) return json(404, { error: 'VERSION_UNAVAILABLE' });
+    fileId = figee.drive_file_id;
+    version = figee.version_number;
+  }
+
+  if (!fileId) return json(404, { error: 'PDF_UNAVAILABLE' });
 
   try {
-    const bytes = await downloadPdf(devis.drive_file_id);
-    const nom = `Devis-${devis.numero_devis || devis.id}.pdf`;
+    const bytes = await downloadPdf(fileId);
+    const nom = `Devis-${devis.numero_devis || devis.id}-V${version}.pdf`;
 
     return new Response(bytes, {
       headers: {

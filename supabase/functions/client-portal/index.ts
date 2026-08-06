@@ -57,10 +57,13 @@ type Statut =
   | 'envoyee'      // demande reçue, pas encore traitée
   | 'en_chiffrage' // le dispatcher travaille dessus
   | 'devis_recu'   // un devis a été transmis
-  | 'acceptee'     // le client a donné son accord
+  | 'document_recu'           // justificatif déposé, en attente de contrôle
+  | 'regularisation_demandee' // le justificatif doit être corrigé
+  | 'acceptee'     // le contrôle interne a validé le justificatif
   | 'planifiee'    // la livraison est calée à une date
   | 'terminee'     // livrée / réalisée
   | 'modification_demandee'
+  | 'remplacee'    // un devis plus récent a pris le relais
   | 'sans_suite';
 
 interface LigneDevis {
@@ -94,7 +97,31 @@ interface DevisRow {
   client_action: string | null;
   client_action_at: string | null;
   client_action_message: string | null;
+  document_version: number;
+  pdf_sha256: string | null;
+  acceptation_status: string;
+  document_acceptation_actif_id: string | null;
+  acceptation_validated_at: string | null;
+  remplace_par_devis_id: string | null;
   created_at: string;
+}
+
+/** Colonnes exposables d'un justificatif. `drive_file_id` n'en fait pas partie. */
+interface DocumentRow {
+  id: string;
+  devis_id: string;
+  devis_version: number;
+  type_document: 'devis_signe' | 'bon_commande';
+  reference_bon_commande: string | null;
+  nom_fichier_original: string;
+  taille_octets: number;
+  sha256: string;
+  nb_pages: number | null;
+  statut: string;
+  transmetteur_nom: string;
+  commentaire_controle: string | null;
+  depose_at: string;
+  controle_at: string | null;
 }
 
 interface DemandeRow {
@@ -122,7 +149,7 @@ interface MessageRow {
   demande_id: string | null;
   devis_id: string | null;
   auteur: 'client' | 'tvm38';
-  type: 'message' | 'demande_modification';
+  type: 'message' | 'demande_modification' | 'systeme';
   contenu: string;
   lu_par_client_at: string | null;
   created_at: string;
@@ -134,12 +161,31 @@ type Materiaux = Map<string, { nom: string; code: string }>;
 // Helpers
 // ---------------------------------------------------------------------------
 
-function statutDepuisDevis(etat: string, clientAction?: string | null): Statut {
-  if (etat === 'envoye' && clientAction === 'modification_demandee') return 'modification_demandee';
-  if (etat === 'accepte') return 'acceptee';
-  if (etat === 'planifie') return 'planifiee';
-  if (etat === 'termine') return 'terminee';
-  if (etat === 'refuse') return 'sans_suite';
+/**
+ * Statut lisible d'un devis.
+ *
+ * Le dépôt d'un justificatif ne rend pas l'affaire acceptée : il la met en
+ * attente de vérification. Confondre les deux ferait croire au client que la
+ * carrière s'est engagée alors que personne n'a encore ouvert son document.
+ */
+function statutDepuisDevis(
+  devis: Pick<DevisRow, 'etat' | 'client_action' | 'acceptation_status' | 'remplace_par_devis_id'>,
+): Statut {
+  // `archive` a deux causes : un devis remplacé par un plus récent, ou un devis
+  // expiré par le job des 90 jours prévu dans le logiciel. Seul le premier
+  // pointe vers son remplaçant, et seul lui doit être annoncé comme remplacé.
+  if (devis.etat === 'archive') {
+    return devis.remplace_par_devis_id ? 'remplacee' : 'sans_suite';
+  }
+  if (devis.etat === 'accepte') return 'acceptee';
+  if (devis.etat === 'planifie') return 'planifiee';
+  if (devis.etat === 'termine') return 'terminee';
+  if (devis.etat === 'refuse') return 'sans_suite';
+  if (devis.etat === 'envoye') {
+    if (devis.acceptation_status === 'document_recu') return 'document_recu';
+    if (devis.acceptation_status === 'regularisation_demandee') return 'regularisation_demandee';
+    if (devis.client_action === 'modification_demandee') return 'modification_demandee';
+  }
   return 'devis_recu';
 }
 
@@ -166,7 +212,7 @@ function statutAffaire(
   devisVisible: DevisRow | null,
   devisLies: DevisRow[],
 ): Statut {
-  if (devisVisible) return statutDepuisDevis(devisVisible.etat, devisVisible.client_action);
+  if (devisVisible) return statutDepuisDevis(devisVisible);
   if (dem.statut === 'sans_suite') return 'sans_suite';
   if (devisLies.some((d) => ETATS_EN_COURS.includes(d.etat))) return 'en_chiffrage';
   // Plus aucun devis vivant sur cette demande : l'affaire est close.
@@ -220,7 +266,7 @@ async function chargerMateriaux(): Promise<Materiaux> {
  * le contenu.
  */
 async function chargerAffaires(clientId: string) {
-  const [demandesRes, devisRes, messagesRes] = await Promise.all([
+  const [demandesRes, devisRes, messagesRes, documentsRes] = await Promise.all([
     supabase
       .from('demandes')
       .select('*')
@@ -232,7 +278,9 @@ async function chargerAffaires(clientId: string) {
         'id, numero_devis, demande_id, type_devis, etat, date_devis, date_envoi, date_envoi_at, ' +
         'adresse_livraison, creneau_livraison, date_planification, lignes, montant_total_ht, ' +
         'montant_envoye, updated_at, drive_file_id, nom_chantier, reference_client, ' +
-        'client_action, client_action_at, client_action_message, created_at',
+        'client_action, client_action_at, client_action_message, document_version, pdf_sha256, ' +
+        'acceptation_status, document_acceptation_actif_id, acceptation_validated_at, ' +
+        'remplace_par_devis_id, created_at',
       )
       .eq('client_id', clientId)
       .order('created_at', { ascending: false }),
@@ -241,16 +289,63 @@ async function chargerAffaires(clientId: string) {
       .select('id, demande_id, devis_id, auteur, type, contenu, lu_par_client_at, created_at')
       .eq('client_id', clientId)
       .order('created_at', { ascending: true }),
+    // `drive_file_id` n'est jamais sélectionné : le navigateur n'a aucune raison
+    // de connaître un identifiant Drive, et ne pourrait rien en faire de bon.
+    supabase
+      .from('documents_acceptation')
+      .select(
+        'id, devis_id, devis_version, type_document, reference_bon_commande, ' +
+        'nom_fichier_original, taille_octets, sha256, nb_pages, statut, transmetteur_nom, ' +
+        'commentaire_controle, depose_at, controle_at',
+      )
+      .eq('client_id', clientId)
+      .order('depose_at', { ascending: false }),
   ]);
 
   if (demandesRes.error) throw demandesRes.error;
   if (devisRes.error) throw devisRes.error;
   if (messagesRes.error) throw messagesRes.error;
+  if (documentsRes.error) throw documentsRes.error;
 
   return {
     demandes: (demandesRes.data ?? []) as DemandeRow[],
     devis: (devisRes.data ?? []) as DevisRow[],
     messages: (messagesRes.data ?? []) as MessageRow[],
+    documents: (documentsRes.data ?? []) as DocumentRow[],
+  };
+}
+
+/**
+ * Justificatif à afficher pour un devis : le plus récent qui compte encore.
+ *
+ * Un document rendu caduc par une nouvelle version reste dans l'historique,
+ * mais ce n'est plus lui qui décrit l'état du dossier — sinon le client verrait
+ * « document transmis » sur un devis qui en réclame un nouveau.
+ */
+function documentActif(documents: DocumentRow[], devisId: string): DocumentRow | null {
+  const vivants = documents.filter(
+    (doc) => doc.devis_id === devisId
+      && ['a_verifier', 'valide', 'regularisation_demandee'].includes(doc.statut),
+  );
+  return vivants[0] ?? null;
+}
+
+function exposerDocument(doc: DocumentRow | null) {
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    devisVersion: doc.devis_version,
+    type: doc.type_document,
+    referenceBonCommande: doc.reference_bon_commande,
+    nomFichier: doc.nom_fichier_original,
+    tailleOctets: doc.taille_octets,
+    sha256: doc.sha256,
+    nbPages: doc.nb_pages,
+    statut: doc.statut,
+    transmetteurNom: doc.transmetteur_nom,
+    commentaireControle: doc.commentaire_controle,
+    deposeAt: doc.depose_at,
+    controleAt: doc.controle_at,
   };
 }
 
@@ -353,7 +448,7 @@ function construireFil(
 
     affaires.push({
       id: `q:${d.id}`,
-      statut: statutDepuisDevis(d.etat, d.client_action),
+      statut: statutDepuisDevis(d),
       date: d.date_envoi_at ?? d.created_at,
       dateDemande: null,
       typeDemande: d.type_devis,
@@ -379,7 +474,13 @@ function construireFil(
 // Détail d'une affaire
 // ---------------------------------------------------------------------------
 
-function detailDevis(d: DevisRow, materiaux: Materiaux) {
+function detailDevis(d: DevisRow, materiaux: Materiaux, documents: DocumentRow[] = []) {
+  // Passé la planification, un écart de montant n'est plus une modification de
+  // devis à revalider : c'est l'ajustement au tonnage réellement livré. Le
+  // client doit voir les deux chiffres, sans qu'on lui redemande quoi que ce
+  // soit.
+  const livraisonEngagee = ['planifie', 'termine'].includes(d.etat);
+
   return {
     numero: d.numero_devis,
     typeDevis: d.type_devis,
@@ -400,6 +501,22 @@ function detailDevis(d: DevisRow, materiaux: Materiaux) {
     clientAction: d.client_action || null,
     clientActionAt: d.client_action_at || null,
     clientActionMessage: d.client_action_message || null,
+    documentVersion: d.document_version ?? 1,
+    pdfSha256: d.pdf_sha256 || null,
+    acceptationStatus: d.acceptation_status || 'none',
+    acceptationValidatedAt: d.acceptation_validated_at || null,
+    remplaceParDevisId: d.remplace_par_devis_id || null,
+    // Un dépôt n'est possible que sur un devis encore ouvert, dont le PDF
+    // courant est connu, et qui n'a pas déjà un justificatif validé.
+    depotPossible: d.etat === 'envoye'
+      && Boolean(d.pdf_sha256)
+      && ['none', 'obsolete', 'rejete', 'regularisation_demandee'].includes(d.acceptation_status || 'none'),
+    montantFacture: livraisonEngagee ? d.montant_total_ht : null,
+    montantAjusteApresAccord: livraisonEngagee && montantModifie(d),
+    documentAcceptation: exposerDocument(documentActif(documents, d.id)),
+    historiqueDocuments: documents
+      .filter((doc) => doc.devis_id === d.id)
+      .map(exposerDocument),
     // Volontairement absents : notes internes, coûts de péage, taux de remise,
     // chauffeur, statut de paiement. Ce sont des données de gestion interne.
   };
@@ -426,7 +543,14 @@ function detailDemande(dem: DemandeRow, materiaux: Materiaux) {
 function construireTimeline(
   statut: Statut,
   dateDemande: string | null,
-  devis: { dateEnvoiAt: string | null; datePlanification: string | null; clientActionAt?: string | null } | null,
+  devis: {
+    dateEnvoiAt: string | null;
+    datePlanification: string | null;
+    clientActionAt?: string | null;
+    documentDeposeAt?: string | null;
+    documentControleAt?: string | null;
+    acceptationValidatedAt?: string | null;
+  } | null,
 ) {
   if (statut === 'sans_suite') {
     return [
@@ -444,12 +568,35 @@ function construireTimeline(
     ];
   }
 
-  const ordre: Statut[] = ['envoyee', 'en_chiffrage', 'devis_recu', 'acceptee', 'planifiee', 'terminee'];
+  if (statut === 'remplacee') {
+    return [
+      { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
+      { cle: 'devis_recu', label: 'Devis reçu', date: devis?.dateEnvoiAt ?? null, atteint: true },
+      { cle: 'remplacee', label: 'Remplacé par un devis plus récent', date: null, atteint: true },
+    ];
+  }
+
+  if (statut === 'regularisation_demandee') {
+    return [
+      { cle: 'envoyee', label: 'Demande envoyée', date: dateDemande, atteint: true },
+      { cle: 'devis_recu', label: 'Devis reçu', date: devis?.dateEnvoiAt ?? null, atteint: true },
+      { cle: 'document_recu', label: 'Document transmis', date: devis?.documentDeposeAt ?? null, atteint: true },
+      { cle: 'regularisation_demandee', label: 'Document à corriger', date: devis?.documentControleAt ?? null, atteint: true },
+    ];
+  }
+
+  // « Devis accepté » n'est atteint qu'après vérification du justificatif. Le
+  // dépôt est une étape à part : afficher l'accord dès la réception ferait
+  // croire au client que la carrière s'est engagée sans avoir rien ouvert.
+  const ordre: Statut[] = [
+    'envoyee', 'en_chiffrage', 'devis_recu', 'document_recu', 'acceptee', 'planifiee', 'terminee',
+  ];
   const labels: Record<string, string> = {
     envoyee: 'Demande envoyée',
     en_chiffrage: 'En cours de chiffrage',
     devis_recu: 'Devis reçu',
-    acceptee: 'Devis accepté',
+    document_recu: 'Document d’acceptation transmis',
+    acceptee: 'Acceptation vérifiée',
     planifiee: 'Livraison planifiée',
     terminee: 'Livraison réalisée',
   };
@@ -463,6 +610,8 @@ function construireTimeline(
   const dates: Partial<Record<Statut, string | null>> = {
     envoyee: dateDemande,
     devis_recu: devis?.dateEnvoiAt ?? null,
+    document_recu: devis?.documentDeposeAt ?? null,
+    acceptee: devis?.acceptationValidatedAt ?? null,
     planifiee: devis?.datePlanification ?? null,
   };
 
@@ -514,7 +663,13 @@ Deno.serve(async (req) => {
   if (apres[0] !== 'affaires') return json(404, { error: 'NOT_FOUND' });
 
   const materiaux = await chargerMateriaux();
-  const { demandes, devis, messages } = await chargerAffaires(token.sub);
+  const { demandes, devis, messages, documents } = await chargerAffaires(token.sub);
+
+  /** Dates du justificatif, injectées dans la timeline. */
+  const jalonsDocument = (devisId: string | null) => {
+    const doc = devisId ? documentActif(documents, devisId) : null;
+    return { documentDeposeAt: doc?.depose_at ?? null, documentControleAt: doc?.controle_at ?? null };
+  };
 
   // ---- Liste ----
   if (apres.length === 1) {
@@ -537,7 +692,7 @@ Deno.serve(async (req) => {
     const devisVisible = devisTransmis(devisLies);
 
     const statut = statutAffaire(dem, devisVisible, devisLies);
-    const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux) : null;
+    const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux, documents) : null;
 
     return json(200, {
       id: affaireId,
@@ -547,7 +702,11 @@ Deno.serve(async (req) => {
       referenceClient: devisVisible?.reference_client || dem.reference_client || null,
       demande: detailDemande(dem, materiaux),
       devis: devisDetail,
-      timeline: construireTimeline(statut, dem.created_at, devisDetail),
+      timeline: construireTimeline(
+        statut,
+        dem.created_at,
+        devisDetail ? { ...devisDetail, ...jalonsDocument(devisVisible?.id ?? null) } : null,
+      ),
       messages: messagesAffaire(messages, dem.id, devisVisible?.id ?? null).map(messagePublic),
     });
   }
@@ -556,8 +715,8 @@ Deno.serve(async (req) => {
     const d = devis.find((x) => x.id === brutId && ETATS_VISIBLES.includes(x.etat));
     if (!d) return json(404, { error: 'NOT_FOUND' });
 
-    const statut = statutDepuisDevis(d.etat, d.client_action);
-    const devisDetail = detailDevis(d, materiaux);
+    const statut = statutDepuisDevis(d);
+    const devisDetail = detailDevis(d, materiaux, documents);
 
     return json(200, {
       id: affaireId,
@@ -567,7 +726,7 @@ Deno.serve(async (req) => {
       referenceClient: d.reference_client || null,
       demande: null,
       devis: devisDetail,
-      timeline: construireTimeline(statut, null, devisDetail),
+      timeline: construireTimeline(statut, null, { ...devisDetail, ...jalonsDocument(d.id) }),
       messages: messagesAffaire(messages, null, d.id).map(messagePublic),
     });
   }

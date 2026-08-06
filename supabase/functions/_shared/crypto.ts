@@ -7,6 +7,10 @@ const KEY_LENGTH_BITS = 256;
 
 const encoder = new TextEncoder();
 
+function arrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 function toBase64(bytes: Uint8Array): string {
   return btoa(String.fromCharCode(...bytes));
 }
@@ -35,7 +39,7 @@ function timingSafeEqual(a: Uint8Array, b: Uint8Array): boolean {
 async function pbkdf2(password: string, salt: Uint8Array, iterations: number): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits']);
   const bits = await crypto.subtle.deriveBits(
-    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    { name: 'PBKDF2', salt: arrayBuffer(salt), iterations, hash: 'SHA-256' },
     key,
     KEY_LENGTH_BITS,
   );
@@ -127,7 +131,7 @@ export async function verifyHs256(
     const valid = await crypto.subtle.verify(
       'HMAC',
       await hmacKey(secret),
-      fromBase64Url(parts[2]),
+      arrayBuffer(fromBase64Url(parts[2])),
       encoder.encode(data),
     );
     if (!valid) return null;

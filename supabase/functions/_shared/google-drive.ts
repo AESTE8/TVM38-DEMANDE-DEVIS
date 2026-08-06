@@ -173,6 +173,7 @@ export async function uploadPdf(
   existingFileId?: string | null,
 ): Promise<string> {
   const token = await getAccessToken();
+  const pdfBody = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 
   if (existingFileId) {
     const res = await fetch(
@@ -181,7 +182,7 @@ export async function uploadPdf(
       {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/pdf' },
-        body: bytes,
+        body: pdfBody,
       },
     );
 
@@ -225,6 +226,136 @@ export async function uploadPdf(
 
   const { id } = await res.json();
   return id as string;
+}
+
+/**
+ * Dépose un nouveau fichier, sans jamais écraser quoi que ce soit.
+ *
+ * Sert à tout ce qui doit rester figé : la version d'un devis mise à la
+ * disposition d'un client, et les justificatifs d'acceptation. Écraser l'un de
+ * ces fichiers reviendrait à effacer la pièce sur laquelle un accord a été
+ * donné — on ne pourrait plus montrer ce que le client avait sous les yeux.
+ */
+export async function uploadNewFile(
+  bytes: Uint8Array,
+  fileName: string,
+  folderId: string,
+  mimeType = 'application/pdf',
+): Promise<string> {
+  const token = await getAccessToken();
+  const boundary = `tvm38-${crypto.randomUUID()}`;
+  const metadata = JSON.stringify({ name: fileName, parents: [folderId], mimeType });
+
+  const head = new TextEncoder().encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n` +
+      `--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`,
+  );
+  const tail = new TextEncoder().encode(`\r\n--${boundary}--`);
+
+  const body = new Uint8Array(head.length + bytes.length + tail.length);
+  body.set(head, 0);
+  body.set(bytes, head.length);
+  body.set(tail, head.length + bytes.length);
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&supportsAllDrives=true&fields=id',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    },
+  );
+
+  if (!res.ok) {
+    const detail = await res.text();
+    // 404 sur un dossier existant : la portée drive.file ne laisse voir au
+    // compte de service que ce qu'il a lui-même créé. Un dossier fabriqué à la
+    // main dans l'interface Drive lui est invisible, même sur un Drive partagé
+    // dont il est membre. Le message doit le dire, sinon on cherche un problème
+    // de droits là où il n'y en a pas.
+    if (res.status === 404) {
+      throw new Error(
+        `Dossier Drive ${folderId} introuvable pour le compte de service. ` +
+        'Avec la portée drive.file, un dossier créé manuellement lui reste invisible : ' +
+        'il faut le lui partager explicitement, ou le laisser le créer. ' +
+        `Réponse Google : ${detail}`,
+      );
+    }
+    throw new Error(`Dépôt du fichier échoué : ${res.status} ${detail}`);
+  }
+
+  const { id } = await res.json();
+  return id as string;
+}
+
+/**
+ * Supprime un fichier. Utilisé en compensation : si l'enregistrement en base
+ * échoue après le dépôt, le fichier orphelin ne doit pas rester sur le Drive.
+ * L'échec de la suppression n'est jamais fatal — mieux vaut un orphelin
+ * journalisé qu'une erreur qui masque la cause initiale.
+ */
+export async function deleteFile(fileId: string): Promise<boolean> {
+  try {
+    const token = await getAccessToken();
+    const res = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?supportsAllDrives=true`,
+      { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } },
+    );
+    return res.ok || res.status === 404;
+  } catch {
+    return false;
+  }
+}
+
+export async function getFileMetadata(
+  fileId: string,
+): Promise<{ id: string; name: string; mimeType: string; size: number } | null> {
+  const token = await getAccessToken();
+  const res = await fetch(
+    `https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}` +
+      '?supportsAllDrives=true&fields=id,name,mimeType,size',
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) return null;
+  const data = await res.json();
+  return {
+    id: String(data.id),
+    name: String(data.name ?? ''),
+    mimeType: String(data.mimeType ?? ''),
+    size: Number(data.size ?? 0),
+  };
+}
+
+/** Retourne le sous-dossier demandé ou le crée dans le dossier Drive fourni. */
+export async function ensureFolder(parentFolderId: string, folderName: string): Promise<string> {
+  const token = await getAccessToken();
+  const escapedName = folderName.replace(/'/g, "\\'");
+  const query = encodeURIComponent(
+    `'${parentFolderId}' in parents and name = '${escapedName}' and ` +
+    `mimeType = 'application/vnd.google-apps.folder' and trashed = false`,
+  );
+  const list = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=${query}&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=files(id,name)`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!list.ok) throw new Error(`Recherche du dossier Drive échouée : ${list.status} ${await list.text()}`);
+  const existing = (await list.json()) as { files?: Array<{ id: string }> };
+  if (existing.files?.[0]?.id) return existing.files[0].id;
+
+  const create = await fetch('https://www.googleapis.com/drive/v3/files?supportsAllDrives=true&fields=id', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name: folderName,
+      parents: [parentFolderId],
+      mimeType: 'application/vnd.google-apps.folder',
+    }),
+  });
+  if (!create.ok) throw new Error(`Création du dossier Drive échouée : ${create.status} ${await create.text()}`);
+  return String((await create.json()).id);
 }
 
 /** Récupère le contenu d'un PDF privé. Le client ne voit jamais l'URL Drive. */

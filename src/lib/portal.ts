@@ -6,11 +6,40 @@ export type StatutAffaire =
   | 'envoyee'
   | 'en_chiffrage'
   | 'devis_recu'
+  | 'document_recu'
+  | 'regularisation_demandee'
   | 'modification_demandee'
   | 'acceptee'
   | 'planifiee'
   | 'terminee'
+  | 'remplacee'
   | 'sans_suite';
+
+export type TypeDocumentAcceptation = 'devis_signe' | 'bon_commande';
+
+export type StatutDocumentAcceptation =
+  | 'a_verifier'
+  | 'valide'
+  | 'regularisation_demandee'
+  | 'rejete'
+  | 'remplace'
+  | 'obsolete_par_nouvelle_version';
+
+export interface DocumentAcceptation {
+  id: string;
+  devisVersion: number;
+  type: TypeDocumentAcceptation;
+  referenceBonCommande: string | null;
+  nomFichier: string;
+  tailleOctets: number;
+  sha256: string;
+  nbPages: number | null;
+  statut: StatutDocumentAcceptation;
+  transmetteurNom: string;
+  commentaireControle: string | null;
+  deposeAt: string;
+  controleAt: string | null;
+}
 
 export interface LignePortail {
   nom: string;
@@ -57,9 +86,21 @@ export interface DevisDetail {
   pdfDisponible: boolean;
   nomChantier: string | null;
   referenceClient: string | null;
-  clientAction: 'accepte' | 'refuse' | 'modification_demandee' | null;
+  clientAction: 'accepte' | 'refuse' | 'modification_demandee' | 'document_recu' | null;
   clientActionAt: string | null;
   clientActionMessage: string | null;
+  documentVersion: number;
+  pdfSha256: string | null;
+  acceptationStatus: 'none' | 'document_recu' | 'regularisation_demandee' | 'valide' | 'rejete' | 'obsolete';
+  acceptationValidatedAt: string | null;
+  remplaceParDevisId: string | null;
+  /** Le serveur tranche : le bouton de dépôt n'est jamais déduit côté navigateur. */
+  depotPossible: boolean;
+  /** Montant réellement facturé, une fois la livraison engagée. */
+  montantFacture: number | null;
+  montantAjusteApresAccord: boolean;
+  documentAcceptation: DocumentAcceptation | null;
+  historiqueDocuments: DocumentAcceptation[];
 }
 
 export interface DemandeDetail {
@@ -81,7 +122,7 @@ export interface DemandeDetail {
 export interface MessageAffaire {
   id: string;
   auteur: 'client' | 'tvm38';
-  type: 'message' | 'demande_modification';
+  type: 'message' | 'demande_modification' | 'systeme';
   contenu: string;
   createdAt: string;
 }
@@ -166,12 +207,74 @@ export function updateAffaireMetadata(
   return action<{ success: true }>('update_metadata', affaireId, data);
 }
 
+/**
+ * Refus et demande de modification uniquement.
+ *
+ * L'acceptation ne passe plus par ici : elle se prouve par un devis signé ou un
+ * bon de commande, transmis via `transmettreDocumentAcceptation`. Le serveur
+ * refuse `accepte` avec `ACCEPTANCE_DOCUMENT_REQUIRED`.
+ */
 export function deciderDevis(
   affaireId: string,
-  decision: 'accepte' | 'refuse' | 'modification_demandee',
+  decision: 'refuse' | 'modification_demandee',
   message = '',
 ) {
   return action<{ success: true; decision: string }>('decide_quote', affaireId, { decision, message });
+}
+
+export interface DepotDocument {
+  devisId: string;
+  typeDocument: TypeDocumentAcceptation;
+  fichier: File;
+  referenceBonCommande?: string;
+  transmetteurNom: string;
+  transmetteurEmail?: string;
+  transmetteurFonction?: string;
+  transmetteurAgence?: string;
+  commentaireClient?: string;
+  convertiDepuisImages?: boolean;
+}
+
+/**
+ * Transmet le justificatif d'acceptation.
+ *
+ * `Content-Type` n'est volontairement pas fixé : le navigateur doit poser
+ * lui-même la frontière multipart, et l'écraser casse l'analyse côté serveur.
+ */
+export async function transmettreDocumentAcceptation(
+  affaireId: string,
+  depot: DepotDocument,
+): Promise<{ documentId: string; statut: string; devisVersion: number; deja?: boolean }> {
+  const corps = new FormData();
+  corps.append('affaireId', affaireId);
+  corps.append('devisId', depot.devisId);
+  corps.append('typeDocument', depot.typeDocument);
+  corps.append('referenceBonCommande', depot.referenceBonCommande ?? '');
+  corps.append('transmetteurNom', depot.transmetteurNom);
+  corps.append('transmetteurEmail', depot.transmetteurEmail ?? '');
+  corps.append('transmetteurFonction', depot.transmetteurFonction ?? '');
+  corps.append('transmetteurAgence', depot.transmetteurAgence ?? '');
+  corps.append('commentaireClient', depot.commentaireClient ?? '');
+  corps.append('confirmationCorrespondance', 'true');
+  corps.append('confirmationHabilitation', 'true');
+  corps.append('convertiDepuisImages', String(Boolean(depot.convertiDepuisImages)));
+  corps.append('file', depot.fichier, depot.fichier.name);
+
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/acceptance-document-upload`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: corps,
+  });
+
+  if (res.status === 401) {
+    clearSession();
+    throw new SessionExpiree();
+  }
+  if (!res.ok) {
+    const payload = await res.json().catch(() => ({}));
+    throw new Error(String(payload.error ?? `Envoi échoué (${res.status})`));
+  }
+  return await res.json();
 }
 
 export async function envoyerMessage(affaireId: string, contenu: string): Promise<MessageAffaire> {
@@ -183,17 +286,36 @@ export function marquerMessagesLus(affaireId: string) {
   return action<{ success: true }>('mark_messages_read', affaireId);
 }
 
-export async function ouvrirPdfDevis(devisId: string): Promise<void> {
+/** Ouvre un justificatif transmis. Seul son identifiant Supabase circule. */
+export function ouvrirDocumentAcceptation(documentId: string): Promise<void> {
+  return ouvrirFichierProtege(
+    `acceptance-document-pdf?documentId=${encodeURIComponent(documentId)}`,
+    'Chargement du document',
+    "Le document n'est plus disponible.",
+  );
+}
+
+/** Ouvre le PDF du devis, éventuellement une version antérieure figée. */
+export function ouvrirPdfDevis(devisId: string, version?: number): Promise<void> {
+  const versionParam = version ? `&version=${version}` : '';
+  return ouvrirFichierProtege(
+    `devis-pdf?devisId=${encodeURIComponent(devisId)}${versionParam}`,
+    'Chargement du devis PDF',
+    "Le PDF n'est pas disponible pour ce devis.",
+  );
+}
+
+async function ouvrirFichierProtege(chemin: string, titre: string, erreur: string): Promise<void> {
   // Ouverture synchrone de l'onglet pour contourner les bloqueurs de pop-ups navigateur
   const popup = typeof window !== 'undefined' ? window.open('', '_blank') : null;
   if (popup && popup.document) {
-    popup.document.title = 'Chargement du devis PDF — TVM38';
+    popup.document.title = `${titre} — TVM38`;
     popup.document.body.innerHTML = `
       <div style="font-family: system-ui, -apple-system, sans-serif; display: flex; height: 100vh; align-items: center; justify-content: center; background-color: #f8fafc; color: #0f172a;">
         <div style="text-align: center; padding: 24px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; max-width: 380px;">
           <div style="width: 32px; height: 32px; border: 3px solid #1e293b; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px auto;"></div>
           <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
-          <p style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0;">Chargement du devis PDF</p>
+          <p style="font-size: 16px; font-weight: 700; margin: 0 0 6px 0;">${titre}</p>
           <p style="font-size: 13px; color: #64748b; margin: 0;">Veuillez patienter un instant pendant la préparation du document TVM38...</p>
         </div>
       </div>
@@ -201,10 +323,7 @@ export async function ouvrirPdfDevis(devisId: string): Promise<void> {
   }
 
   try {
-    const res = await fetch(
-      `${SUPABASE_URL}/functions/v1/devis-pdf?devisId=${encodeURIComponent(devisId)}`,
-      { headers: authHeaders() },
-    );
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/${chemin}`, { headers: authHeaders() });
 
     if (res.status === 401) {
       if (popup && !popup.closed) popup.close();
@@ -214,7 +333,7 @@ export async function ouvrirPdfDevis(devisId: string): Promise<void> {
 
     if (!res.ok) {
       if (popup && !popup.closed) popup.close();
-      throw new Error("Le PDF n'est pas disponible pour ce devis.");
+      throw new Error(erreur);
     }
 
     const blob = await res.blob();
@@ -249,9 +368,14 @@ export const STATUT_LABELS: Record<StatutAffaire, string> = {
   envoyee: 'Demande envoyée',
   en_chiffrage: 'En cours de chiffrage',
   devis_recu: 'Devis reçu',
+  // « Document reçu » et non « Accepté » : rien n'est validé tant qu'un
+  // opérateur n'a pas ouvert le justificatif.
+  document_recu: 'Document reçu — en attente de vérification',
+  regularisation_demandee: 'Document à corriger',
   acceptee: 'Devis accepté',
   planifiee: 'Livraison planifiée',
   terminee: 'Livraison réalisée',
+  remplacee: 'Remplacé par un devis plus récent',
   sans_suite: 'Sans suite',
 };
 
@@ -269,9 +393,12 @@ export const STATUT_LABELS: Record<StatutAffaire, string> = {
  * chaque carte distingue les deux, le libellé du groupe n'a pas à trancher.
  */
 export const GROUPES_AFFAIRE = {
-  en_cours: ['envoyee', 'en_chiffrage', 'modification_demandee', 'acceptee', 'planifiee'],
-  devis_recu: ['devis_recu'],
-  historique: ['terminee', 'sans_suite'],
+  // `document_recu` rejoint « en cours » : le client a fait sa part, la balle
+  // est dans le camp de la carrière. `regularisation_demandee` reste dans le
+  // groupe actionnable, puisqu'un nouveau document est attendu de lui.
+  en_cours: ['envoyee', 'en_chiffrage', 'modification_demandee', 'document_recu', 'acceptee', 'planifiee'],
+  devis_recu: ['devis_recu', 'regularisation_demandee'],
+  historique: ['terminee', 'remplacee', 'sans_suite'],
 } as const satisfies Record<string, readonly StatutAffaire[]>;
 
 export type GroupeAffaire = keyof typeof GROUPES_AFFAIRE;
@@ -286,6 +413,9 @@ export const STATUT_STYLES: Record<StatutAffaire, { pastille: string; texte: str
   envoyee:      { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },
   en_chiffrage: { pastille: 'bg-tertiary',      texte: 'text-tertiary',      fond: 'bg-tertiary/10' },
   devis_recu:   { pastille: 'bg-primary',       texte: 'text-primary',       fond: 'bg-primary/10' },
+  document_recu: { pastille: 'bg-sky-500',      texte: 'text-sky-800',       fond: 'bg-sky-500/10' },
+  regularisation_demandee: { pastille: 'bg-amber-500', texte: 'text-amber-800', fond: 'bg-amber-500/10' },
+  remplacee:    { pastille: 'bg-secondary/40',  texte: 'text-secondary/70',  fond: 'bg-secondary/5' },
   acceptee:     { pastille: 'bg-emerald-600',   texte: 'text-emerald-700',   fond: 'bg-emerald-600/10' },
   planifiee:    { pastille: 'bg-emerald-600',   texte: 'text-emerald-700',   fond: 'bg-emerald-600/10' },
   terminee:     { pastille: 'bg-secondary/60',  texte: 'text-secondary',     fond: 'bg-secondary/10' },

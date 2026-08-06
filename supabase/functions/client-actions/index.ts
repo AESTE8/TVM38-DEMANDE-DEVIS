@@ -23,6 +23,12 @@ function texteMessage(value: unknown): string {
   return String(value ?? '').replace(/\r\n/g, '\n').trim().slice(0, 2000);
 }
 
+/** Premier maillon de la chaîne `x-forwarded-for` : le client réel. */
+function adresseIp(req: Request): string {
+  const chaine = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || '';
+  return chaine.split(',')[0].trim().slice(0, 60);
+}
+
 function lireAffaireId(value: unknown): { prefixe: 'd' | 'q'; id: string } | null {
   const raw = String(value ?? '').trim();
   const match = raw.match(/^([dq]):([A-Za-z0-9_-]{1,100})$/);
@@ -153,9 +159,33 @@ Deno.serve(async (req) => {
       if (!['accepte', 'refuse', 'modification_demandee'].includes(decision)) {
         return json(400, { error: 'INVALID_DECISION' });
       }
+
+      // Un accord ne se donne plus d'un clic : il se prouve par le devis signé
+      // ou le bon de commande, déposés par acceptance-document-upload puis
+      // contrôlés par un opérateur.
+      if (decision === 'accepte') {
+        return json(400, { error: 'ACCEPTANCE_DOCUMENT_REQUIRED' });
+      }
+
       const message = texteMessage(data.message);
       if (decision === 'modification_demandee' && message.length < 5) {
         return json(400, { error: 'MESSAGE_REQUIRED' });
+      }
+
+      // Un devis dont le justificatif est en cours de contrôle ne doit pas
+      // repartir en chiffrage dans le dos du responsable : il se retrouverait
+      // avec un bon de commande posé sur un devis qu'on est en train de
+      // réécrire. Le client passe par le fil de discussion.
+      if (decision === 'modification_demandee') {
+        const { data: enCours } = await supabase
+          .from('documents_acceptation')
+          .select('id, statut')
+          .eq('devis_id', cible.devisId)
+          .in('statut', ['a_verifier', 'valide'])
+          .maybeSingle();
+        if (enCours) {
+          return json(409, { error: 'MODIFICATION_BLOQUEE_DOCUMENT_EN_COURS', statut: enCours.statut });
+        }
       }
 
       const changements: Record<string, unknown> = {
@@ -163,11 +193,14 @@ Deno.serve(async (req) => {
         client_action_at: new Date().toISOString(),
         client_action_message: message || null,
         // Une nouvelle décision redevient visible, même si une réponse
-        // précédente à ce devis avait déjà été consultée.
+        // précédente à ce devis avait déjà été consultée ou traitée.
         client_action_seen_at: null,
         client_action_seen_by: null,
+        client_action_handled_at: null,
+        client_action_handled_by: null,
+        client_conversation_archived_at: null,
+        client_conversation_archived_by: null,
       };
-      if (decision === 'accepte') changements.etat = 'accepte';
       if (decision === 'refuse') changements.etat = 'refuse';
 
       const { data: devisMisAJour, error } = await supabase
@@ -196,6 +229,18 @@ Deno.serve(async (req) => {
         });
         await verifier(messageError);
       }
+
+      await supabase.from('evenements_dossier').insert({
+        client_id: token.sub,
+        demande_id: cible.demandeId,
+        devis_id: cible.devisId,
+        type: decision === 'refuse' ? 'quote_refused' : 'quote_modification_requested',
+        acteur: 'client',
+        acteur_id: token.sub,
+        adresse_ip: adresseIp(req) || null,
+        user_agent: String(req.headers.get('user-agent') || '').slice(0, 300) || null,
+        donnees: { message: message || null },
+      });
 
       await diffuser('client-quote-decision', token.sub, {
         affaire_id: affaireId,

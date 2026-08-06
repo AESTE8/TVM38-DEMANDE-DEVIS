@@ -9,6 +9,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Download,
+  FileText,
   Loader2,
   MapPin,
   MessageSquare,
@@ -40,9 +41,11 @@ import {
   formatMontant,
   formatTonnage,
   marquerMessagesLus,
+  ouvrirDocumentAcceptation,
   ouvrirPdfDevis,
   updateAffaireMetadata,
 } from '@/lib/portal';
+import AcceptanceDocumentDialog from '@/components/portal/AcceptanceDocumentDialog';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/15';
 
@@ -92,6 +95,8 @@ export default function AffairePage() {
   const [decisionEnCours, setDecisionEnCours] = useState(false);
   const [nouveauMessage, setNouveauMessage] = useState('');
   const [messageEnCours, setMessageEnCours] = useState(false);
+  const [depotOuvert, setDepotOuvert] = useState(false);
+  const [documentEnCours, setDocumentEnCours] = useState(false);
 
   const gererErreurSession = useCallback((error: unknown) => {
     if (error instanceof SessionExpiree) {
@@ -170,9 +175,14 @@ export default function AffairePage() {
     }
   }
 
-  async function appliquerDecision(choix: 'accepte' | 'refuse' | 'modification_demandee', message = '') {
+  /**
+   * Refus et demande de modification uniquement.
+   *
+   * L'acceptation passe par le dépôt d'un justificatif : elle ouvre
+   * `AcceptanceDocumentDialog` au lieu d'écrire directement en base.
+   */
+  async function appliquerDecision(choix: 'refuse' | 'modification_demandee', message = '') {
     if (!id || decisionEnCours) return;
-    if (choix === 'accepte' && !window.confirm('Confirmer l’acceptation de ce devis ?')) return;
     if (choix === 'modification_demandee' && !message.trim()) {
       toast.error('Précisez la modification souhaitée.');
       return;
@@ -183,12 +193,34 @@ export default function AffairePage() {
       await charger(true);
       setDecision(null);
       setMotifDecision('');
-      toast.success(choix === 'accepte' ? 'Votre devis est accepté.' : choix === 'refuse' ? 'Votre réponse a été enregistrée.' : 'Votre demande de modification a été envoyée.');
+      toast.success(choix === 'refuse' ? 'Votre réponse a été enregistrée.' : 'Votre demande de modification a été envoyée.');
     } catch (error) {
-      if (!gererErreurSession(error)) toast.error(error instanceof Error ? error.message : "L'action a échoué.");
+      if (gererErreurSession(error)) return;
+      const code = error instanceof Error ? error.message : '';
+      toast.error(code === 'MODIFICATION_BLOQUEE_DOCUMENT_EN_COURS'
+        ? 'Votre document est en cours de vérification. Écrivez-nous dans le fil de discussion si le devis doit être modifié.'
+        : code || "L'action a échoué.");
     } finally {
       setDecisionEnCours(false);
     }
+  }
+
+  async function ouvrirDocument(documentId: string) {
+    if (documentEnCours) return;
+    setDocumentEnCours(true);
+    try {
+      await ouvrirDocumentAcceptation(documentId);
+    } catch (error) {
+      if (!gererErreurSession(error)) toast.error("Le document n'a pas pu être ouvert.");
+    } finally {
+      setDocumentEnCours(false);
+    }
+  }
+
+  async function apresDepot() {
+    setDepotOuvert(false);
+    await charger(true);
+    toast.success('Votre document a bien été transmis. Il sera vérifié par TVM38 avant validation définitive du devis.');
   }
 
   async function posterMessage(event: FormEvent) {
@@ -209,7 +241,11 @@ export default function AffairePage() {
 
   const devis = affaire?.devis ?? null;
   const demande = affaire?.demande ?? null;
-  const devisActionnable = affaire?.statut === 'devis_recu' && !devis?.clientAction;
+  // `depotPossible` est calculé par le serveur : l'état d'un devis ne se déduit
+  // pas d'un statut d'affichage, et surtout pas dans le navigateur.
+  const depotPossible = Boolean(devis?.depotPossible);
+  const devisActionnable = depotPossible && !devis?.clientAction;
+  const documentTransmis = devis?.documentAcceptation ?? null;
 
   return (
     <div className="relative flex min-h-screen flex-col bg-surface pb-24">
@@ -268,16 +304,85 @@ export default function AffairePage() {
                 {devisActionnable && (
                   <div className="border-t border-border/60 p-5">
                     <h3 className="font-headline text-base font-black text-on-surface">Votre décision</h3>
-                    <p className="mt-1 text-sm text-secondary">Votre réponse est enregistrée directement dans le dossier.</p>
+                    <p className="mt-1 text-sm text-secondary">Pour accepter, joignez le devis signé et daté ou votre bon de commande.</p>
                     <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                      <button type="button" disabled={decisionEnCours} onClick={() => void appliquerDecision('accepte')} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60"><ThumbsUp className="h-4 w-4" /> Accepter</button>
+                      <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-xs font-extrabold text-white hover:bg-emerald-700 disabled:opacity-60"><ThumbsUp className="h-4 w-4" /> Transmettre mon accord</button>
                       <button type="button" onClick={() => setDecision('modification_demandee')} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 text-xs font-extrabold text-amber-800"><Pencil className="h-4 w-4" /> À modifier</button>
                       <button type="button" onClick={() => setDecision('refuse')} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border px-4 text-xs font-extrabold text-secondary hover:border-destructive/40 hover:text-destructive"><ThumbsDown className="h-4 w-4" /> Refuser</button>
                     </div>
                     {decision && <div className="mt-4 rounded-lg border border-border bg-surface-container-low p-4"><div className="flex items-center justify-between"><p className="text-sm font-bold text-on-surface">{decision === 'refuse' ? 'Motif du refus (facultatif)' : 'Modification souhaitée'}</p><button type="button" onClick={() => setDecision(null)} aria-label="Fermer"><X className="h-4 w-4 text-secondary" /></button></div><textarea autoFocus maxLength={2000} rows={4} value={motifDecision} onChange={(event) => setMotifDecision(event.target.value)} className={`${inputClass} mt-3 resize-y`} placeholder={decision === 'refuse' ? 'Vous pouvez nous indiquer la raison…' : 'Décrivez précisément ce qui doit être modifié…'} /><button type="button" disabled={decisionEnCours} onClick={() => void appliquerDecision(decision, motifDecision)} className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold text-white disabled:opacity-60">{decisionEnCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Envoyer ma réponse</button></div>}
                   </div>
                 )}
-                {devis.clientAction && <div className="flex gap-3 border-t border-border/60 bg-emerald-50 p-5"><CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" /><div><p className="text-sm font-bold text-emerald-900">Réponse enregistrée</p><p className="mt-0.5 text-sm text-emerald-800">{devis.clientAction === 'accepte' ? 'Vous avez accepté ce devis.' : devis.clientAction === 'refuse' ? 'Vous avez refusé ce devis.' : 'Vous avez demandé une modification.'}</p></div></div>}
+                {/* Le montant réellement facturé peut différer une fois la
+                    livraison engagée : le tonnage livré fait foi. Ce n'est pas
+                    une modification du devis, rien n'est redemandé au client. */}
+                {devis.montantFacture !== null && devis.montantAjusteApresAccord && (
+                  <div className="flex gap-3 border-t border-border/60 bg-sky-50 p-5">
+                    <FileText className="h-5 w-5 shrink-0 text-sky-700" />
+                    <div>
+                      <p className="text-sm font-bold text-sky-900">Montant ajusté au tonnage livré</p>
+                      <p className="mt-0.5 text-sm text-sky-800">
+                        Montant accepté : {formatMontant(devis.montantEnvoye ?? devis.montantHT)} € HT ·
+                        {' '}Montant facturé : <strong>{formatMontant(devis.montantFacture)} € HT</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {documentTransmis && (
+                  <div className={cn('border-t border-border/60 p-5', documentTransmis.statut === 'valide' ? 'bg-emerald-50' : documentTransmis.statut === 'regularisation_demandee' ? 'bg-amber-50' : 'bg-sky-50')}>
+                    <div className="flex gap-3">
+                      <CheckCircle2 className={cn('h-5 w-5 shrink-0', documentTransmis.statut === 'valide' ? 'text-emerald-700' : documentTransmis.statut === 'regularisation_demandee' ? 'text-amber-700' : 'text-sky-700')} />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-bold text-on-surface">
+                          {documentTransmis.statut === 'valide' ? 'Acceptation validée par TVM38'
+                            : documentTransmis.statut === 'regularisation_demandee' ? 'Document à corriger'
+                            : 'Document reçu — en attente de vérification'}
+                        </p>
+                        <p className="mt-0.5 text-sm text-on-surface/80">
+                          {documentTransmis.type === 'bon_commande' ? 'Bon de commande' : 'Devis signé'}
+                          {documentTransmis.referenceBonCommande ? ` n° ${documentTransmis.referenceBonCommande}` : ''}
+                          {' · '}transmis le {formatDate(documentTransmis.deposeAt)} par {documentTransmis.transmetteurNom}
+                        </p>
+                        {documentTransmis.commentaireControle && (
+                          <p className="mt-2 rounded-lg bg-white/70 p-3 text-sm text-on-surface">
+                            <strong>Motif :</strong> {documentTransmis.commentaireControle}
+                          </p>
+                        )}
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button type="button" disabled={documentEnCours} onClick={() => void ouvrirDocument(documentTransmis.id)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-white px-3 text-xs font-bold text-on-surface">
+                            <Download className="h-4 w-4 text-primary" /> {documentEnCours ? 'Ouverture…' : 'Voir mon document'}
+                          </button>
+                          {documentTransmis.statut !== 'valide' && (
+                            <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-white px-3 text-xs font-bold text-on-surface">
+                              <Pencil className="h-4 w-4 text-primary" /> Envoyer un autre document
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {!documentTransmis && devis.clientAction && devis.clientAction !== 'document_recu' && (
+                  <div className="flex gap-3 border-t border-border/60 bg-emerald-50 p-5">
+                    <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-700" />
+                    <div>
+                      <p className="text-sm font-bold text-emerald-900">Réponse enregistrée</p>
+                      <p className="mt-0.5 text-sm text-emerald-800">{devis.clientAction === 'accepte' ? 'Vous avez accepté ce devis.' : devis.clientAction === 'refuse' ? 'Vous avez refusé ce devis.' : 'Vous avez demandé une modification.'}</p>
+                    </div>
+                  </div>
+                )}
+
+                {devis.remplaceParDevisId && (
+                  <div className="flex gap-3 border-t border-border/60 bg-surface-container-low p-5">
+                    <FileText className="h-5 w-5 shrink-0 text-secondary" />
+                    <div>
+                      <p className="text-sm font-bold text-on-surface">Devis remplacé</p>
+                      <p className="mt-0.5 text-sm text-secondary">Un devis plus récent a été transmis. Celui-ci reste consultable mais ne peut plus être accepté.</p>
+                    </div>
+                  </div>
+                )}
               </section>
             )}
 
@@ -300,7 +405,20 @@ export default function AffairePage() {
         )}
       </main>
 
-      {!chargement && devis && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-white/95 p-3 shadow-2xl backdrop-blur-md"><div className="mx-auto flex max-w-3xl items-center justify-between gap-3"><div><p className="text-xs font-medium text-secondary">Devis n° {devis.numero}</p><p className="font-headline text-lg font-black text-on-surface">{formatMontant(devis.montantHT)} € <span className="text-xs text-secondary">HT</span></p></div>{devisActionnable ? <button type="button" disabled={decisionEnCours} onClick={() => void appliquerDecision('accepte')} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-xs font-extrabold uppercase text-white shadow-md"><ThumbsUp className="h-4 w-4" /> Accepter</button> : <span className="text-right text-xs font-bold text-secondary">Réponse enregistrée</span>}</div></div>}
+      {!chargement && devis && <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-white/95 p-3 shadow-2xl backdrop-blur-md"><div className="mx-auto flex max-w-3xl items-center justify-between gap-3"><div><p className="text-xs font-medium text-secondary">Devis n° {devis.numero}</p><p className="font-headline text-lg font-black text-on-surface">{formatMontant(devis.montantHT)} € <span className="text-xs text-secondary">HT</span></p></div>{depotPossible ? <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-600 px-5 text-xs font-extrabold uppercase text-white shadow-md"><ThumbsUp className="h-4 w-4" /> {documentTransmis ? 'Renvoyer un document' : 'Transmettre mon accord'}</button> : <span className="text-right text-xs font-bold text-secondary">{documentTransmis?.statut === 'valide' ? 'Acceptation validée' : documentTransmis ? 'Document en vérification' : 'Réponse enregistrée'}</span>}</div></div>}
+
+      {depotOuvert && devis && affaire?.devisId && (
+        <AcceptanceDocumentDialog
+          affaireId={affaire.id}
+          devisId={affaire.devisId}
+          numero={devis.numero}
+          version={devis.documentVersion}
+          montantHT={devis.montantHT}
+          agenceSuggeree={affaire.demande?.agenceNom ?? null}
+          onClose={() => setDepotOuvert(false)}
+          onTransmis={apresDepot}
+        />
+      )}
       <Footer compact />
     </div>
   );

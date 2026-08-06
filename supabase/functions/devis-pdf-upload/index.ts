@@ -17,7 +17,7 @@
 // téléchargeable resterait celui d'avant modification.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { uploadPdf } from '../_shared/google-drive.ts';
+import { uploadNewFile, uploadPdf } from '../_shared/google-drive.ts';
 import { requireOperateur } from '../_shared/crypto.ts';
 import { json, preflight } from '../_shared/http.ts';
 
@@ -35,6 +35,17 @@ const MAX_PDF_BYTES = 15 * 1024 * 1024;
 function decodeBase64(value: string): Uint8Array {
   const clean = value.includes(',') ? value.slice(value.indexOf(',') + 1) : value;
   return Uint8Array.from(atob(clean), (c) => c.charCodeAt(0));
+}
+
+async function sha256Hex(bytes: Uint8Array): Promise<string> {
+  const input = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', input));
+  return Array.from(digest, (valeur) => valeur.toString(16).padStart(2, '0')).join('');
+}
+
+function nomFige(numero: string, version: number): string {
+  const base = (numero || 'DEVIS').replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 60);
+  return `${base}_V${version}.pdf`;
 }
 
 Deno.serve(async (req) => {
@@ -69,7 +80,7 @@ Deno.serve(async (req) => {
 
   const { data: devis, error } = await supabase
     .from('devis')
-    .select('id, numero_devis, drive_file_id')
+    .select('id, numero_devis, client_id, etat, drive_file_id, document_version, montant_total_ht')
     .eq('id', devisId)
     .maybeSingle();
 
@@ -87,16 +98,74 @@ Deno.serve(async (req) => {
 
   // Nom lisible dans le Drive pour l'archivage interne de la carrière.
   const nom = fileName || `${devis.numero_devis || devis.id}.pdf`;
+  const version = Number(devis.document_version || 1);
+  const pdfSha256 = await sha256Hex(bytes);
 
   try {
-    const fileId = await uploadPdf(bytes, nom, folderId, devis.drive_file_id);
+    // Un devis pas encore transmis n'est qu'un brouillon : on continue
+    // d'écraser son fichier de travail, personne ne s'est engagé dessus.
+    if (devis.etat !== 'envoye') {
+      const fileId = await uploadPdf(bytes, nom, folderId, devis.drive_file_id);
+      await supabase
+        .from('devis')
+        .update({
+          drive_file_id: fileId,
+          drive_updated_at: new Date().toISOString(),
+          pdf_sha256: pdfSha256,
+        })
+        .eq('id', devisId);
+      return json(200, { success: true, driveFileId: fileId, pdfSha256, version, fige: false });
+    }
+
+    // À partir de l'envoi, la version est figée. Le logiciel appelant à chaque
+    // enregistrement, on ne redépose rien tant que le contenu est identique :
+    // sinon chaque sauvegarde fabriquerait un fichier Drive de plus.
+    const { data: versionExistante } = await supabase
+      .from('devis_versions')
+      .select('id, drive_file_id, pdf_sha256')
+      .eq('devis_id', devis.id)
+      .eq('version_number', version)
+      .maybeSingle();
+
+    if (versionExistante?.pdf_sha256 === pdfSha256) {
+      await supabase
+        .from('devis')
+        .update({ drive_file_id: versionExistante.drive_file_id, pdf_sha256: pdfSha256 })
+        .eq('id', devisId);
+      return json(200, {
+        success: true,
+        driveFileId: versionExistante.drive_file_id,
+        pdfSha256,
+        version,
+        fige: true,
+        inchange: true,
+      });
+    }
+
+    const fileId = await uploadNewFile(bytes, nomFige(devis.numero_devis, version), folderId);
+
+    const { error: versionError } = await supabase.from('devis_versions').upsert({
+      devis_id: devis.id,
+      client_id: devis.client_id,
+      version_number: version,
+      numero_devis: devis.numero_devis || '',
+      drive_file_id: fileId,
+      pdf_sha256: pdfSha256,
+      montant_total_ht: devis.montant_total_ht || 0,
+      sent_at: new Date().toISOString(),
+    }, { onConflict: 'devis_id,version_number' });
+    if (versionError) throw versionError;
 
     await supabase
       .from('devis')
-      .update({ drive_file_id: fileId, drive_updated_at: new Date().toISOString() })
+      .update({
+        drive_file_id: fileId,
+        drive_updated_at: new Date().toISOString(),
+        pdf_sha256: pdfSha256,
+      })
       .eq('id', devisId);
 
-    return json(200, { success: true, driveFileId: fileId });
+    return json(200, { success: true, driveFileId: fileId, pdfSha256, version, fige: true });
   } catch (err) {
     console.error('Dépôt Drive échoué pour le devis', devisId, err);
 
