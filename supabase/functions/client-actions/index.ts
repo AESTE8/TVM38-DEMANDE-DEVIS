@@ -1,4 +1,7 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// Spécificateur `npm:` plutôt qu'esm.sh : ce dernier a servi un sous-module
+// introuvable de postgrest-js en pleine mise en service, ce qui fait échouer le
+// bundle au déploiement sans que le code y soit pour quelque chose.
+import { createClient } from 'npm:@supabase/supabase-js@2';
 import { requireClient } from '../_shared/crypto.ts';
 import { json, preflight, requireSecret } from '../_shared/http.ts';
 
