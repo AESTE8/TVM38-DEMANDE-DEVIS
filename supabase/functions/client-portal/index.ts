@@ -506,10 +506,12 @@ function detailDevis(d: DevisRow, materiaux: Materiaux, documents: DocumentRow[]
     acceptationStatus: d.acceptation_status || 'none',
     acceptationValidatedAt: d.acceptation_validated_at || null,
     remplaceParDevisId: d.remplace_par_devis_id || null,
-    // Un dépôt n'est possible que sur un devis encore ouvert, dont le PDF
-    // courant est connu, et qui n'a pas déjà un justificatif validé.
+    // Un dépôt n'est possible que sur un devis encore ouvert, dont le PDF est
+    // consultable, et qui n'a pas déjà un justificatif validé. L'empreinte,
+    // elle, peut manquer sur les devis antérieurs au versionnement : elle est
+    // relevée au moment du dépôt, sans quoi ces devis resteraient bloqués.
     depotPossible: d.etat === 'envoye'
-      && Boolean(d.pdf_sha256)
+      && Boolean(d.drive_file_id)
       && ['none', 'obsolete', 'rejete', 'regularisation_demandee'].includes(d.acceptation_status || 'none'),
     montantFacture: livraisonEngagee ? d.montant_total_ht : null,
     montantAjusteApresAccord: livraisonEngagee && montantModifie(d),

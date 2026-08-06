@@ -13,7 +13,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireClient } from '../_shared/crypto.ts';
 import { json, preflight, requireSecret } from '../_shared/http.ts';
-import { deleteFile, uploadNewFile } from '../_shared/google-drive.ts';
+import { deleteFile, downloadPdf, uploadNewFile } from '../_shared/google-drive.ts';
 import { echapperHtml, envoyerEmail, gabaritEmail } from '../_shared/mailer.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -177,7 +177,22 @@ Deno.serve(async (req) => {
   }
   if (!devis) return json(404, { error: 'AFFAIRE_NOT_FOUND' });
   if (devis.etat !== 'envoye') return json(409, { error: 'QUOTE_NOT_ACTIONABLE' });
-  if (!devis.pdf_sha256) return json(409, { error: 'PDF_UNAVAILABLE' });
+  if (!devis.drive_file_id) return json(409, { error: 'PDF_UNAVAILABLE' });
+
+  // Les devis envoyés avant la mise en place du versionnement n'ont pas
+  // d'empreinte : elle n'était calculée qu'au dépôt du PDF par le logiciel. On
+  // la relève ici plutôt que d'exiger que la carrière ré-enregistre ses 44
+  // devis en cours un par un pour débloquer leurs clients.
+  let empreinteDevis = devis.pdf_sha256;
+  if (!empreinteDevis) {
+    try {
+      empreinteDevis = await sha256Hex(await downloadPdf(devis.drive_file_id));
+      await supabase.from('devis').update({ pdf_sha256: empreinteDevis }).eq('id', devis.id);
+    } catch (err) {
+      console.error('Empreinte du devis illisible', devisId, err);
+      return json(502, { error: 'PDF_UNAVAILABLE' });
+    }
+  }
 
   const sha256 = await sha256Hex(bytes);
   const nomDrive = nomStockage(devis.numero_devis, devis.document_version, typeDocument, referenceBc);
@@ -206,7 +221,7 @@ Deno.serve(async (req) => {
       p_client_id: token.sub,
       p_devis_id: devisId,
       p_devis_version: devis.document_version,
-      p_devis_pdf_sha256: devis.pdf_sha256,
+      p_devis_pdf_sha256: empreinteDevis,
       p_type_document: typeDocument,
       p_drive_file_id: driveFileId,
       p_drive_folder_type: dossier.type,
