@@ -96,8 +96,26 @@ function nomStockage(numero: string, version: number, type: string, referenceBc:
     : `DEVIS_SIGNE_${base}_V${version}_${horodatage}_${court}.pdf`;
 }
 
+/**
+ * Texte exploitable d'une erreur, quelle qu'en soit la forme.
+ *
+ * supabase-js ne lève pas une `Error` mais un objet simple `{ message, details,
+ * hint, code }`. Un `String(err)` dessus donne « [object Object] » : aucun code
+ * métier ni contrainte n'y est reconnaissable, et tout finissait en 500 — y
+ * compris un simple doublon qui aurait dû répondre par un succès.
+ */
+function texteErreur(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === 'object') {
+    const details = err as { message?: string; details?: string; hint?: string; code?: string };
+    const morceaux = [details.message, details.details, details.hint, details.code].filter(Boolean);
+    if (morceaux.length > 0) return morceaux.join(' | ');
+  }
+  return String(err);
+}
+
 function messageErreur(err: unknown): string {
-  const brut = err instanceof Error ? err.message : String(err);
+  const brut = texteErreur(err);
   const connu = Object.keys(STATUTS).find((code) => brut.includes(code));
   return connu ?? brut;
 }
@@ -289,16 +307,18 @@ Deno.serve(async (req) => {
     // La transaction a été annulée : le fichier déposé n'est rattaché à rien.
     // On le retire pour ne pas laisser d'orphelin dans le Drive de la carrière.
     const supprime = await deleteFile(driveFileId);
+    const brut = texteErreur(err);
     const code = messageErreur(err);
     console.error(
       'Enregistrement du document échoué pour le devis', devisId,
       '- fichier Drive', driveFileId, supprime ? 'supprimé' : 'ORPHELIN À NETTOYER',
-      err,
+      brut,
     );
 
     // Un doublon n'est pas une erreur pour le client : c'est un double clic, ou
-    // le même fichier renvoyé. Son document est déjà là, on le lui confirme.
-    if (String(err).includes('documents_acceptation_doublon_idx')) {
+    // le même fichier renvoyé pour la même version. Son document est déjà là,
+    // on le lui confirme plutôt que de l'inquiéter.
+    if (brut.includes('documents_acceptation_doublon_idx') || brut.includes('23505')) {
       return json(200, { success: true, deja: true });
     }
 
