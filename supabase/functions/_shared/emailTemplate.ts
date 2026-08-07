@@ -29,8 +29,8 @@ export interface GabaritEmail {
   bouton?: { libelle: string; url: string };
   /** Lien discret sous le bouton. */
   lienSecondaire?: { libelle: string; url: string };
-  /** QR code en data: URI, affiché à côté du bouton. */
-  qrCodeDataUri?: string;
+  /** Identifiant de la pièce jointe portant le QR code, affiché près du bouton. */
+  qrCodeCid?: string;
   identifiants?: IdentifiantsClient;
   /** Rappel des possibilités de l'espace client. */
   rappelEspace?: boolean;
@@ -61,17 +61,34 @@ function blocIdentifiants(ids: IdentifiantsClient): string {
   </table>`;
 }
 
+/**
+ * Les trois possibilités de l'espace client.
+ *
+ * En tableau et non en `div` avec retrait : les clients mail ignorent une
+ * partie des styles de bloc, et la ligne explicative débordait dans la marge.
+ */
 function blocEspace(): string {
+  const ligne = (titre: string, detail?: string) => `
+    <tr>
+      <td style="width:14px;padding:0 0 10px;font-size:14px;color:#0053a1;vertical-align:top">&bull;</td>
+      <td style="padding:0 0 10px;font-size:14px;line-height:1.5;color:#172033">
+        ${titre}
+        ${detail ? `<div style="margin-top:3px;font-size:12px;line-height:1.5;color:#6b7280">${detail}</div>` : ''}
+      </td>
+    </tr>`;
+
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:24px 0 0;border-top:1px solid #eceff3">
     <tr><td style="padding:18px 0 0">
-      <div style="margin-bottom:10px;font-size:10px;font-weight:700;letter-spacing:1.4px;color:#56708f;text-transform:uppercase">Votre espace client TVM38</div>
-      <div style="font-size:14px;line-height:1.9;color:#172033">
-        &bull;&nbsp; Demander un devis<br>
-        &bull;&nbsp; <strong>Valider votre devis en ligne</strong><br>
-        <span style="padding-left:16px;font-size:12px;color:#6b7280">en nous retournant le devis signé ou votre bon de commande — TVM38 le vérifie puis confirme votre commande</span><br>
-        &bull;&nbsp; Suivre l'avancement de vos dossiers
-      </div>
+      <div style="margin-bottom:12px;font-size:10px;font-weight:700;letter-spacing:1.4px;color:#56708f;text-transform:uppercase">Votre espace client TVM38</div>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%">
+        ${ligne('Demander un devis')}
+        ${ligne(
+          '<strong>Valider votre devis en ligne</strong>',
+          'en nous retournant le devis signé ou votre bon de commande — TVM38 le vérifie puis confirme votre commande',
+        )}
+        ${ligne('Suivre l\'avancement de vos dossiers')}
+      </table>
     </td></tr>
   </table>`;
 }
@@ -87,9 +104,12 @@ function blocAction(gabarit: GabaritEmail): string {
 
   // Le QR porte le même lien que le bouton : il sert au conducteur de travaux
   // qui lit l'e-mail au bureau et veut répondre depuis le chantier.
-  const qr = gabarit.qrCodeDataUri
+  //
+  // Référencé par `cid:` et non par une `data:` URI : Gmail refuse d'afficher
+  // les images en data URI, et le QR n'était qu'un cadre vide.
+  const qr = gabarit.qrCodeCid
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px auto 0"><tr>
-         <td style="padding-right:12px"><img src="${gabarit.qrCodeDataUri}" alt="" width="96" height="96" style="display:block;border:1px solid #dde3ea;border-radius:8px"></td>
+         <td style="padding-right:12px"><img src="cid:${gabarit.qrCodeCid}" alt="QR code d'accès à votre espace" width="96" height="96" style="display:block;border:1px solid #dde3ea;border-radius:8px"></td>
          <td style="font-size:12px;line-height:1.6;color:#6b7280;text-align:left">Scannez pour ouvrir<br>ce dossier sur votre<br>téléphone</td>
        </tr></table>`
     : '';

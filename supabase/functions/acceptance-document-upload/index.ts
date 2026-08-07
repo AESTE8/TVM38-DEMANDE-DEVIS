@@ -17,6 +17,7 @@ import { deleteFile, downloadPdf, uploadNewFile } from '../_shared/google-drive.
 import { envoyerEmail } from '../_shared/mailer.ts';
 import { construireEmail, echapper, SITE_URL } from '../_shared/emailTemplate.ts';
 import { signAccesToken } from '../_shared/crypto.ts';
+import { pieceJointeQr, QR_CID, qrCodeBase64 } from '../_shared/qrCode.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -283,6 +284,7 @@ Deno.serve(async (req) => {
     if (destinataire) {
       const compte = await identifiantsDuCompte(token.sub);
       const lien = await lienAcces(token.sub, jwtSecret, affaireDuDevis(devis.id, devis.demande_id));
+      const qr = await qrCodeBase64(lien);
 
       await envoyerEmail(
         destinataire,
@@ -302,9 +304,11 @@ Deno.serve(async (req) => {
           },
           bouton: { libelle: 'Suivre mon dossier', url: lien },
           lienSecondaire: { libelle: 'Accéder à tous mes dossiers', url: `${SITE_URL}/` },
+          qrCodeCid: qr ? QR_CID : undefined,
           identifiants: compte,
           rappelEspace: true,
         }),
+        pieceJointeQr(qr),
       );
     }
 

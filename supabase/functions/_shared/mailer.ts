@@ -58,7 +58,20 @@ export function gabaritEmail({ titre, sousTitre, corps, encadre }: Gabarit): str
  * Envoie un e-mail. Retourne `false` en cas d'échec, sans jamais lever :
  * l'appelant décide quoi en faire, et ce n'est jamais d'annuler l'opération.
  */
-export async function envoyerEmail(destinataire: string, sujet: string, html: string): Promise<boolean> {
+export interface PieceJointeEmail {
+  filename: string;
+  content: string;
+  encoding: 'base64';
+  /** Référencée dans le HTML par `cid:<cid>`. */
+  cid: string;
+}
+
+export async function envoyerEmail(
+  destinataire: string,
+  sujet: string,
+  html: string,
+  piecesJointes: PieceJointeEmail[] = [],
+): Promise<boolean> {
   if (!/^\S+@\S+\.\S+$/.test(destinataire)) return false;
 
   try {
@@ -86,6 +99,7 @@ export async function envoyerEmail(destinataire: string, sujet: string, html: st
       to: destinataire,
       subject: sujet.replace(/[\r\n]/g, ' ').slice(0, 500),
       html,
+      attachments: piecesJointes.length > 0 ? piecesJointes : undefined,
     });
     return true;
   } catch (err) {
