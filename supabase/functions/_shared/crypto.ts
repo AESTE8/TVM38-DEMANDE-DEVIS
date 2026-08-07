@@ -156,7 +156,57 @@ export async function verifyClientToken(
 ): Promise<ClientTokenPayload | null> {
   const payload = await verifyHs256(token, secret);
   if (!payload || typeof payload.sub !== 'string' || !payload.sub) return null;
+  // Un jeton d'accès voyage dans une URL d'e-mail : il ne doit jamais servir de
+  // jeton de session. Il s'échange contre une vraie session auprès de
+  // `auth-client`, et rien d'autre ne l'accepte.
+  if (payload.scope === 'acces') return null;
   return payload as unknown as ClientTokenPayload;
+}
+
+// ---------------------------------------------------------------------------
+// Jeton d'accès des e-mails
+// ---------------------------------------------------------------------------
+// Permet au client d'arriver connecté sur son dossier depuis un lien d'e-mail,
+// sans que son mot de passe circule dans une URL — une adresse web se retrouve
+// dans l'historique du navigateur, les logs, l'en-tête Referer et les aperçus
+// de lien des messageries, et un e-mail se transfère.
+//
+// Le jeton ne donne accès qu'à l'espace de ce client, expire, et se révoque en
+// changeant le secret. Un mot de passe, lui, resterait valable indéfiniment.
+
+export interface AccesTokenPayload {
+  sub: string;
+  scope: 'acces';
+  /** Dossier à ouvrir après connexion. Absent : le client arrive sur sa liste. */
+  affaire?: string;
+  iat: number;
+  exp: number;
+}
+
+export async function signAccesToken(
+  payload: { sub: string; affaire?: string },
+  secret: string,
+  ttlSeconds: number,
+): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  const body: AccesTokenPayload = { ...payload, scope: 'acces', iat: now, exp: now + ttlSeconds };
+
+  const header = toBase64Url(encoder.encode(JSON.stringify({ alg: 'HS256', typ: 'JWT' })));
+  const claims = toBase64Url(encoder.encode(JSON.stringify(body)));
+  const data = `${header}.${claims}`;
+
+  const signature = await crypto.subtle.sign('HMAC', await hmacKey(secret), encoder.encode(data));
+  return `${data}.${toBase64Url(new Uint8Array(signature))}`;
+}
+
+export async function verifyAccesToken(
+  token: string,
+  secret: string,
+): Promise<AccesTokenPayload | null> {
+  const payload = await verifyHs256(token, secret);
+  if (!payload || typeof payload.sub !== 'string' || !payload.sub) return null;
+  if (payload.scope !== 'acces') return null;
+  return payload as unknown as AccesTokenPayload;
 }
 
 /** Claims du jeton émis par le logiciel de la carrière à ses opérateurs. */

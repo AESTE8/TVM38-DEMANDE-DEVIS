@@ -29,6 +29,7 @@ const MESSAGES: Record<string, string> = {
   ACCEPTANCE_ALREADY_VALIDATED: 'Votre acceptation a déjà été validée par TVM38.',
   PURCHASE_ORDER_REFERENCE_REQUIRED: 'Indiquez la référence de votre bon de commande.',
   SENDER_NAME_REQUIRED: 'Indiquez le nom de la personne qui transmet le document.',
+  SENDER_EMAIL_REQUIRED: 'Indiquez une adresse e-mail : c’est par elle que TVM38 vous répondra.',
   FILE_REQUIRED: 'Joignez votre document.',
   FILE_TOO_LARGE: 'Le fichier dépasse 15 Mo. Réduisez sa taille ou envoyez moins de photos.',
   INVALID_PDF: 'Le fichier n’est pas un PDF lisible.',
@@ -76,7 +77,25 @@ export default function AcceptanceDocumentDialog({
   // donc tout reste modifiable. Ce qui compte pour la traçabilité — le compte,
   // l'adresse IP, la date — est enregistré côté serveur, pas saisi ici.
   const [nom, setNom] = useState(() => [client?.prenom, client?.nom].filter(Boolean).join(' ').trim());
-  const [email, setEmail] = useState(client?.email ?? '');
+
+  // Adresses déjà connues du compte : celle de la fiche et celles des contacts
+  // enregistrés. Les proposer évite la faute de frappe sur le seul champ dont
+  // dépend la réponse de TVM38.
+  const adressesConnues = useMemo(() => {
+    const brutes = [client?.email, ...(client?.contacts ?? []).map((contact) => contact.email)];
+    return [...new Set(brutes.map((valeur) => String(valeur ?? '').trim()).filter(
+      (valeur) => /^\S+@\S+\.\S+$/.test(valeur),
+    ))];
+  }, [client]);
+
+  const [email, setEmail] = useState(() => {
+    const compte = String(client?.email ?? '').trim();
+    if (/^\S+@\S+\.\S+$/.test(compte)) return compte;
+    const contacts = (client?.contacts ?? [])
+      .map((contact) => String(contact.email ?? '').trim())
+      .filter((valeur) => /^\S+@\S+\.\S+$/.test(valeur));
+    return contacts.length === 1 ? contacts[0] : '';
+  });
   const [fonction, setFonction] = useState('');
   const [agence, setAgence] = useState(agenceSuggeree ?? '');
   const [commentaire, setCommentaire] = useState('');
@@ -108,10 +127,15 @@ export default function AcceptanceDocumentDialog({
 
   const retirer = (index: number) => setFichiers((liste) => liste.filter((_, i) => i !== index));
 
+  // L'adresse est le seul moyen de vous répondre : elle est exigée, alors
+  // qu'elle était seulement affichée comme telle sans être vérifiée.
+  const emailValide = /^\S+@\S+\.\S+$/.test(email.trim());
+
   const formValide = Boolean(type)
     && fichiers.length > 0
     && !trop
     && nom.trim().length >= 3
+    && emailValide
     && (type !== 'bon_commande' || reference.trim().length >= 2);
 
   const transmettre = async () => {
@@ -215,7 +239,24 @@ export default function AcceptanceDocumentDialog({
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="text-xs font-bold text-on-surface">Qui transmet ce document ?<input value={nom} onChange={(event) => setNom(event.target.value)} maxLength={160} className={champ} /></label>
-                <label className="text-xs font-bold text-on-surface">E-mail<input type="email" value={email} onChange={(event) => setEmail(event.target.value)} maxLength={160} className={champ} /></label>
+                <label className="text-xs font-bold text-on-surface">
+                  E-mail <span className="font-normal text-secondary">(pour notre réponse)</span>
+                  <input
+                    type="email"
+                    list="adresses-connues"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    maxLength={160}
+                    placeholder="prenom.nom@entreprise.fr"
+                    className={`${champ} ${email.trim() && !emailValide ? 'border-red-400' : ''}`}
+                  />
+                  <datalist id="adresses-connues">
+                    {adressesConnues.map((adresse) => <option key={adresse} value={adresse} />)}
+                  </datalist>
+                  {email.trim() && !emailValide && (
+                    <span className="mt-1 block font-normal text-[11px] text-red-700">Cette adresse ne semble pas valide.</span>
+                  )}
+                </label>
                 <label className="text-xs font-bold text-on-surface">Fonction <span className="font-normal text-secondary">(facultatif)</span><input value={fonction} onChange={(event) => setFonction(event.target.value)} maxLength={160} placeholder="Ex. Conducteur de travaux" className={champ} /></label>
                 <label className="text-xs font-bold text-on-surface">Agence <span className="font-normal text-secondary">(facultatif)</span><input value={agence} onChange={(event) => setAgence(event.target.value)} maxLength={160} className={champ} /></label>
               </div>

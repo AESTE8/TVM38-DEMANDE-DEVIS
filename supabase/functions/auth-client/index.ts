@@ -14,7 +14,7 @@
 // client n'a de mot de passe à réinitialiser.
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { hashPassword, signClientToken, verifyPassword } from '../_shared/crypto.ts';
+import { hashPassword, signClientToken, verifyAccesToken, verifyPassword } from '../_shared/crypto.ts';
 import { json, preflight, requireSecret } from '../_shared/http.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
@@ -41,13 +41,47 @@ Deno.serve(async (req) => {
 
   let identifiant: string;
   let password: string;
+  let jetonAcces: string;
 
   try {
     const body = await req.json();
     identifiant = (body.identifiant ?? '').trim();
     password = (body.password ?? '').trim();
+    jetonAcces = String(body.accesToken ?? '').trim();
   } catch {
     return json(400, { error: 'INVALID_JSON' });
+  }
+
+  const COLONNES = 'id, nom, prenom, code, type, identifiant, email, telephone, adresse, contacts, agences, liste_noire, password, password_hash';
+
+  // ---------------------------------------------------------------------
+  // Connexion par lien d'e-mail
+  // ---------------------------------------------------------------------
+  // Le lien porte un jeton signé, jamais le mot de passe. Il est échangé ici
+  // contre une session ordinaire : le jeton d'accès lui-même n'est accepté
+  // par aucune autre fonction.
+  if (jetonAcces) {
+    const acces = await verifyAccesToken(jetonAcces, jwtSecret);
+    if (!acces) return json(401, { error: 'ACCES_LINK_INVALID' });
+
+    const { data: client, error } = await supabase
+      .from('clients').select(COLONNES).eq('id', acces.sub).maybeSingle();
+    if (error || !client) return json(401, { error: 'ACCES_LINK_INVALID' });
+    if (client.liste_noire === true) return json(403, { error: 'ACCOUNT_SUSPENDED' });
+
+    const token = await signClientToken(
+      { sub: client.id, code: client.code, nom: client.nom },
+      jwtSecret,
+      TOKEN_TTL_SECONDS,
+    );
+
+    return json(200, {
+      success: true,
+      client: clientPublic(client),
+      token,
+      expiresAt: Date.now() + TOKEN_TTL_SECONDS * 1000,
+      affaire: acces.affaire ?? null,
+    });
   }
 
   if (!identifiant || !password) {
@@ -56,7 +90,7 @@ Deno.serve(async (req) => {
 
   const { data: client, error } = await supabase
     .from('clients')
-    .select('id, nom, prenom, code, type, identifiant, email, telephone, adresse, contacts, agences, liste_noire, password, password_hash')
+    .select(COLONNES)
     .eq('identifiant', identifiant)
     .maybeSingle();
 
@@ -100,11 +134,23 @@ Deno.serve(async (req) => {
     TOKEN_TTL_SECONDS,
   );
 
-  // Ni le mot de passe, ni son hash, ni le statut de liste noire ne sortent
-  // d'ici. On énumère explicitement ce qui est renvoyé plutôt que d'exclure
-  // des champs : une colonne sensible ajoutée plus tard à `clients` ne se
-  // retrouvera pas exposée par inadvertance.
-  const safeClient = {
+  return json(200, {
+    success: true,
+    client: clientPublic(client),
+    token,
+    expiresAt: Date.now() + TOKEN_TTL_SECONDS * 1000,
+  });
+});
+
+/**
+ * Champs exposables d'un client.
+ *
+ * On énumère explicitement ce qui sort plutôt que d'exclure des champs : une
+ * colonne sensible ajoutée plus tard à `clients` ne se retrouvera pas exposée
+ * par inadvertance. Ni le mot de passe, ni son hash, ni la liste noire.
+ */
+function clientPublic(client: Record<string, unknown>) {
+  return {
     id: client.id,
     nom: client.nom,
     prenom: client.prenom,
@@ -117,11 +163,4 @@ Deno.serve(async (req) => {
     contacts: client.contacts,
     agences: client.agences,
   };
-
-  return json(200, {
-    success: true,
-    client: safeClient,
-    token,
-    expiresAt: Date.now() + TOKEN_TTL_SECONDS * 1000,
-  });
-});
+}

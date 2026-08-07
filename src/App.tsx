@@ -10,6 +10,7 @@ const FormPage = lazy(() => import('@/pages/FormPage'));
 const SuccessPage = lazy(() => import('@/pages/SuccessPage'));
 const EstimationPage = lazy(() => import('@/pages/EstimationPage'));
 const CredentialsContactPage = lazy(() => import('@/pages/CredentialsContactPage'));
+const AccesPage = lazy(() => import('@/pages/AccesPage'));
 const EspacePage = lazy(() => import('@/pages/EspacePage'));
 const AffairePage = lazy(() => import('@/pages/AffairePage'));
 const ProfilPage = lazy(() => import('@/pages/ProfilPage'));
@@ -23,6 +24,9 @@ export default function App() {
           <Route path="/" element={<LoginPage />} />
           <Route path="/connexion" element={<Navigate to="/" replace />} />
           <Route path="/identifiants-oublies" element={<CredentialsContactPage />} />
+          {/* Connexion depuis un lien d'e-mail : le jeton signé est échangé
+              contre une session, puis on redirige vers le dossier concerné. */}
+          <Route path="/acces" element={<AccesPage />} />
           <Route path="/estimation" element={<EstimationPage />} />
 
           {/* Pages protégées (session client ou mode guest) */}

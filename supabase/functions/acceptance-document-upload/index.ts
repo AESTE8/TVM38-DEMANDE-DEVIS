@@ -14,7 +14,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireClient } from '../_shared/crypto.ts';
 import { json, preflight, requireSecret } from '../_shared/http.ts';
 import { deleteFile, downloadPdf, uploadNewFile } from '../_shared/google-drive.ts';
-import { echapperHtml, envoyerEmail, gabaritEmail } from '../_shared/mailer.ts';
+import { envoyerEmail } from '../_shared/mailer.ts';
+import { construireEmail, echapper, SITE_URL } from '../_shared/emailTemplate.ts';
+import { signAccesToken } from '../_shared/crypto.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -169,6 +171,9 @@ Deno.serve(async (req) => {
     return json(400, { error: 'PURCHASE_ORDER_REFERENCE_REQUIRED' });
   }
   if (transmetteurNom.length < 3) return json(400, { error: 'SENDER_NAME_REQUIRED' });
+  // Sans adresse, TVM38 ne peut pas répondre au client : le contrôle
+  // aboutirait sans que personne ne l'apprenne.
+  if (!/^\S+@\S+\.\S+$/.test(transmetteurEmail)) return json(400, { error: 'SENDER_EMAIL_REQUIRED' });
   if (!confirmationCorrespondance || !confirmationHabilitation) {
     return json(400, { error: 'CONFIRMATIONS_REQUIRED' });
   }
@@ -191,7 +196,7 @@ Deno.serve(async (req) => {
   // dans la décision. Il sera revérifié sous verrou juste avant l'insertion.
   const { data: devis, error: devisError } = await supabase
     .from('devis')
-    .select('id, numero_devis, client_id, etat, document_version, pdf_sha256, drive_file_id, acceptation_status')
+    .select('id, numero_devis, client_id, demande_id, etat, document_version, pdf_sha256, drive_file_id, acceptation_status')
     .eq('id', devisId)
     .eq('client_id', token.sub)
     .maybeSingle();
@@ -276,22 +281,29 @@ Deno.serve(async (req) => {
     // SMTP en panne ne doit pas transformer un dépôt réussi en erreur.
     const destinataire = transmetteurEmail || (await emailDuCompte(token.sub));
     if (destinataire) {
+      const compte = await identifiantsDuCompte(token.sub);
+      const lien = await lienAcces(token.sub, jwtSecret, affaireDuDevis(devis.id, devis.demande_id));
+
       await envoyerEmail(
         destinataire,
         `Document reçu — devis ${devis.numero_devis || devisId}`,
-        gabaritEmail({
+        construireEmail({
           titre: 'Nous avons bien reçu votre document',
           sousTitre: `Devis ${devis.numero_devis || devisId} · version ${devis.document_version}`,
           corps:
-            `<p style="margin:0 0 16px">Bonjour ${echapperHtml(transmetteurNom)},</p>` +
+            `<p style="margin:0 0 16px">Bonjour ${echapper(transmetteurNom)},</p>` +
             `<p style="margin:0 0 16px">Votre ${typeDocument === 'bon_commande' ? 'bon de commande' : 'devis signé'} nous est bien parvenu. ` +
-            'Il va être vérifié par nos équipes avant la validation définitive du devis.</p>' +
+            'Il va être vérifié par nos équipes avant la confirmation définitive de votre commande.</p>' +
             '<p style="margin:0;color:#526176;font-size:13px">Vous serez averti dès que cette vérification sera faite. ' +
             'Tant qu’elle n’a pas eu lieu, le devis reste en attente et vous pouvez encore nous transmettre un autre document.</p>',
           encadre: {
             intitule: typeDocument === 'bon_commande' ? 'Bon de commande transmis' : 'Devis signé transmis',
             valeur: referenceBc || fichier.name,
           },
+          bouton: { libelle: 'Suivre mon dossier', url: lien },
+          lienSecondaire: { libelle: 'Accéder à tous mes dossiers', url: `${SITE_URL}/` },
+          identifiants: compte,
+          rappelEspace: true,
         }),
       );
     }
@@ -331,6 +343,29 @@ Deno.serve(async (req) => {
 async function emailDuCompte(clientId: string): Promise<string> {
   const { data } = await supabase.from('clients').select('email').eq('id', clientId).maybeSingle();
   return String(data?.email || '').trim();
+}
+
+/** Identifiants rappelés dans l'e-mail, comme dans celui d'envoi du devis. */
+async function identifiantsDuCompte(clientId: string) {
+  const { data } = await supabase
+    .from('clients').select('identifiant, password').eq('id', clientId).maybeSingle();
+  return data?.identifiant
+    ? { identifiant: String(data.identifiant), motDePasse: String(data.password ?? '') }
+    : undefined;
+}
+
+/** Identifiant d'affaire du portail : `d:` s'il vient d'une demande, `q:` sinon. */
+function affaireDuDevis(devisId: string, demandeId?: string | null): string {
+  return demandeId ? `d:${demandeId}` : `q:${devisId}`;
+}
+
+/**
+ * Lien de connexion directe, valable 30 jours. Le mot de passe reste dans le
+ * corps du message et ne circule jamais dans une URL.
+ */
+async function lienAcces(clientId: string, secret: string, affaire: string): Promise<string> {
+  const jeton = await signAccesToken({ sub: clientId, affaire }, secret, 30 * 24 * 60 * 60);
+  return `${SITE_URL}/acces?t=${encodeURIComponent(jeton)}`;
 }
 
 async function diffuser(clientId: string, devisId: string, data: { documentId?: string }) {
