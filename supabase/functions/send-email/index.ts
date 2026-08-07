@@ -401,7 +401,7 @@ Deno.serve(async (req) => {
     try {
       const secret = Deno.env.get('CLIENT_JWT_SECRET');
       if (secret && secret.length >= 32) {
-        const token = await requireClient(req, secret);
+        const token = await requireClient(req, secret, supabase);
         clientId = token?.sub ?? null;
       }
     } catch (err) {

@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
   let operateur = false;
 
   try {
-    const token = await requireClient(req, requireSecret('CLIENT_JWT_SECRET'));
+    const token = await requireClient(req, requireSecret('CLIENT_JWT_SECRET'), supabase);
     if (token) clientId = token.sub;
   } catch (err) {
     console.error('Configuration invalide :', err);

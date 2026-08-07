@@ -31,7 +31,14 @@ const MESSAGES: Record<string, string> = {
   SENDER_NAME_REQUIRED: 'Indiquez le nom de la personne qui transmet le document.',
   SENDER_EMAIL_REQUIRED: 'Indiquez une adresse e-mail : c’est par elle que TVM38 vous répondra.',
   FILE_REQUIRED: 'Joignez votre document.',
-  FILE_TOO_LARGE: 'Le fichier dépasse 15 Mo. Réduisez sa taille ou envoyez moins de photos.',
+  FILE_TOO_LARGE: 'Le document dépasse 15 Mo, même après compression des photos. Envoyez-le en deux fois.',
+  // Le devis a été republié mais son nouveau PDF n'est pas encore en ligne.
+  // Laisser déposer maintenant rattacherait l'accord du client à une version
+  // qu'il n'a pas lue.
+  QUOTE_PDF_STALE: 'TVM38 met ce devis à jour en ce moment. Réessayez dans quelques minutes : la nouvelle version doit être en ligne avant que vous ne nous retourniez votre accord.',
+  // Le même fichier, octet pour octet, a déjà été examiné et refusé. Lui
+  // répondre « bien transmis » enterrait le dossier des deux côtés.
+  DOCUMENT_ALREADY_REVIEWED: 'Vous nous avez déjà envoyé ce document, et il n’a pas pu être accepté. Le motif est affiché sur cette page : envoyez-nous le document corrigé.',
   INVALID_PDF: 'Le fichier n’est pas un PDF lisible.',
   UPLOAD_FAILED: 'Le dépôt sur notre espace de stockage a échoué. Réessayez dans quelques instants.',
   SERVER_MISCONFIGURED: 'Le dépôt est momentanément indisponible. Contactez TVM38.',
@@ -104,7 +111,16 @@ export default function AcceptanceDocumentDialog({
 
   const images = fichiers.filter(estImage);
   const totalOctets = fichiers.reduce((somme, fichier) => somme + fichier.size, 0);
-  const trop = totalOctets > TAILLE_MAX;
+  const pdfJoint = fichiers.find(estPdf) ?? null;
+
+  // Le plafond ne s'applique qu'à ce qui part tel quel. Des photos sont
+  // réencodées avant l'envoi (2200 px, JPEG q0.85), soit de l'ordre d'un
+  // demi-méga par page : quatre photos d'iPhone pèsent 16 Mo brutes et
+  // produisent un PDF de 2 Mo. Mesurer le brut refusait des bons de commande
+  // parfaitement envoyables et renvoyait le conducteur de travaux vers
+  // l'e-mail — précisément le cas d'usage que ce dépôt existe pour couvrir.
+  // Le contrôle qui compte est fait sur le document converti, avant l'envoi.
+  const trop = pdfJoint !== null && pdfJoint.size > TAILLE_MAX;
 
   const choisir = (event: ChangeEvent<HTMLInputElement>) => {
     const selection = Array.from(event.target.files ?? []);
@@ -234,7 +250,7 @@ export default function AcceptanceDocumentDialog({
                     ))}
                   </ul>
                 )}
-                {trop && <p className="mt-2 text-xs font-bold text-red-700">Le total dépasse 15 Mo ({poidsLisible(totalOctets)}). Retirez une photo.</p>}
+                {trop && <p className="mt-2 text-xs font-bold text-red-700">Ce PDF dépasse 15 Mo ({poidsLisible(totalOctets)}). Envoyez-le en plusieurs fois, ou photographiez les pages.</p>}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">

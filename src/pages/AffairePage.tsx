@@ -20,6 +20,7 @@ import {
   ThumbsUp,
   Truck,
   X,
+  XCircle,
 } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
@@ -330,13 +331,18 @@ export default function AffairePage() {
                 )}
 
                 {documentTransmis && (
-                  <div className={cn('border-t border-border/60 p-5', documentTransmis.statut === 'valide' ? 'bg-emerald-50' : documentTransmis.statut === 'regularisation_demandee' ? 'bg-amber-50' : 'bg-sky-50')}>
+                  <div className={cn('border-t border-border/60 p-5', documentTransmis.statut === 'valide' ? 'bg-emerald-50' : documentTransmis.statut === 'regularisation_demandee' ? 'bg-amber-50' : documentTransmis.statut === 'rejete' ? 'bg-rose-50' : 'bg-sky-50')}>
                     <div className="flex gap-3">
-                      <CheckCircle2 className={cn('h-5 w-5 shrink-0', documentTransmis.statut === 'valide' ? 'text-emerald-700' : documentTransmis.statut === 'regularisation_demandee' ? 'text-amber-700' : 'text-sky-700')} />
+                      {/* Un refus n'est pas une étape franchie : la coche verte
+                          irait à contresens de ce qu'on annonce juste à côté. */}
+                      {documentTransmis.statut === 'rejete'
+                        ? <XCircle className="h-5 w-5 shrink-0 text-rose-700" />
+                        : <CheckCircle2 className={cn('h-5 w-5 shrink-0', documentTransmis.statut === 'valide' ? 'text-emerald-700' : documentTransmis.statut === 'regularisation_demandee' ? 'text-amber-700' : 'text-sky-700')} />}
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-bold text-on-surface">
                           {documentTransmis.statut === 'valide' ? 'Acceptation validée par TVM38'
                             : documentTransmis.statut === 'regularisation_demandee' ? 'Document à corriger'
+                            : documentTransmis.statut === 'rejete' ? 'Document refusé par TVM38'
                             : 'Document reçu — en attente de vérification'}
                         </p>
                         <p className="mt-0.5 text-sm text-on-surface/80">

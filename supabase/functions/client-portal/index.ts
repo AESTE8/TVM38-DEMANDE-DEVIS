@@ -229,8 +229,8 @@ function statutAffaire(
  */
 function montantModifie(devis: { montant_total_ht: number; montant_envoye: number | null }): boolean {
   if (devis.montant_envoye === null || devis.montant_envoye === undefined) return false;
-  // Tolérance au centime : `montant_total_ht` est un `real`, les comparaisons
-  // strictes sur flottants produiraient de faux positifs.
+  // Tolérance au centime : `montant_total_ht` est un `double precision`, et
+  // toute comparaison stricte de flottants produirait de faux positifs.
   return Math.abs(devis.montant_total_ht - devis.montant_envoye) >= 0.01;
 }
 
@@ -321,11 +321,20 @@ async function chargerAffaires(clientId: string) {
  * Un document rendu caduc par une nouvelle version reste dans l'historique,
  * mais ce n'est plus lui qui décrit l'état du dossier — sinon le client verrait
  * « document transmis » sur un devis qui en réclame un nouveau.
+ *
+ * `rejete` en fait partie : c'est le seul endroit où le client peut lire le
+ * motif du refus, et l'e-mail de rejet lui affirme qu'il y est. L'exclure
+ * renvoyait null, la page n'affichait rien, et le client rappelait la carrière
+ * pour demander ce qu'on attendait de lui.
+ *
+ * L'index unique des documents actifs ne couvre pas `rejete`, donc un devis
+ * peut en porter plusieurs. Le tri sur `depose_at` décroissant est fait à la
+ * lecture : c'est bien le plus récent qui décrit l'état du dossier.
  */
 function documentActif(documents: DocumentRow[], devisId: string): DocumentRow | null {
   const vivants = documents.filter(
     (doc) => doc.devis_id === devisId
-      && ['a_verifier', 'valide', 'regularisation_demandee'].includes(doc.statut),
+      && ['a_verifier', 'valide', 'regularisation_demandee', 'rejete'].includes(doc.statut),
   );
   return vivants[0] ?? null;
 }
@@ -644,7 +653,7 @@ Deno.serve(async (req) => {
     return json(500, { error: 'SERVER_MISCONFIGURED' });
   }
 
-  const token = await requireClient(req, jwtSecret);
+  const token = await requireClient(req, jwtSecret, supabase);
   if (!token) return json(401, { error: 'UNAUTHENTICATED' });
 
   const url = new URL(req.url);

@@ -244,13 +244,62 @@ export async function requireOperateur(
   return payload as unknown as OperateurTokenPayload;
 }
 
-/** Extrait et vérifie le jeton porté par l'en-tête `Authorization: Bearer ...`. */
+/**
+ * Le strict minimum d'un client Supabase pour relire un drapeau de compte.
+ *
+ * Typé structurellement plutôt qu'importé : les fonctions de ce dépôt tirent
+ * supabase-js tantôt de `npm:`, tantôt de `esm.sh`, et une union de ces deux
+ * types ne se laisse pas écrire proprement.
+ */
+export interface LecteurComptes {
+  from(table: string): {
+    select(colonnes: string): {
+      eq(colonne: string, valeur: string): {
+        maybeSingle(): PromiseLike<{
+          data: { liste_noire?: boolean | null } | null;
+          error: unknown;
+        }>;
+      };
+    };
+  };
+}
+
+/**
+ * Extrait et vérifie le jeton porté par l'en-tête `Authorization: Bearer ...`,
+ * puis vérifie que le compte est toujours ouvert.
+ *
+ * La liste noire n'était lue qu'à la connexion, dans `auth-client`. Comme un
+ * jeton de session vit sept jours, un client mis en liste noire continuait de
+ * consulter ses montants, d'écrire et de déposer des justificatifs pendant une
+ * semaine entière. Le contrôle est ici, et non dans chaque fonction, pour qu'un
+ * endpoint ajouté demain en hérite sans que personne ait à y penser.
+ *
+ * Coût : une lecture par clé primaire sur un appel qui en fait déjà plusieurs.
+ *
+ * En cas d'erreur de lecture, on refuse. Un contrôle de sécurité qui s'ouvre
+ * quand la base tousse ne contrôle rien — et les endpoints concernés ont de
+ * toute façon besoin de cette base pour répondre.
+ */
 export async function requireClient(
   req: Request,
   secret: string,
+  comptes: LecteurComptes,
 ): Promise<ClientTokenPayload | null> {
   const header = req.headers.get('Authorization') ?? '';
   const match = header.match(/^Bearer\s+(.+)$/i);
   if (!match) return null;
-  return await verifyClientToken(match[1].trim(), secret);
+
+  const payload = await verifyClientToken(match[1].trim(), secret);
+  if (!payload) return null;
+
+  const { data, error } = await comptes
+    .from('clients').select('liste_noire').eq('id', payload.sub).maybeSingle();
+
+  if (error) {
+    console.error('Statut du compte illisible — accès refusé', payload.sub, error);
+    return null;
+  }
+  if (!data || data.liste_noire === true) return null;
+
+  return payload;
 }

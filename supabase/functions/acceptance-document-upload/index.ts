@@ -135,7 +135,7 @@ Deno.serve(async (req) => {
     return json(500, { error: 'SERVER_MISCONFIGURED' });
   }
 
-  const token = await requireClient(req, jwtSecret);
+  const token = await requireClient(req, jwtSecret, supabase);
   if (!token) {
     // Répondre sans avoir lu le corps laisse le navigateur téléverser dans le
     // vide : la connexion cale au lieu de recevoir le 401, et l'utilisateur
@@ -212,10 +212,26 @@ Deno.serve(async (req) => {
 
   // Les devis envoyés avant la mise en place du versionnement n'ont pas
   // d'empreinte : elle n'était calculée qu'au dépôt du PDF par le logiciel. On
-  // la relève ici plutôt que d'exiger que la carrière ré-enregistre ses 44
-  // devis en cours un par un pour débloquer leurs clients.
+  // la relève ici plutôt que d'exiger que la carrière ré-enregistre ses devis
+  // en cours un par un pour débloquer leurs clients.
+  //
+  // Ce rattrapage est strictement réservé à la version 1. Au-delà, l'absence
+  // d'empreinte ne veut plus dire « devis antérieur au versionnement » mais
+  // « le devis vient d'être republié et son nouveau PDF n'est pas encore en
+  // ligne ». Le fichier Drive pointe alors encore la version précédente :
+  // calculer son empreinte ici la certifierait comme étant celle de la
+  // nouvelle version, et le client signerait une version pour une autre. Le
+  // garde QUOTE_VERSION_CHANGED ne peut pas le rattraper, puisqu'il compare
+  // l'empreinte à elle-même.
   let empreinteDevis = devis.pdf_sha256;
   if (!empreinteDevis) {
+    if (devis.document_version > 1) {
+      console.error(
+        'Devis republié sans PDF à jour — dépôt refusé', devisId,
+        'version', devis.document_version,
+      );
+      return json(409, { error: 'QUOTE_PDF_STALE' });
+    }
     try {
       empreinteDevis = await sha256Hex(await downloadPdf(devis.drive_file_id));
       await supabase.from('devis').update({ pdf_sha256: empreinteDevis }).eq('id', devis.id);
@@ -331,10 +347,31 @@ Deno.serve(async (req) => {
       brut,
     );
 
-    // Un doublon n'est pas une erreur pour le client : c'est un double clic, ou
-    // le même fichier renvoyé pour la même version. Son document est déjà là,
-    // on le lui confirme plutôt que de l'inquiéter.
-    if (brut.includes('documents_acceptation_doublon_idx') || brut.includes('23505')) {
+    // Un doublon n'est une bonne nouvelle que si le document déjà en base est
+    // encore en course : double clic, ou même fichier renvoyé pendant qu'il
+    // attend son contrôle. S'il a été refusé ou renvoyé en correction, lui
+    // répondre « bien transmis » enterre le dossier — le client croit avoir
+    // répondu, la carrière n'a rien reçu de neuf, et personne ne relance.
+    //
+    // Le filtre ne porte que sur l'index de doublon. « 23505 » tout court
+    // englobait n'importe quelle violation d'unicité et les traduisait en
+    // succès, y compris celles qui signalent un vrai problème.
+    if (brut.includes('documents_acceptation_doublon_idx')) {
+      const { data: existant } = await supabase
+        .from('documents_acceptation')
+        .select('statut, commentaire_controle')
+        .eq('devis_id', devisId)
+        .eq('devis_version', devis.document_version)
+        .eq('sha256', sha256)
+        .maybeSingle();
+
+      if (existant?.statut === 'rejete' || existant?.statut === 'regularisation_demandee') {
+        return json(409, {
+          error: 'DOCUMENT_ALREADY_REVIEWED',
+          statutExistant: existant.statut,
+          motif: existant.commentaire_controle ?? null,
+        });
+      }
       return json(200, { success: true, deja: true });
     }
 

@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     return json(500, { error: 'SERVER_MISCONFIGURED' });
   }
 
-  const token = await requireClient(req, jwtSecret);
+  const token = await requireClient(req, jwtSecret, supabase);
   if (!token) return json(401, { error: 'UNAUTHENTICATED' });
 
   let operation = '';
