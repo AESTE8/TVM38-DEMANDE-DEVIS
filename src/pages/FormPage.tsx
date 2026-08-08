@@ -201,35 +201,22 @@ export default function FormPage() {
     });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const formTopRef = useRef<HTMLDivElement>(null);
-
   const scrollTop = () => {
-    // 1. Fermer le clavier virtuel iOS/Android en retirant le focus du champ actif
+    // 1. Refermer le clavier virtuel iOS/Android : tant qu'il est ouvert la page
+    //    se recale toute seule et la position finale du défilement est fausse.
     if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
-    // 2. Faire défiler la vue jusqu'au sommet du composant formulaire
-    if (formTopRef.current) {
-      formTopRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    // 2. Remonter d'un bloc. On reste en défilement instantané : mélanger un
+    //    `scrollIntoView` fluide et des `scrollTo` immédiats faisait saccader
+    //    la transition d'étape sur iOS Safari.
+    const remonter = () => window.scrollTo(0, 0);
+    remonter();
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (document.documentElement) document.documentElement.scrollTop = 0;
-    if (document.body) document.body.scrollTop = 0;
-
-    // 3. Ré-exécution temporisée obligatoire pour iOS Safari (clavier & barre d'adresse)
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
-    }, 80);
-
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-      if (document.documentElement) document.documentElement.scrollTop = 0;
-      if (document.body) document.body.scrollTop = 0;
-    }, 200);
+    // 3. iOS Safari recalcule la hauteur du document après la rétractation du
+    //    clavier et de la barre d'adresse : un unique rappel différé suffit.
+    setTimeout(remonter, 150);
   };
 
   // Scroll automatique au sommet à chaque changement d'étape ou d'onglet décharge
@@ -306,13 +293,9 @@ export default function FormPage() {
       setRecapOpen(false);
       setCurrentStep(nextStep);
       scrollTop();
-      if (nextStep === 4) {
-        toast.success('Presque terminé — vérifiez votre demande');
-      } else if (nextStep === 3) {
-        toast.success(`Étape 3 sur 4 — ${STEP3_LABELS[watch('typeDemande')] ?? 'Produits'}`);
-      } else if (nextStep === 2) {
-        toast.success('Étape 2 sur 4 — Votre demande');
-      }
+      // Les toasts « Étape N sur 4 » ont été retirés : ils répètent l'indicateur
+      // permanent affiché sous la barre de progression et, sur mobile, la
+      // notification recouvrait le header pendant plusieurs secondes.
     }
   };
 
@@ -471,20 +454,22 @@ export default function FormPage() {
     });
 
   return (
-    <div ref={formTopRef} className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface">
       <Header>
         {connectedClient && <ClientBadge />}
       </Header>
 
-      {/* Barre de progression */}
-      <div className="sticky top-[48px] md:top-[72px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
+      {/* Barre de progression — calée sous la hauteur réelle du header
+          (min-h-16 en mobile, min-h-[76px] à partir de md) pour ne pas
+          disparaître partiellement derrière lui. */}
+      <div className="sticky top-16 md:top-[76px] z-30 bg-surface/95 backdrop-blur-sm border-b border-border shadow-sm">
         <div className="max-w-screen-xl mx-auto px-4 md:px-8 pt-3 pb-2">
           <div className="flex items-center gap-3">
             {guestMode && (
               <button
                 type="button"
                 onClick={() => { clearGuestMode(); navigate('/'); }}
-                className="flex items-center gap-1 text-xs font-bold text-secondary hover:text-primary transition-colors shrink-0 pr-3 border-r border-border/50"
+                className="flex min-w-11 items-center justify-center gap-1 text-xs font-bold text-secondary hover:text-primary transition-colors shrink-0 pr-3 border-r border-border/50 sm:min-w-0 sm:justify-start"
               >
                 <ChevronLeft className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline whitespace-nowrap">Connexion</span>
@@ -497,7 +482,9 @@ export default function FormPage() {
                   disabled={n >= currentStep}
                   onClick={() => goToStep(n)}
                   className={cn(
-                    "flex items-center gap-2 shrink-0",
+                    // px-1.5 : porte la pastille à ~44px de large, la règle
+                    // globale ne garantissant que la hauteur.
+                    "flex items-center gap-2 shrink-0 px-1.5 sm:px-0",
                     n < currentStep ? "cursor-pointer" : "cursor-default"
                   )}
                 >
@@ -534,13 +521,21 @@ export default function FormPage() {
               style={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
             />
           </div>
+          {/* Les libellés d'étape sont masqués sous sm faute de place : on rappelle
+              explicitement l'étape en cours, sinon l'utilisateur mobile ne voit
+              que quatre pastilles numérotées. */}
+          <p className="sm:hidden mt-2 text-[11px] font-bold uppercase tracking-tight text-primary">
+            Étape {currentStep} sur {steps.length} — {steps[currentStep - 1]?.label}
+          </p>
         </div>
       </div>
 
-      <main className="pt-24 md:pt-28 pb-16">
+      {/* Le décalage haut doit couvrir la hauteur du header fixe (64 / 76px),
+          la barre de progression étant déjà réservée dans le flux. */}
+      <main className="pt-20 md:pt-24 pb-16">
         <section className="max-w-screen-xl mx-auto px-4 md:px-8">
           <div className={cn(
-            "grid gap-12",
+            "grid gap-8 lg:gap-12",
             currentStep === 1 ? "grid-cols-1 lg:grid-cols-3" :
             currentStep === 3 ? "grid-cols-1 lg:grid-cols-[260px_1fr]" :
             "grid-cols-1"
@@ -584,21 +579,26 @@ export default function FormPage() {
               </div>
             )}
 
-            {/* Colonne gauche — étape 1 uniquement */}
+            {/* Colonne gauche — étape 1 uniquement.
+                `order-last` sous lg : en colonne unique ce bloc de réassurance
+                passait avant le formulaire et le repoussait entièrement sous la
+                ligne de flottaison. Il vient désormais après les champs. */}
             {currentStep === 1 && (
-              <div className="lg:col-span-1 space-y-8 lg:pt-14">
-                <div className="relative overflow-hidden rounded-xl aspect-[4/5] shadow-2xl">
+              <div className="order-last lg:order-first lg:col-span-1 space-y-6 lg:space-y-8 lg:pt-14">
+                <div className="relative overflow-hidden rounded-xl aspect-[16/10] lg:aspect-[4/5] shadow-2xl">
                   <img
                     alt="Centre de valorisation TVM38"
                     className="absolute inset-0 w-full h-full object-cover transition-all duration-700 hover:scale-105"
                     src="/bg-login.jpg"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/80 to-transparent flex flex-col justify-end p-8">
-                    <span className="font-headline font-black text-3xl text-white tracking-tighter uppercase mb-2">350+ clients BTP nous font confiance</span>
-                    <p className="text-surface-variant text-sm italic opacity-90">Carrière & centre de valorisation à Villard-Bonnot — livraison sur chantier partout en Isère.</p>
+                  {/* Titre et légende réduits sous lg : à 320px de large, le
+                      texte en text-3xl débordait de la zone dégradée. */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-on-surface/80 to-transparent flex flex-col justify-end p-5 lg:p-8">
+                    <span className="font-headline font-black text-xl lg:text-3xl text-white tracking-tighter uppercase mb-1.5 lg:mb-2 leading-tight">350+ clients BTP nous font confiance</span>
+                    <p className="text-surface-variant text-xs lg:text-sm italic opacity-90 leading-snug">Carrière & centre de valorisation à Villard-Bonnot — livraison sur chantier partout en Isère.</p>
                   </div>
                 </div>
-                <div className="bg-surface-container-low p-8 border-l-4 border-primary">
+                <div className="bg-surface-container-low p-5 lg:p-8 border-l-4 border-primary">
                   <h3 className="font-headline font-bold text-xl mb-5">Ce qui fait la différence</h3>
                   <ul className="space-y-5">
                     <li className="flex items-start gap-4">
@@ -630,7 +630,13 @@ export default function FormPage() {
               currentStep === 3 ? "w-full" :
               "max-w-2xl mx-auto w-full"
             }>
-              <div className={cn("bg-surface-container-lowest shadow-sm rounded-xl border-t-4 border-primary/80", "px-6 pt-6 md:p-10", currentStep < 4 ? "pb-24" : "pb-6")}>
+              <div className={cn(
+                "bg-surface-container-lowest shadow-sm rounded-xl border-t-4 border-primary/80",
+                "px-4 pt-6 sm:px-6 md:p-10",
+                // Réserve sous le contenu la place des barres fixées en bas sur mobile :
+                // navigation seule aux étapes 1–2, navigation + bandeau récapitulatif à l'étape 3.
+                currentStep === 3 ? "pb-40" : currentStep < 4 ? "pb-24" : "pb-6",
+              )}>
                 <form onSubmit={handleSubmit(onSubmit)} noValidate>
 
                   {/* Message d'accueil personnalisé — particuliers et pros sans compte */}
@@ -753,15 +759,42 @@ export default function FormPage() {
                               {errors.lignes.message as string}
                             </p>
                           )}
+
+                          {/* Les capacités camions ne vivaient que dans la barre latérale
+                              desktop : sur mobile on les rend accessibles via un bloc
+                              repliable, sans occuper l'écran par défaut. */}
+                          <details className="lg:hidden mt-6 rounded-sm border border-border bg-surface-container-low">
+                            <summary className="flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-bold text-on-surface marker:content-['']">
+                              <Truck className="w-4 h-4 shrink-0 text-primary" />
+                              Capacités des camions
+                              <span className="ml-auto text-xs font-medium text-secondary">Afficher</span>
+                            </summary>
+                            <div className="border-t border-border/40 px-4 py-3">
+                              <ul className="divide-y divide-border/30">
+                                {CAMIONS_CAPACITES.map(c => (
+                                  <li key={c.nom} className="flex items-center justify-between gap-3 py-2">
+                                    <span className="text-sm font-bold text-on-surface">{c.nom}</span>
+                                    <span className="flex items-center gap-2 text-[11px] text-secondary">
+                                      <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs font-bold text-primary">{c.capacite} t</span>
+                                      <span className="tabular-nums">H {c.hauteur} · l {c.largeur}</span>
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                              <p className="mt-3 text-xs italic leading-snug text-secondary/70">
+                                Vous n'êtes pas sûr de la quantité ? Contactez-nous, nous vous guidons.
+                              </p>
+                            </div>
+                          </details>
                         </>
                       )}
 
                   {/* Étape 4 — Récapitulatif */}
                   {currentStep === 4 && (
                     <div>
-                      <div className="flex items-center gap-4 mb-8">
-                        <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">04</span>
-                        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">Récapitulatif</h2>
+                      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+                        <span className="font-headline font-black text-3xl sm:text-4xl text-surface-variant/50 leading-none">04</span>
+                        <h2 className="font-headline font-bold text-lg sm:text-2xl uppercase tracking-tight">Récapitulatif</h2>
                       </div>
 
                       <div className="space-y-3 mb-8">
@@ -947,7 +980,7 @@ export default function FormPage() {
 
                   {/* Boutons de navigation */}
                   {currentStep < 4 && (
-                    <div className="fixed bottom-0 inset-x-0 z-40 flex items-center justify-between px-4 py-3 border-t border-border/80 bg-white/95 backdrop-blur-md shadow-2xl md:static md:inset-auto md:z-auto md:mt-10 md:pt-6 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:shadow-none">
+                    <div className="pb-safe fixed bottom-0 inset-x-0 z-40 flex items-center justify-between gap-3 px-4 py-3 border-t border-border/80 bg-white/95 backdrop-blur-md shadow-2xl md:static md:inset-auto md:z-auto md:mt-10 md:pt-6 md:px-0 md:py-0 md:bg-transparent md:backdrop-blur-none md:shadow-none">
                       {currentStep > 1 ? (
                         <button
                           type="button"
@@ -963,9 +996,27 @@ export default function FormPage() {
                         onClick={handleNext}
                         className="ml-auto bg-primary hover:bg-primary/95 text-on-primary font-headline font-extrabold px-6 md:px-8 py-3 rounded-xl shadow-md active:scale-[0.98] transition-all uppercase tracking-tight text-xs md:text-sm min-h-[44px] flex items-center justify-center gap-2"
                       >
+                        {/* Libellés raccourcis sous sm : les intitulés complets
+                            passaient à la ligne et épaississaient la barre fixe
+                            de 13px sur les petits écrans. */}
                         {currentStep === 1 && <span>Votre demande →</span>}
-                        {currentStep === 2 && <span>Choisir les matériaux →</span>}
-                        {currentStep === 3 && (watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison' ? <span>Passer à la décharge →</span> : <span>Vérifier ma demande →</span>)}
+                        {currentStep === 2 && (
+                          <>
+                            <span className="sm:hidden">Matériaux →</span>
+                            <span className="hidden sm:inline">Choisir les matériaux →</span>
+                          </>
+                        )}
+                        {currentStep === 3 && (watch('typeDemande') === 'livraison_decharge' && combiTab === 'livraison' ? (
+                          <>
+                            <span className="sm:hidden">Décharge →</span>
+                            <span className="hidden sm:inline">Passer à la décharge →</span>
+                          </>
+                        ) : (
+                          <>
+                            <span className="sm:hidden">Vérifier →</span>
+                            <span className="hidden sm:inline">Vérifier ma demande →</span>
+                          </>
+                        ))}
                       </button>
                     </div>
                   )}

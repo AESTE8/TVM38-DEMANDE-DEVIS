@@ -61,11 +61,14 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
         Choix du camion <span className="text-destructive">*</span>
       </Label>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {/* Sur mobile la carte « Au choix » occupe toute la largeur : c'est
+            l'option par défaut, et les cartes à deux colonnes sont trop
+            étroites pour son libellé. */}
         <button
           type="button"
           onClick={() => setValue('camionLivraison', 'auto', { shouldValidate: true })}
           className={cn(
-            "p-3 rounded-xl border-2 text-left transition-all",
+            "col-span-2 sm:col-span-1 p-3 rounded-xl border-2 text-left transition-all",
             camionLivraison === 'auto'
               ? "border-primary bg-primary/5"
               : "border-border bg-surface-container-highest hover:border-primary/30"
@@ -82,17 +85,17 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
             type="button"
             onClick={() => setValue('camionLivraison', c.id, { shouldValidate: true })}
             className={cn(
-              "p-3 rounded-xl border-2 text-left transition-all",
+              "min-w-0 p-3 rounded-xl border-2 text-left transition-all",
               camionLivraison === c.id
                 ? "border-primary bg-primary/5"
                 : "border-border bg-surface-container-highest hover:border-primary/30"
             )}
           >
-            <div className={cn("font-bold text-sm", camionLivraison === c.id ? "text-primary" : "text-on-surface")}>
+            <div className={cn("font-bold text-sm leading-tight", camionLivraison === c.id ? "text-primary" : "text-on-surface")}>
               {c.nom}
             </div>
             <div className="text-xs text-secondary mt-0.5">{c.capacite} t</div>
-            <div className="text-[10px] text-secondary/70 mt-0.5">{c.hauteur} · {c.largeur}</div>
+            <div className="text-[10px] text-secondary/70 mt-0.5 leading-tight">{c.hauteur} · {c.largeur}</div>
           </button>
         ))}
       </div>
@@ -102,9 +105,9 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-8">
-        <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">02</span>
-        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">Votre demande</h2>
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <span className="font-headline font-black text-3xl sm:text-4xl text-surface-variant/50 leading-none">02</span>
+        <h2 className="font-headline font-bold text-lg sm:text-2xl uppercase tracking-tight">Votre demande</h2>
       </div>
 
       <div className="space-y-6">

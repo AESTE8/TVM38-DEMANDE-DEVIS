@@ -10,22 +10,24 @@ export default function Header({ children }: HeaderProps) {
   return (
     <nav aria-label="Navigation principale" className="fixed top-0 z-50 w-full border-b border-white/20 bg-primary/95 backdrop-blur-md shadow-[0_4px_22px_rgba(0,45,87,0.22)]">
       <div className="mx-auto flex min-h-16 w-full max-w-screen-2xl items-center justify-between px-4 py-2 md:min-h-[76px] md:px-8">
+        {/* min-w-0 : sans lui le titre en whitespace-nowrap pousse les actions
+            hors de l'écran sur les petits mobiles (≤ 360px). */}
         <Link
           to="/"
-          className="flex min-h-11 shrink-0 items-center gap-2.5 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-all hover:opacity-95 lg:gap-3.5"
+          className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-all hover:opacity-95 sm:gap-2.5 lg:gap-3.5"
         >
-          <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-10 w-auto object-contain transition-transform duration-300 hover:scale-105 lg:h-13" />
-          <div className="flex flex-col">
-            <span className="-mb-0.5 whitespace-nowrap font-headline text-base font-black uppercase tracking-tighter text-white lg:text-2xl">
+          <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-9 w-auto shrink-0 object-contain transition-transform duration-300 hover:scale-105 sm:h-10 lg:h-13" />
+          <div className="flex min-w-0 flex-col">
+            <span className="-mb-0.5 truncate font-headline text-sm font-black uppercase tracking-tighter text-white sm:text-base lg:text-2xl">
               MIDALI - TVM38
             </span>
-            <span className="whitespace-nowrap text-[9px] font-bold uppercase tracking-[0.2em] text-white/80 lg:text-[10px]">
+            <span className="truncate text-[9px] font-bold uppercase tracking-[0.2em] text-white/80 lg:text-[10px]">
               Isère & Grésivaudan
             </span>
           </div>
         </Link>
 
-        <div className="flex items-center gap-2 md:gap-3">
+        <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {children}
 
           <Link

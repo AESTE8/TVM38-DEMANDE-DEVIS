@@ -248,11 +248,16 @@ export default function EstimationPage() {
           min-height: 100vh;
           display: flex;
           flex-direction: column;
-          background-image: url('/fond_page.png');
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          background-attachment: fixed;
+        }
+        /* Calque de fond dédié : la propriété background-attachment: fixed n'est
+           pas gérée par Safari iOS, qui recadrait l'image en plein zoom et la
+           faisait sauter au défilement. */
+        .est-root::before {
+          content: '';
+          position: fixed;
+          inset: 0;
+          z-index: -1;
+          background: url('/fond_page.png') center / cover no-repeat;
         }
 
         /* ── LAYOUT ── */
@@ -357,10 +362,14 @@ export default function EstimationPage() {
             padding: 8px 12px;
           }
         }
-        .est-stars-widget:hover .est-star-btn            { color: #d4d4d4; }
-        .est-stars-widget .est-star-btn:hover,
-        .est-stars-widget .est-star-btn:hover ~ .est-star-btn { color: #f5a623; }
-        .est-star-btn:hover  { transform: scale(1.25); }
+        /* Aperçu au survol réservé aux pointeurs : sur écran tactile le :hover
+           reste collé après l'appui et fige des étoiles grisées. */
+        @media (hover: hover) {
+          .est-stars-widget:hover .est-star-btn            { color: #d4d4d4; }
+          .est-stars-widget .est-star-btn:hover,
+          .est-stars-widget .est-star-btn:hover ~ .est-star-btn { color: #f5a623; }
+          .est-star-btn:hover  { transform: scale(1.25); }
+        }
         .est-star-btn:active { transform: scale(1.1); }
 
         /* ── FOOTER ── */
@@ -482,7 +491,7 @@ export default function EstimationPage() {
 
         .est-modal-close {
           position: absolute; top: 16px; right: 16px;
-          width: 32px; height: 32px;
+          width: 44px; height: 44px;
           border: none; background: var(--border);
           border-radius: 50%; cursor: pointer;
           display: flex; align-items: center; justify-content: center;
@@ -597,27 +606,56 @@ export default function EstimationPage() {
           to   { transform: scale(1);  opacity: 1; }
         }
 
+        /* Libellés courts réservés au mobile (voir media query ci-dessous). */
+        .est-label-short { display: none; }
+
         /* ── RESPONSIVE ── */
         @media (max-width: 520px) {
           .est-card   { padding: 36px 22px; }
           .est-modal  { padding: 34px 22px; }
           .est-header h1 { font-size: 22px; }
-          .est-btn-valorisation, .est-btn-contact {
+
+          .est-label-long  { display: none; }
+          .est-label-short { display: inline; }
+
+          /* Les trois boutons flottants s'empilaient sur toute la largeur et
+             recouvraient près de 180px de bas d'écran, masquant le widget de
+             notation. On les regroupe en une seule barre d'actions compacte. */
+          .est-actions {
             position: fixed;
-            left: 16px; right: 16px;
-            text-align: center;
-            justify-content: center;
-            font-size: 14px; padding: 14px;
-            width: calc(100% - 32px);
+            left: 0; right: 0; bottom: 0;
+            z-index: 100;
+            display: flex;
+            gap: 8px;
+            padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: blur(8px);
+            border-top: 1px solid rgba(15, 41, 64, 0.12);
           }
-          .est-btn-valorisation { bottom: 16px; }
-          .est-btn-contact      { bottom: 72px; }
-          .est-btn-devis        {
-            bottom: 128px;
-            left: 16px; right: 16px;
-            text-align: center;
+          .est-actions > .est-btn-devis,
+          .est-actions > .est-btn-valorisation,
+          .est-actions > .est-btn-contact {
+            position: static;
+            flex: 1 1 0;
+            min-width: 0;
+            width: auto;
             justify-content: center;
-            width: calc(100% - 32px);
+            text-align: center;
+            padding: 12px 8px;
+            font-size: 12px;
+            letter-spacing: 0;
+            box-shadow: none;
+          }
+          /* Marges latérales resserrées pour regagner de la largeur utile, et
+             place laissée sous le contenu pour la barre d'actions. */
+          .est-page { padding: 32px 14px 96px; }
+
+          /* Cinq étoiles à 48px minimum débordaient de la carte sous 380px. */
+          .est-stars-widget { gap: 2px; }
+          .est-star-btn {
+            font-size: 34px;
+            padding: 8px 4px;
+            min-width: 44px;
           }
         }
       `}</style>
@@ -655,26 +693,32 @@ export default function EstimationPage() {
           <p>© {new Date().getFullYear()} TVM38 Estimation — Tous droits réservés</p>
         </footer>
 
-        {/* Bouton Carrière */}
-        <a
-          href="https://midali.fr/valorisation-des-materiaux/"
-          className="est-btn-valorisation"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Voir la page de la carrière
-        </a>
+        {/* Actions flottantes — regroupées en barre unique sous 520px */}
+        <div className="est-actions">
+          {/* Bouton Demander un devis */}
+          <Link to="/" className="est-btn-devis" aria-label="Demander un devis">
+            <FileText size={18} />
+            <span className="est-label-long">Demander un devis</span>
+            <span className="est-label-short">Devis</span>
+          </Link>
 
-        {/* Bouton Demander un devis */}
-        <Link to="/" className="est-btn-devis" aria-label="Demander un devis">
-          <FileText size={20} />
-          <span>Demander un devis</span>
-        </Link>
+          {/* Bouton Contact */}
+          <button className="est-btn-contact" onClick={() => setContactOpen(true)}>
+            <span className="est-label-long">📞 Nous contacter</span>
+            <span className="est-label-short">Contact</span>
+          </button>
 
-        {/* Bouton Contact */}
-        <button className="est-btn-contact" onClick={() => setContactOpen(true)}>
-          📞 Nous contacter
-        </button>
+          {/* Bouton Carrière */}
+          <a
+            href="https://midali.fr/valorisation-des-materiaux/"
+            className="est-btn-valorisation"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="est-label-long">Voir la page de la carrière</span>
+            <span className="est-label-short">Carrière</span>
+          </a>
+        </div>
       </div>
 
       {/* Modals */}

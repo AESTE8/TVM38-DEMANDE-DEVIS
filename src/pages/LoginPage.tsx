@@ -90,44 +90,48 @@ export default function LoginPage() {
   }
 
   return (
-    <div 
-      className="min-h-screen flex flex-col relative"
-      style={{
-        backgroundImage: `linear-gradient(160deg, rgba(0, 83, 161, 0.18) 0%, rgba(0, 83, 161, 0.06) 100%), url(${bgLogin})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundAttachment: 'fixed'
-      }}
-    >
+    <div className="relative flex min-h-screen flex-col">
+      {/* Le fond était posé sur ce conteneur avec `background-attachment: fixed`,
+          que Safari iOS ne gère pas : l'image était recadrée en plein zoom et
+          sautait au défilement. On le remplace par un calque fixe dédié, qui
+          donne le même rendu sur tous les navigateurs. */}
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 -z-10 bg-cover bg-center"
+        style={{
+          backgroundImage: `linear-gradient(160deg, rgba(0, 83, 161, 0.18) 0%, rgba(0, 83, 161, 0.06) 100%), url(${bgLogin})`,
+        }}
+      />
+
       <Header />
 
-      <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-12">
+      <main className="flex-1 flex items-center justify-center px-4 pt-20 pb-10 sm:pt-28 sm:pb-12">
         <div className="w-full max-w-md">
 
           {/* Titre & Logo */}
-          <div className="text-center mb-6 animate-slide-up">
-            <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-20 md:h-28 mx-auto mb-4 object-contain transition-transform duration-300 hover:scale-105" />
-            <h1 className="text-2xl md:text-3xl font-black tracking-tighter text-white uppercase font-headline drop-shadow-md">
+          <div className="text-center mb-4 sm:mb-6 animate-slide-up">
+            <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-14 sm:h-20 md:h-28 mx-auto mb-3 sm:mb-4 object-contain transition-transform duration-300 hover:scale-105" />
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tighter text-white uppercase font-headline drop-shadow-md">
               Votre devis granulats en 3 minutes
             </h1>
           </div>
 
           {/* Preuve sociale avec Glassmorphism */}
-          <div className="flex items-center justify-center gap-6 mb-6 py-4 px-6 rounded-xl shadow-xl backdrop-blur-lg border border-white/20 bg-primary/70 transition-all hover:bg-primary/80">
+          <div className="flex items-center justify-center gap-6 mb-4 sm:mb-6 py-3 px-4 sm:py-4 sm:px-6 rounded-xl shadow-xl backdrop-blur-lg border border-white/20 bg-primary/70 transition-all hover:bg-primary/80">
             <div className="text-center">
-              <p className="text-2xl font-black text-white font-headline leading-none drop-shadow">350+</p>
+              <p className="text-xl sm:text-2xl font-black text-white font-headline leading-none drop-shadow">350+</p>
               <p className="text-[11px] font-bold text-white/90 font-body mt-1 leading-tight">professionnels<br/>du BTP</p>
             </div>
             <div className="w-px h-9 bg-white/25" />
             <div className="text-center">
-              <p className="text-2xl font-black text-white font-headline leading-none drop-shadow">{new Date().getFullYear() - 1937}</p>
+              <p className="text-xl sm:text-2xl font-black text-white font-headline leading-none drop-shadow">{new Date().getFullYear() - 1937}</p>
               <p className="text-[11px] font-bold text-white/90 font-body mt-1 leading-tight">ans<br/>d'expertise</p>
             </div>
           </div>
 
           {/* Carte login */}
-          <div className="bg-white/95 backdrop-blur-md border border-white/40 rounded-xl shadow-2xl p-6 md:p-8 transition-all">
-            <form onSubmit={handleLogin} className="space-y-5">
+          <div className="bg-white/95 backdrop-blur-md border border-white/40 rounded-xl shadow-2xl p-5 sm:p-6 md:p-8 transition-all">
+            <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
               {/* Identifiant */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-secondary font-headline flex items-center justify-between">
@@ -167,7 +171,7 @@ export default function LoginPage() {
                   <button
                     type="button"
                     onClick={() => setShowPassword(v => !v)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-secondary/60 hover:text-primary transition-colors rounded-md focus:outline-none"
+                    className="absolute right-1.5 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center text-secondary/60 hover:text-primary transition-colors rounded-md focus:outline-none"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -194,7 +198,7 @@ export default function LoginPage() {
               <div className="text-center pt-1">
                 <Link
                   to="/identifiants-oublies"
-                  className="text-xs text-primary hover:underline font-semibold font-body transition-colors"
+                  className="inline-flex min-h-11 items-center px-2 text-xs text-primary hover:underline font-semibold font-body transition-colors"
                 >
                   Identifiants inconnus ou oubliés ?
                 </Link>

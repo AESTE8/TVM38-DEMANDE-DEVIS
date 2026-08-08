@@ -244,20 +244,22 @@ export default function EspacePage() {
                 </p>
               </div>
 
+              {/* Sur mobile : le CTA principal passe en pleine largeur au-dessus, les deux
+                  actions secondaires se partagent la ligne suivante. */}
               <div data-espace-intro className="flex flex-wrap items-center gap-2 sm:gap-3">
                 <Link
                   to="/espace/profil"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="inline-flex min-h-11 flex-1 basis-0 items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface shadow-sm transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:flex-none sm:basis-auto sm:justify-start"
                 >
                   <Settings2 aria-hidden="true" className="h-4 w-4 text-primary" />
                   Mes informations
                 </Link>
-                <div className="relative">
+                <div className="relative flex-1 basis-0 sm:flex-none sm:basis-auto">
                   <button
                     type="button"
                     onClick={() => setMenuContactOuvert((v) => !v)}
                     aria-expanded={menuContactOuvert}
-                    className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm"
+                    className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm sm:w-auto sm:justify-start"
                   >
                     <PhoneCall aria-hidden="true" className="h-4 w-4 text-primary" />
                     <span>Contact Carrière</span>
@@ -278,7 +280,10 @@ export default function EspacePage() {
                       />
 
                       {/* Popover avec Motion Design */}
-                      <div className="absolute right-0 top-full mt-2 z-50 w-72 origin-top-right rounded-xl border border-border/80 bg-white p-3 shadow-2xl backdrop-blur-md animate-scale-bounce">
+                      {/* Largeur bornée au viewport : sur mobile ce bouton passe
+                          souvent à la ligne près du bord gauche, et un popover
+                          de 288px fixe débordait alors de l'écran. */}
+                      <div className="absolute right-0 top-full mt-2 z-50 w-[min(18rem,calc(100vw-2rem))] origin-top-right rounded-xl border border-border/80 bg-white p-3 shadow-2xl backdrop-blur-md animate-scale-bounce">
                         <div className="flex items-center justify-between pb-2 border-b border-border/40 px-1">
                           <p className="text-[11px] font-bold uppercase tracking-wider text-secondary/70">
                             Contacter TVM38
@@ -334,7 +339,7 @@ export default function EspacePage() {
 
                 <Link
                   to="/formulaire"
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-5 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-on-primary shadow-md shadow-destructive/15 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive active:translate-y-0 motion-reduce:transform-none"
+                  className="order-first inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-5 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-on-primary shadow-md shadow-destructive/15 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive active:translate-y-0 motion-reduce:transform-none sm:order-none sm:w-auto"
                 >
                   <Plus aria-hidden="true" className="h-4 w-4" />
                   Nouvelle demande

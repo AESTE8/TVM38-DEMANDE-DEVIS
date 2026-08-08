@@ -10,9 +10,9 @@ interface Props {
 export default function SectionNotes({ register }: Props) {
   return (
     <div>
-      <div className="flex items-center gap-4 mb-8 pt-4">
-        <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">04</span>
-        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">Précisions</h2>
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8 pt-4">
+        <span className="font-headline font-black text-3xl sm:text-4xl text-surface-variant/50 leading-none">04</span>
+        <h2 className="font-headline font-bold text-lg sm:text-2xl uppercase tracking-tight">Précisions</h2>
       </div>
 
       <div className="space-y-8">
