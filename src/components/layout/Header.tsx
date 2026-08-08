@@ -1,12 +1,18 @@
 import { Link } from 'react-router-dom';
 import { ReactNode } from 'react';
 import { FilePlus2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   children?: ReactNode;
 }
 
 export default function Header({ children }: HeaderProps) {
+  // Quand le header porte un badge client, logo + texte + badge + CTA ne
+  // tiennent plus sous sm : le nom de marque se tronquait en « MIDALI - T… ».
+  // Le logo suffit alors à identifier le site sur ces largeurs.
+  const avecBadge = Boolean(children);
+
   return (
     <nav aria-label="Navigation principale" className="fixed top-0 z-50 w-full border-b border-white/20 bg-primary/95 backdrop-blur-md shadow-[0_4px_22px_rgba(0,45,87,0.22)]">
       <div className="mx-auto flex min-h-16 w-full max-w-screen-2xl items-center justify-between px-4 py-2 md:min-h-[76px] md:px-8">
@@ -14,10 +20,10 @@ export default function Header({ children }: HeaderProps) {
             hors de l'écran sur les petits mobiles (≤ 360px). */}
         <Link
           to="/"
-          className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-all hover:opacity-95 sm:gap-2.5 lg:gap-3.5"
+          className="flex min-h-11 min-w-11 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-all hover:opacity-95 sm:gap-2.5 lg:gap-3.5"
         >
           <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-9 w-auto shrink-0 object-contain transition-transform duration-300 hover:scale-105 sm:h-10 lg:h-13" />
-          <div className="flex min-w-0 flex-col">
+          <div className={cn("min-w-0 flex-col", avecBadge ? "hidden sm:flex" : "flex")}>
             <span className="-mb-0.5 truncate font-headline text-sm font-black uppercase tracking-tighter text-white sm:text-base lg:text-2xl">
               MIDALI - TVM38
             </span>

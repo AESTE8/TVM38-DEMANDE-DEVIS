@@ -13,14 +13,14 @@ export default function Footer({ compact = false }: FooterProps) {
             <p className="font-headline text-sm font-extrabold uppercase text-on-surface">MIDALI - TVM38</p>
             <p className="mt-1 text-xs text-secondary">Carrière et centre de valorisation à Villard-Bonnot.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
-            <a className="font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="tel:0620721960">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
+            <a className="inline-flex min-h-11 items-center font-bold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="tel:0620721960">
               06 20 72 19 60
             </a>
-            <a className="text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="mailto:tvm38@midali.fr">
+            <a className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" href="mailto:tvm38@midali.fr">
               tvm38@midali.fr
             </a>
-            <Link className="text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/estimation">
+            <Link className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/estimation">
               Donner mon avis
             </Link>
           </div>

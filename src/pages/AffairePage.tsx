@@ -249,10 +249,10 @@ export default function AffairePage() {
   const documentTransmis = devis?.documentAcceptation ?? null;
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-surface pb-24">
+    <div className="relative flex min-h-screen flex-col bg-surface pb-28 sm:pb-24">
       <Header>{client && <ClientBadge />}</Header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 pt-24 md:pt-32">
-        <Link to="/espace" className="mb-5 inline-flex items-center gap-1.5 text-sm font-bold text-secondary transition-colors hover:text-primary">
+        <Link to="/espace" className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-secondary transition-colors hover:text-primary">
           <ChevronLeft className="h-4 w-4 text-primary" /> Retour à mon espace
         </Link>
 
@@ -416,7 +416,7 @@ export default function AffairePage() {
       {/* Barre d'action persistante. Sur mobile le libellé du bouton est long
           (« Transmettre mon accord ») : on autorise le retour à la ligne du
           conteneur et on protège la zone de la barre d'accueil iOS. */}
-      {!chargement && devis && <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-white/95 px-3 py-3 shadow-2xl backdrop-blur-md"><div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-secondary">Devis n° {devis.numero}</p><p className="font-headline text-lg font-black text-on-surface">{formatMontant(devis.montantHT)} € <span className="text-xs text-secondary">HT</span></p></div>{depotPossible ? <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-extrabold uppercase text-white shadow-md sm:flex-none sm:px-5"><ThumbsUp className="h-4 w-4 shrink-0" /> {documentTransmis ? 'Renvoyer un document' : 'Transmettre mon accord'}</button> : <span className="text-right text-xs font-bold text-secondary">{documentTransmis?.statut === 'valide' ? 'Acceptation validée' : documentTransmis ? 'Document en vérification' : 'Réponse enregistrée'}</span>}</div></div>}
+      {!chargement && devis && <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-white/95 px-3 py-3 shadow-2xl backdrop-blur-md"><div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-secondary">Devis n° {devis.numero}</p><p className="font-headline text-lg font-black text-on-surface">{formatMontant(devis.montantHT)} € <span className="text-xs text-secondary">HT</span></p></div>{depotPossible ? <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-extrabold uppercase text-white shadow-md sm:flex-none sm:px-5"><ThumbsUp className="h-4 w-4 shrink-0" /><span className="sm:hidden">{documentTransmis ? 'Renvoyer' : 'Mon accord'}</span><span className="hidden sm:inline">{documentTransmis ? 'Renvoyer un document' : 'Transmettre mon accord'}</span></button> : <span className="text-right text-xs font-bold text-secondary">{documentTransmis?.statut === 'valide' ? 'Acceptation validée' : documentTransmis ? 'Document en vérification' : 'Réponse enregistrée'}</span>}</div></div>}
 
       {depotOuvert && devis && affaire?.devisId && (
         <AcceptanceDocumentDialog

@@ -214,13 +214,13 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
 
         <div className="mt-4 border-t border-border/55 pt-3.5">
           {affaire.montantHT !== null ? (
-            <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div className="min-w-0">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-secondary/75">
                   Montant estimé
                 </p>
-                <p className="mt-0.5 font-headline text-2xl font-black tracking-tight text-on-surface">
-                  {formatMontant(affaire.montantHT)} €
+                <p className="mt-0.5 whitespace-nowrap font-headline text-2xl font-black tracking-tight text-on-surface">
+                  {formatMontant(affaire.montantHT)}&nbsp;€
                   <span className="ml-1 text-xs font-bold tracking-normal text-secondary">HT</span>
                 </p>
                 {affaire.montantModifie && (
@@ -230,9 +230,9 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
                 )}
               </div>
 
-              <div className="shrink-0 text-right flex flex-col items-end gap-1.5">
+              <div className="flex shrink-0 flex-col items-stretch gap-1.5 sm:items-end sm:text-right">
                 {affaire.numeroDevis && (
-                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-secondary max-sm:justify-center">
                     <FileText aria-hidden="true" className="h-3.5 w-3.5 text-primary" />
                     {affaire.numeroDevis}
                   </span>
@@ -242,7 +242,7 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
                     type="button"
                     onClick={handlePdfClick}
                     disabled={pdfEnCours}
-                    className="inline-flex min-h-[38px] items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60 uppercase tracking-tight"
+                    className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-1.5 text-xs font-black shadow-md hover:shadow-lg active:scale-95 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60 uppercase tracking-tight"
                     title="Télécharger le devis au format PDF"
                   >
                     <Download aria-hidden="true" className={`h-4 w-4 ${pdfEnCours ? 'animate-spin' : ''}`} />
@@ -252,12 +252,12 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-between gap-4 py-1">
+            <div className="flex flex-col gap-2 py-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
               <p className="text-xs font-semibold text-secondary flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span className="w-2 h-2 shrink-0 rounded-full bg-amber-500 animate-pulse"></span>
                 <span>Chiffrage en cours (réponse sous 24-48h)</span>
               </p>
-              <span className="text-xs font-extrabold text-primary group-hover:underline">Suivre le dossier →</span>
+              <span className="shrink-0 text-xs font-extrabold text-primary group-hover:underline max-sm:self-end">Suivre le dossier →</span>
             </div>
           )}
         </div>
