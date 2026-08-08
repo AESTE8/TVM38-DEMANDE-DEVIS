@@ -21,7 +21,8 @@ interface Props {
   onTransmis: () => Promise<void> | void;
 }
 
-const TAILLE_MAX = 15 * 1024 * 1024;
+const TAILLE_MAX = 25 * 1024 * 1024;
+const TAILLE_MAX_LISIBLE = '25 Mo';
 
 const MESSAGES: Record<string, string> = {
   QUOTE_VERSION_CHANGED: 'Le devis vient d’être mis à jour par TVM38. Rechargez la page et consultez la nouvelle version avant d’envoyer votre document.',
@@ -31,7 +32,7 @@ const MESSAGES: Record<string, string> = {
   SENDER_NAME_REQUIRED: 'Indiquez le nom de la personne qui transmet le document.',
   SENDER_EMAIL_REQUIRED: 'Indiquez une adresse e-mail : c’est par elle que TVM38 vous répondra.',
   FILE_REQUIRED: 'Joignez votre document.',
-  FILE_TOO_LARGE: 'Le document dépasse 15 Mo, même après compression des photos. Envoyez-le en deux fois.',
+  FILE_TOO_LARGE: 'Le document dépasse 25 Mo, même après compression des photos. Envoyez-le en deux fois.',
   // Le devis a été republié mais son nouveau PDF n'est pas encore en ligne.
   // Laisser déposer maintenant rattacherait l'accord du client à une version
   // qu'il n'a pas lue.
@@ -232,9 +233,16 @@ export default function AcceptanceDocumentDialog({
                 <button type="button" onClick={() => champFichier.current?.click()} className="mt-2 flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border bg-surface-container-low px-4 py-6 text-center transition hover:border-primary hover:bg-primary/5">
                   <Upload className="h-6 w-6 text-primary" />
                   <span className="text-sm font-bold text-on-surface">Choisir un fichier ou prendre une photo</span>
-                  <span className="text-[11px] text-secondary">PDF, ou une à plusieurs photos qui seront réunies en un seul document</span>
+                  <span className="text-[11px] text-secondary">PDF, ou une à plusieurs photos qui seront réunies en un seul document · {TAILLE_MAX_LISIBLE} maximum</span>
                 </button>
-                <input ref={champFichier} type="file" accept="application/pdf,image/*" multiple capture="environment" onChange={choisir} className="sr-only" />
+                {/* Pas de `capture` : cet attribut force l'ouverture directe de
+                    l'appareil photo sur téléphone, sans laisser le choix. Le
+                    conducteur de travaux qui a déjà le bon de commande en PDF
+                    dans ses fichiers, ou déjà photographié dans sa galerie, se
+                    retrouvait devant l'objectif sans échappatoire. Sans
+                    l'attribut, iOS et Android proposent nativement les trois
+                    entrées : Photothèque, Parcourir, Appareil photo. */}
+                <input ref={champFichier} type="file" accept="application/pdf,image/*" multiple onChange={choisir} className="sr-only" />
 
                 {fichiers.length > 0 && (
                   <ul className="mt-3 space-y-2">
@@ -250,7 +258,7 @@ export default function AcceptanceDocumentDialog({
                     ))}
                   </ul>
                 )}
-                {trop && <p className="mt-2 text-xs font-bold text-red-700">Ce PDF dépasse 15 Mo ({poidsLisible(totalOctets)}). Envoyez-le en plusieurs fois, ou photographiez les pages.</p>}
+                {trop && <p className="mt-2 text-xs font-bold text-red-700">Ce PDF dépasse {TAILLE_MAX_LISIBLE} ({poidsLisible(totalOctets)}). Envoyez-le en plusieurs fois, ou photographiez les pages.</p>}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
