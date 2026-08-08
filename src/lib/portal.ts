@@ -437,8 +437,18 @@ export const CRENEAU_LABELS: Record<string, string> = {
   indifferent: 'Indifférent',
 };
 
+/**
+ * Arrondi au centime AVANT le formatage.
+ *
+ * `toLocaleString` formate le flottant tel quel : sur un demi-centime il
+ * descend là où l'arrondi métier monte. Les montants servis par le portail
+ * sont déjà arrondis en base, mais rien ne garantit qu'aucun total ne sera
+ * jamais calculé ici — et le client ne doit pas lire un centime d'écart avec
+ * son devis.
+ */
 export function formatMontant(montant: number): string {
-  return montant.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const arrondi = Math.round(montant * 100) / 100;
+  return arrondi.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 export function formatTonnage(tonnes: number): string {

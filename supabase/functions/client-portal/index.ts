@@ -89,6 +89,8 @@ interface DevisRow {
   date_planification: string | null;
   lignes: unknown;
   montant_total_ht: number;
+  /** Montant recalculé sur le tonnage pesé. Null tant qu'aucun ajustement. */
+  montant_facture_ht: number | null;
   montant_envoye: number | null;
   updated_at: string | null;
   drive_file_id: string | null;
@@ -323,6 +325,7 @@ async function chargerAffaires(clientId: string) {
       .select(
         'id, numero_devis, demande_id, type_devis, etat, date_devis, date_envoi, date_envoi_at, ' +
         'adresse_livraison, creneau_livraison, date_planification, lignes, montant_total_ht, ' +
+        'montant_facture_ht, ' +
         'montant_envoye, updated_at, drive_file_id, nom_chantier, reference_client, ' +
         'client_action, client_action_at, client_action_message, document_version, pdf_sha256, ' +
         'acceptation_status, document_acceptation_actif_id, acceptation_validated_at, ' +
@@ -593,11 +596,13 @@ function detailDevis(
     depotPossible: d.etat === 'envoye'
       && Boolean(d.drive_file_id)
       && ['none', 'obsolete', 'rejete', 'regularisation_demandee'].includes(d.acceptation_status || 'none'),
-    montantFacture: livraisonTerminee ? d.montant_total_ht : null,
+    // Le montant réellement facturé est celui du tonnage pesé quand un
+    // ajustement a été enregistré ; à défaut, le devis est facturé tel quel.
+    montantFacture: livraisonTerminee ? (d.montant_facture_ht ?? d.montant_total_ht) : null,
     montantAccepte: accepte,
     montantAjusteApresAccord: livraisonTerminee
       && accepte !== null
-      && ecartReel(d.montant_total_ht, accepte),
+      && ecartReel(d.montant_facture_ht ?? d.montant_total_ht, accepte),
     documentAcceptation: exposerDocument(documentActif(documents, d.id)),
     historiqueDocuments: documents
       .filter((doc) => doc.devis_id === d.id)
