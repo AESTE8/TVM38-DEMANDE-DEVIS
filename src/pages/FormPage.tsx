@@ -13,7 +13,7 @@ import { CAMIONS_CAPACITES, CAMIONS_LIVRAISON } from '@/data/camions';
 import ClientBadge from '@/components/ClientBadge';
 import SectionClient, { SectionClientHandle } from '@/components/form/SectionClient';
 import { getConnectedClient, isGuestMode, clearGuestMode, authHeaders } from '@/lib/auth';
-import { saveDraft, loadDraft, clearDraft, hasDraft } from '@/lib/formDraft';
+import { saveDraft, clearDraft } from '@/lib/formDraft';
 import { supabase } from '@/lib/supabase';
 import SectionDemande from '@/components/form/SectionDemande';
 import SectionMateriaux from '@/components/form/SectionMateriaux';
@@ -106,7 +106,7 @@ const CRENEAU_LABELS: Record<string, string> = {
 
 export default function FormPage() {
   const navigate = useNavigate();
-  const { register, handleSubmit, watch, setValue, reset, trigger, formState: { errors, isSubmitting } } = useForm<DevisFormData>({
+  const { register, handleSubmit, watch, setValue, trigger, formState: { errors, isSubmitting } } = useForm<DevisFormData>({
     resolver: zodResolver(schema),
     defaultValues: {
       dejaClient: isGuestMode() ? 'non' : 'oui',
@@ -179,27 +179,9 @@ export default function FormPage() {
     };
   }, [watch, lignes]);
 
-  // Proposition de reprise si un brouillon existe au chargement
-  useEffect(() => {
-    if (!hasDraft()) return;
-    toast('Formulaire en cours — reprendre où vous en étiez ?', {
-      duration: 10000,
-      action: {
-        label: 'Reprendre',
-        onClick: () => {
-          const draft = loadDraft();
-          if (!draft) return;
-          const { lignes: draftLignes, ...formValues } = draft;
-          reset(formValues as DevisFormData);
-          if (draftLignes?.length) setLignes(draftLignes);
-        },
-      },
-      cancel: {
-        label: 'Nouveau',
-        onClick: clearDraft,
-      },
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // La proposition de reprise d'un brouillon a été retirée : personne ne s'en
+  // servait et la notification masquait le haut du formulaire à l'ouverture.
+  // Le brouillon continue d'être enregistré, mais il n'est plus proposé.
 
   const scrollTop = () => {
     // 1. Refermer le clavier virtuel iOS/Android : tant qu'il est ouvert la page
