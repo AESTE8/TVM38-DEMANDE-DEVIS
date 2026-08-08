@@ -265,9 +265,9 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
 
     return (
       <div>
-        <div className="flex items-center gap-4 mb-8">
-          <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">01</span>
-          <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">Coordonnées</h2>
+        <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+          <span className="font-headline font-black text-3xl sm:text-4xl text-surface-variant/50 leading-none">01</span>
+          <h2 className="font-headline font-bold text-lg sm:text-2xl uppercase tracking-tight">Coordonnées</h2>
         </div>
 
         <div className="space-y-8">
@@ -280,13 +280,15 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 onValueChange={(val: 'professionnel' | 'particulier') => setValue('typeClient', val, { shouldValidate: true })}
                 className="flex gap-6"
               >
-                <div className="flex items-center space-x-2">
+                {/* min-h-11 + py-3 sur le libellé : la cible tactile est la ligne
+                    entière, la pastille de 16px seule étant trop petite au doigt. */}
+                <div className="flex min-h-11 items-center space-x-2">
                   <RadioGroupItem value="professionnel" id="pro" className="border-primary text-primary" />
-                  <Label htmlFor="pro" className="font-medium cursor-pointer text-sm font-body">Professionnel</Label>
+                  <Label htmlFor="pro" className="cursor-pointer py-3 font-medium text-sm font-body">Professionnel</Label>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex min-h-11 items-center space-x-2">
                   <RadioGroupItem value="particulier" id="part" className="border-primary text-primary" />
-                  <Label htmlFor="part" className="font-medium cursor-pointer text-sm font-body">Particulier</Label>
+                  <Label htmlFor="part" className="cursor-pointer py-3 font-medium text-sm font-body">Particulier</Label>
                 </div>
               </RadioGroup>
             </div>

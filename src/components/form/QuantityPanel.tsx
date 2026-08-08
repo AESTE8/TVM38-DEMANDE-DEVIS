@@ -1,7 +1,7 @@
 import { Materiau, LigneDevis } from '@/types';
 import { Minus, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 interface Props {
   materiau: Materiau;
@@ -52,12 +52,17 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
     }, 400);
   };
 
-  const stopAdjusting = () => {
+  const stopAdjusting = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     if (intervalRef.current) clearInterval(intervalRef.current);
     timerRef.current = null;
     intervalRef.current = null;
-  };
+  }, []);
+
+  // Un appui interrompu par un défilement déclenche `touchcancel` et non
+  // `touchend` : sans ce filet, l'incrémentation automatique continuait de
+  // tourner après que le doigt a quitté le bouton. Idem au démontage du panneau.
+  useEffect(() => stopAdjusting, [stopAdjusting]);
 
   return (
     <div className="bg-surface-container-low border-l-4 border-l-primary/40 rounded-r-sm p-4 mt-1 animate-fade-in" onClick={(e) => e.stopPropagation()}>
@@ -95,6 +100,7 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
             onMouseLeave={stopAdjusting}
             onTouchStart={(e) => { e.preventDefault(); startAdjusting(-1); }}
             onTouchEnd={(e) => { e.preventDefault(); stopAdjusting(); }}
+            onTouchCancel={stopAdjusting}
             className="w-11 h-11 rounded-lg bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-all select-none active:scale-95 text-on-surface"
           >
             <Minus size={20} strokeWidth={2.5} />
@@ -121,6 +127,7 @@ export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
             onMouseLeave={stopAdjusting}
             onTouchStart={(e) => { e.preventDefault(); startAdjusting(1); }}
             onTouchEnd={(e) => { e.preventDefault(); stopAdjusting(); }}
+            onTouchCancel={stopAdjusting}
             className="w-11 h-11 rounded-lg bg-surface-container-highest flex items-center justify-center hover:bg-surface-variant hover:text-primary transition-all select-none active:scale-95 text-on-surface"
           >
             <Plus size={20} strokeWidth={2.5} />

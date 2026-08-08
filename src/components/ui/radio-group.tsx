@@ -28,7 +28,10 @@ const RadioGroupItem = React.forwardRef<
     <RadioGroupPrimitive.Item
       ref={ref}
       className={cn(
-        "aspect-square h-4 w-4 rounded-full border-2 border-primary text-primary shadow focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary",
+        // `tap-target-auto` : la règle mobile globale `button { min-height: 44px }`
+        // étirait cette pastille de 16px en ovale. La cible tactile est portée
+        // par le libellé associé, pas par le disque lui-même.
+        "tap-target-auto aspect-square h-4 w-4 rounded-full border-2 border-primary text-primary shadow focus:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-primary",
         className
       )}
       {...props}

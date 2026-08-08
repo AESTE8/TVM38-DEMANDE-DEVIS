@@ -16,6 +16,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["src/**/*", "netlify/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
 }

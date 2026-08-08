@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import {
   CheckCircle2, FileCheck2, FileText, Image as ImageIcon, Loader2, Send, ShieldCheck, Trash2, Upload, X,
 } from 'lucide-react';
@@ -76,6 +76,14 @@ export default function AcceptanceDocumentDialog({
   affaireId, devisId, numero, version, montantHT, agenceSuggeree, onClose, onTransmis,
 }: Props) {
   const client = useMemo(() => getConnectedClient(), []);
+
+  // Sans ce verrou, le contenu de la page continue de défiler derrière la
+  // feuille modale dès que l'on fait glisser le doigt sur le fond assombri.
+  useEffect(() => {
+    const overflowInitial = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = overflowInitial; };
+  }, []);
   const champFichier = useRef<HTMLInputElement>(null);
 
   const [type, setType] = useState<TypeDocumentAcceptation | null>(null);

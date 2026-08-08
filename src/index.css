@@ -34,13 +34,19 @@
     @apply bg-surface font-body text-on-surface antialiased;
   }
 
-  /* Targets tactiles mobile — hauteur minimale 44px + font-size 16px pour éviter le zoom Safari iOS */
+  /* Targets tactiles mobile — hauteur minimale 44px + font-size 16px pour éviter le zoom Safari iOS.
+     La liste des champs est exhaustive : Safari zoome dès qu'un champ saisissable descend
+     sous 16px, y compris les types password / search / url que l'on oubliait auparavant. */
   @media (max-width: 640px) {
+    input:not([type]),
     input[type="text"],
     input[type="email"],
     input[type="tel"],
     input[type="date"],
     input[type="number"],
+    input[type="password"],
+    input[type="search"],
+    input[type="url"],
     textarea,
     select {
       min-height: 44px;
@@ -48,11 +54,35 @@
       padding-bottom: 10px;
       font-size: 16px !important;
     }
+    /* Hauteur de cible tactile uniquement : imposer aussi un padding horizontal
+       élargirait les boutons sans classe utilitaire (pastilles d'étape, boutons
+       icône) et ferait déborder les barres compactes. */
     button,
     .btn-glow {
       min-height: 44px;
-      padding: 10px 16px;
     }
+    /* Échappatoire pour les contrôles décoratifs ou déjà contenus dans une
+       cible tactile plus grande (pastilles d'étape, chevrons de repli). */
+    button.tap-target-auto {
+      min-height: 0;
+    }
+  }
+}
+
+/* Barres fixées en bas d'écran — mobile uniquement (au-delà de md elles
+   redeviennent statiques et ne doivent pas hériter de ces marges). */
+@media (max-width: 767px) {
+  /* Évite que le bouton principal passe sous la barre d'accueil iOS
+     ou la barre de geste Android. */
+  .pb-safe {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Place un bandeau juste au-dessus de la barre de navigation du tunnel.
+     Hauteur relevée sur iPhone SE : 81px, arrondie à 6rem pour garder un
+     interstice visible entre les deux barres. */
+  .above-form-nav {
+    bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   }
 }
 

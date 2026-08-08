@@ -78,9 +78,9 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
 
   return (
     <div>
-      <div className="flex items-center gap-4 mb-8">
-        <span className="font-headline font-black text-4xl text-surface-variant/50 leading-none">03</span>
-        <h2 className="font-headline font-bold text-2xl uppercase tracking-tight">
+      <div className="flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8">
+        <span className="font-headline font-black text-3xl sm:text-4xl text-surface-variant/50 leading-none">03</span>
+        <h2 className="font-headline font-bold text-lg sm:text-2xl uppercase tracking-tight">
           {isDecharge ? 'Choix des matériaux que vous souhaitez déposer' : isCombi ? 'Livraison & Décharge' : typeDemande === 'fourniture' ? 'Choix des matériaux que vous souhaitez récupérer' : 'Choix des matériaux à livrer'}
         </h2>
       </div>
@@ -189,7 +189,9 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
 
       {/* Bandeau flottant récapitulatif (Mobile & Desktop) */}
       {selectedLignes.length > 0 && (
-        <div className="fixed bottom-4 left-4 right-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-primary/95 backdrop-blur-md text-on-primary rounded-2xl md:rounded-full px-4 py-3 md:px-5 md:py-2.5 shadow-2xl flex items-center justify-between gap-3 text-xs md:text-sm font-bold animate-slide-up border border-white/20">
+        // Sur mobile ce bandeau se plaçait au même endroit que la barre de
+        // navigation du tunnel : on le remonte juste au-dessus d'elle.
+        <div className="above-form-nav fixed left-3 right-3 md:bottom-4 md:left-1/2 md:right-auto md:-translate-x-1/2 z-40 bg-primary/95 backdrop-blur-md text-on-primary rounded-2xl md:rounded-full px-4 py-2.5 md:px-5 shadow-2xl flex items-center justify-center md:justify-between gap-3 text-xs md:text-sm font-bold animate-slide-up border border-white/20">
           {isCombi ? (
             <div className="flex items-center gap-2">
               <span className="flex items-center gap-2">
@@ -213,11 +215,14 @@ export default function SectionMateriaux({ lignes, setLignes, typeDemande, onNex
               <span className="text-amber-300">{Math.round(totalTonnes * 10) / 10} t au total</span>
             </div>
           )}
+          {/* Masqué sous md : la barre de navigation du tunnel, juste en dessous,
+              porte déjà le bouton d'étape suivante. Deux boutons « Continuer »
+              superposés prêtaient à confusion sur mobile. */}
           {onNext && (
             <button
               type="button"
               onClick={onNext}
-              className="bg-industrial-gradient text-white rounded-xl md:rounded-full px-3.5 py-1.5 md:px-4 md:py-1.5 flex items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0 text-xs uppercase font-extrabold"
+              className="hidden md:flex bg-industrial-gradient text-white rounded-xl md:rounded-full px-3.5 py-1.5 md:px-4 md:py-1.5 items-center gap-1.5 hover:brightness-110 active:scale-95 transition-all shadow-md shrink-0 text-xs uppercase font-extrabold"
               title="Étape suivante"
             >
               <span>Continuer</span>
