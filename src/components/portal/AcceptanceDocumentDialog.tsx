@@ -81,10 +81,29 @@ export default function AcceptanceDocumentDialog({
   const [type, setType] = useState<TypeDocumentAcceptation | null>(null);
   const [fichiers, setFichiers] = useState<File[]>([]);
   const [reference, setReference] = useState('');
+
+  // Un compte professionnel porte une raison sociale : le devis a été établi
+  // pour elle, on ne peut pas signer pour une autre. Elle est donc affichée,
+  // jamais saisie. Un particulier n'a pas d'entreprise à afficher.
+  const entreprise = client?.type === 'particulier' ? '' : String(client?.nom ?? '').trim();
+
   // Préremplissage depuis le compte : c'est souvent un autre salarié qui dépose,
-  // donc tout reste modifiable. Ce qui compte pour la traçabilité — le compte,
+  // donc le nom reste modifiable. Ce qui compte pour la traçabilité — le compte,
   // l'adresse IP, la date — est enregistré côté serveur, pas saisi ici.
-  const [nom, setNom] = useState(() => [client?.prenom, client?.nom].filter(Boolean).join(' ').trim());
+  const [nom, setNom] = useState(() => {
+    // Sur un compte particulier, le titulaire est bien la personne.
+    if (client?.type === 'particulier') {
+      return [client?.prenom, client?.nom].filter(Boolean).join(' ').trim();
+    }
+    // Sur un compte d'entreprise, `nom` est la raison sociale : la préremplir
+    // ici faisait signer « MIDALI TP » au lieu de la personne. On ne propose
+    // donc un nom que lorsqu'il est certain — contact principal, ou contact
+    // unique. Dans le doute, le champ reste vide et sera saisi.
+    const contacts = client?.contacts ?? [];
+    const certain = contacts.find((contact) => contact.principal)
+      ?? (contacts.length === 1 ? contacts[0] : undefined);
+    return certain ? [certain.prenom, certain.nom].filter(Boolean).join(' ').trim() : '';
+  });
 
   // Adresses déjà connues du compte : celle de la fiche et celles des contacts
   // enregistrés. Les proposer évite la faute de frappe sur le seul champ dont
@@ -105,7 +124,20 @@ export default function AcceptanceDocumentDialog({
     return contacts.length === 1 ? contacts[0] : '';
   });
   const [fonction, setFonction] = useState('');
-  const [agence, setAgence] = useState(agenceSuggeree ?? '');
+  // Les suggestions d'adresses passent par une liste rendue en React : la
+  // `datalist` HTML n'est honorée ni par Safari iOS ni par une partie des
+  // navigateurs Android, où le champ restait muet.
+  const [emailFocus, setEmailFocus] = useState(false);
+
+  // L'agence n'est pas saisie librement : elle qualifie le devis, pas le
+  // dépôt. Celle portée par le devis est affichée telle quelle ; à défaut on
+  // ne propose que les agences enregistrées sur le compte.
+  const agenceFigee = String(agenceSuggeree ?? '').trim();
+  const agencesCompte = useMemo(
+    () => [...new Set((client?.agences ?? []).map((a) => String(a.nom ?? '').trim()).filter(Boolean))],
+    [client],
+  );
+  const [agence, setAgence] = useState(agenceFigee);
   const [commentaire, setCommentaire] = useState('');
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -147,6 +179,15 @@ export default function AcceptanceDocumentDialog({
   // L'adresse est le seul moyen de vous répondre : elle est exigée, alors
   // qu'elle était seulement affichée comme telle sans être vérifiée.
   const emailValide = /^\S+@\S+\.\S+$/.test(email.trim());
+
+  // Une adresse déjà saisie à l'identique n'a pas à être reproposée.
+  const suggestionsEmail = useMemo(() => {
+    const saisie = email.trim().toLowerCase();
+    return adressesConnues.filter(
+      (adresse) => adresse.toLowerCase() !== saisie
+        && (saisie === '' || adresse.toLowerCase().includes(saisie)),
+    );
+  }, [adressesConnues, email]);
 
   const formValide = Boolean(type)
     && fichiers.length > 0
@@ -261,28 +302,75 @@ export default function AcceptanceDocumentDialog({
                 {trop && <p className="mt-2 text-xs font-bold text-red-700">Ce PDF dépasse {TAILLE_MAX_LISIBLE} ({poidsLisible(totalOctets)}). Envoyez-le en plusieurs fois, ou photographiez les pages.</p>}
               </div>
 
+              {entreprise && (
+                <div className="rounded-lg border border-border bg-surface-container-low px-3 py-2.5">
+                  <p className="text-xs font-bold text-on-surface">Entreprise</p>
+                  <p className="mt-0.5 text-sm text-on-surface">{entreprise}</p>
+                  <p className="mt-1 text-[11px] text-secondary">
+                    Le devis a été établi pour cette entreprise : l’accord ne peut être transmis pour une autre.
+                  </p>
+                </div>
+              )}
+
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-xs font-bold text-on-surface">Qui transmet ce document ?<input value={nom} onChange={(event) => setNom(event.target.value)} maxLength={160} className={champ} /></label>
+                <label className="text-xs font-bold text-on-surface">Qui transmet ce document ?<input value={nom} onChange={(event) => setNom(event.target.value)} maxLength={160} placeholder="Prénom et nom" className={champ} /></label>
                 <label className="text-xs font-bold text-on-surface">
                   E-mail <span className="font-normal text-secondary">(pour notre réponse)</span>
-                  <input
-                    type="email"
-                    list="adresses-connues"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    maxLength={160}
-                    placeholder="prenom.nom@entreprise.fr"
-                    className={`${champ} ${email.trim() && !emailValide ? 'border-red-400' : ''}`}
-                  />
-                  <datalist id="adresses-connues">
-                    {adressesConnues.map((adresse) => <option key={adresse} value={adresse} />)}
-                  </datalist>
+                  <div className="relative">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      onFocus={() => setEmailFocus(true)}
+                      // Le clic sur une suggestion déclenche le blur avant le
+                      // clic lui-même : le `onMouseDown` de la suggestion
+                      // annule ce blur, ce délai couvre le cas du clavier.
+                      onBlur={() => window.setTimeout(() => setEmailFocus(false), 120)}
+                      maxLength={160}
+                      placeholder="prenom.nom@entreprise.fr"
+                      autoComplete="email"
+                      className={`${champ} ${email.trim() && !emailValide ? 'border-red-400' : ''}`}
+                    />
+                    {emailFocus && suggestionsEmail.length > 0 && (
+                      <ul className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+                        {suggestionsEmail.map((adresse) => (
+                          <li key={adresse}>
+                            <button
+                              type="button"
+                              onMouseDown={(event) => event.preventDefault()}
+                              onClick={() => { setEmail(adresse); setEmailFocus(false); }}
+                              className="block min-h-11 w-full px-3 text-left text-sm font-normal text-on-surface hover:bg-surface-container-low"
+                            >
+                              {adresse}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                   {email.trim() && !emailValide && (
                     <span className="mt-1 block font-normal text-[11px] text-red-700">Cette adresse ne semble pas valide.</span>
                   )}
                 </label>
                 <label className="text-xs font-bold text-on-surface">Fonction <span className="font-normal text-secondary">(facultatif)</span><input value={fonction} onChange={(event) => setFonction(event.target.value)} maxLength={160} placeholder="Ex. Conducteur de travaux" className={champ} /></label>
-                <label className="text-xs font-bold text-on-surface">Agence <span className="font-normal text-secondary">(facultatif)</span><input value={agence} onChange={(event) => setAgence(event.target.value)} maxLength={160} className={champ} /></label>
+                {agenceFigee ? (
+                  <div className="text-xs font-bold text-on-surface">
+                    Agence
+                    <p className="mt-1.5 flex min-h-11 items-center rounded-lg border border-border bg-surface-container-low px-3 text-sm font-normal text-on-surface">
+                      {agenceFigee}
+                    </p>
+                  </div>
+                ) : agencesCompte.length > 0 ? (
+                  <label className="text-xs font-bold text-on-surface">
+                    Agence <span className="font-normal text-secondary">(facultatif)</span>
+                    <select value={agence} onChange={(event) => setAgence(event.target.value)} className={champ}>
+                      <option value="">Sélectionner…</option>
+                      {agencesCompte.map((nomAgence) => (
+                        <option key={nomAgence} value={nomAgence}>{nomAgence}</option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
 
               <label className="block text-xs font-bold text-on-surface">
