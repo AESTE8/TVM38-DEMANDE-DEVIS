@@ -106,11 +106,20 @@ interface DevisRow {
   created_at: string;
 }
 
+/** Montant figé d'une version de devis effectivement publiée au client. */
+interface VersionRow {
+  devis_id: string;
+  version_number: number;
+  montant_total_ht: number;
+}
+
 /** Colonnes exposables d'un justificatif. `drive_file_id` n'en fait pas partie. */
 interface DocumentRow {
   id: string;
   devis_id: string;
   devis_version: number;
+  /** Montant du devis au moment où ce justificatif a été contrôlé. */
+  devis_montant_ht: number | null;
   type_document: 'devis_signe' | 'bon_commande';
   reference_bon_commande: string | null;
   nom_fichier_original: string;
@@ -221,17 +230,54 @@ function statutAffaire(
 }
 
 /**
- * Le montant a-t-il bougé depuis l'envoi ?
- * `montant_envoye` est figé par un trigger au moment où le devis part. Si le
- * dispatcher modifie ensuite le devis, les deux valeurs divergent et l'espace
- * client peut le dire explicitement au lieu de laisser le client face à deux
- * chiffres contradictoires (celui de son email, celui du site).
+ * Deux montants ne sont pas comparables au flottant près : `montant_total_ht`
+ * est un `double precision`, une égalité stricte produirait de faux positifs.
  */
-function montantModifie(devis: { montant_total_ht: number; montant_envoye: number | null }): boolean {
-  if (devis.montant_envoye === null || devis.montant_envoye === undefined) return false;
-  // Tolérance au centime : `montant_total_ht` est un `double precision`, et
-  // toute comparaison stricte de flottants produirait de faux positifs.
-  return Math.abs(devis.montant_total_ht - devis.montant_envoye) >= 0.01;
+function ecartReel(a: number, b: number): boolean {
+  return Math.abs(a - b) >= 0.01;
+}
+
+/**
+ * Montant de la dernière version publiée — ce que le client a effectivement
+ * reçu. `devis.montant_envoye` ne convient pas : son trigger ne le rafraîchit
+ * que si `date_envoi` change, donc une correction renvoyée le même jour le
+ * laisse sur le montant de la version précédente.
+ *
+ * Null sur les devis antérieurs au versionnement : on retombe alors sur
+ * `montant_envoye`, seule trace disponible pour eux.
+ */
+function montantPublie(versions: VersionRow[], devisId: string): number | null {
+  const duDevis = versions.filter((v) => v.devis_id === devisId);
+  if (duDevis.length === 0) return null;
+  return duDevis.reduce((a, b) => (b.version_number > a.version_number ? b : a)).montant_total_ht;
+}
+
+/**
+ * Le montant a-t-il bougé depuis l'envoi ? Comparé à la version publiée, pas au
+ * montant courant : le client doit pouvoir dire si le chiffre du site est encore
+ * celui de son e-mail.
+ */
+function montantModifie(
+  devis: { montant_total_ht: number; montant_envoye: number | null },
+  reference: number | null,
+): boolean {
+  const attendu = reference ?? devis.montant_envoye;
+  if (attendu === null || attendu === undefined) return false;
+  return ecartReel(devis.montant_total_ht, attendu);
+}
+
+/**
+ * Montant de la version que le client a réellement acceptée, figé au moment du
+ * contrôle du justificatif. C'est la seule référence légitime pour annoncer un
+ * ajustement : ni le montant courant (il a bougé, c'est tout l'objet du
+ * bandeau), ni `montant_envoye` (il peut dater d'une version antérieure).
+ *
+ * Null tant qu'aucune acceptation n'a été validée — auquel cas il n'y a pas de
+ * montant accepté, donc rien à annoncer.
+ */
+function montantAccepte(documents: DocumentRow[], devisId: string): number | null {
+  const valide = documents.find((doc) => doc.devis_id === devisId && doc.statut === 'valide');
+  return valide?.devis_montant_ht ?? null;
 }
 
 /** Enrichit les lignes avec le nom des matériaux. Aucun prix unitaire n'est exposé. */
@@ -266,7 +312,7 @@ async function chargerMateriaux(): Promise<Materiaux> {
  * le contenu.
  */
 async function chargerAffaires(clientId: string) {
-  const [demandesRes, devisRes, messagesRes, documentsRes] = await Promise.all([
+  const [demandesRes, devisRes, messagesRes, documentsRes, versionsRes] = await Promise.all([
     supabase
       .from('demandes')
       .select('*')
@@ -294,24 +340,36 @@ async function chargerAffaires(clientId: string) {
     supabase
       .from('documents_acceptation')
       .select(
-        'id, devis_id, devis_version, type_document, reference_bon_commande, ' +
+        'id, devis_id, devis_version, devis_montant_ht, type_document, reference_bon_commande, ' +
         'nom_fichier_original, taille_octets, sha256, nb_pages, statut, transmetteur_nom, ' +
         'commentaire_controle, depose_at, controle_at',
       )
       .eq('client_id', clientId)
       .order('depose_at', { ascending: false }),
+    // Montant de chaque version réellement publiée. C'est la seule source qui
+    // dise ce que le client a reçu : `devis.montant_envoye` n'est rafraîchi que
+    // si `date_envoi` change, donc un devis corrigé et renvoyé le même jour
+    // garde le montant de sa première version (26TVM0066 : 940,30 € affichés
+    // alors que la v2 partie chez le client était à 912,83 €).
+    supabase
+      .from('devis_versions')
+      .select('devis_id, version_number, montant_total_ht')
+      .eq('client_id', clientId)
+      .order('version_number', { ascending: false }),
   ]);
 
   if (demandesRes.error) throw demandesRes.error;
   if (devisRes.error) throw devisRes.error;
   if (messagesRes.error) throw messagesRes.error;
   if (documentsRes.error) throw documentsRes.error;
+  if (versionsRes.error) throw versionsRes.error;
 
   return {
     demandes: (demandesRes.data ?? []) as DemandeRow[],
     devis: (devisRes.data ?? []) as DevisRow[],
     messages: (messagesRes.data ?? []) as MessageRow[],
     documents: (documentsRes.data ?? []) as DocumentRow[],
+    versions: (versionsRes.data ?? []) as VersionRow[],
   };
 }
 
@@ -408,6 +466,7 @@ function construireFil(
   devis: DevisRow[],
   messages: MessageRow[],
   materiaux: Materiaux,
+  versions: VersionRow[] = [],
 ) {
   const devisParDemande = grouperParDemande(devis);
 
@@ -438,7 +497,9 @@ function construireFil(
       lignes,
       numeroDevis: devisVisible?.numero_devis ?? null,
       montantHT: devisVisible ? devisVisible.montant_total_ht : null,
-      montantModifie: devisVisible ? montantModifie(devisVisible) : false,
+      montantModifie: devisVisible
+        ? montantModifie(devisVisible, montantPublie(versions, devisVisible.id))
+        : false,
       pdfDisponible: Boolean(devisVisible?.drive_file_id),
       devisId: devisVisible?.id ?? null,
       nomChantier: devisVisible?.nom_chantier || dem.nom_chantier || null,
@@ -465,7 +526,7 @@ function construireFil(
       lignes: mapLignes(d.lignes, materiaux),
       numeroDevis: d.numero_devis,
       montantHT: d.montant_total_ht,
-      montantModifie: montantModifie(d),
+      montantModifie: montantModifie(d, montantPublie(versions, d.id)),
       pdfDisponible: Boolean(d.drive_file_id),
       devisId: d.id,
       nomChantier: d.nom_chantier || null,
@@ -483,12 +544,22 @@ function construireFil(
 // Détail d'une affaire
 // ---------------------------------------------------------------------------
 
-function detailDevis(d: DevisRow, materiaux: Materiaux, documents: DocumentRow[] = []) {
-  // Passé la planification, un écart de montant n'est plus une modification de
-  // devis à revalider : c'est l'ajustement au tonnage réellement livré. Le
-  // client doit voir les deux chiffres, sans qu'on lui redemande quoi que ce
-  // soit.
-  const livraisonEngagee = ['planifie', 'termine'].includes(d.etat);
+function detailDevis(
+  d: DevisRow,
+  materiaux: Materiaux,
+  documents: DocumentRow[] = [],
+  versions: VersionRow[] = [],
+) {
+  // L'ajustement au tonnage livré ne se constate qu'une fois la livraison
+  // faite. À l'état `planifie` rien n'a encore été pesé : le bandeau annonçait
+  // un « montant facturé » sur un chantier qui n'avait pas commencé.
+  const livraisonTerminee = d.etat === 'termine';
+
+  // Référence du bandeau : le montant de la version que le client a signée,
+  // figé au contrôle du justificatif. Sans acceptation validée, il n'y a pas de
+  // montant accepté et donc pas d'ajustement à annoncer.
+  const accepte = montantAccepte(documents, d.id);
+  const reference = montantPublie(versions, d.id);
 
   return {
     numero: d.numero_devis,
@@ -501,8 +572,8 @@ function detailDevis(d: DevisRow, materiaux: Materiaux, documents: DocumentRow[]
     adresseLivraison: d.adresse_livraison || null,
     lignes: mapLignes(d.lignes, materiaux),
     montantHT: d.montant_total_ht,
-    montantEnvoye: d.montant_envoye ?? null,
-    montantModifie: montantModifie(d),
+    montantEnvoye: reference ?? d.montant_envoye ?? null,
+    montantModifie: montantModifie(d, reference),
     updatedAt: d.updated_at ?? null,
     pdfDisponible: Boolean(d.drive_file_id),
     nomChantier: d.nom_chantier || null,
@@ -522,8 +593,11 @@ function detailDevis(d: DevisRow, materiaux: Materiaux, documents: DocumentRow[]
     depotPossible: d.etat === 'envoye'
       && Boolean(d.drive_file_id)
       && ['none', 'obsolete', 'rejete', 'regularisation_demandee'].includes(d.acceptation_status || 'none'),
-    montantFacture: livraisonEngagee ? d.montant_total_ht : null,
-    montantAjusteApresAccord: livraisonEngagee && montantModifie(d),
+    montantFacture: livraisonTerminee ? d.montant_total_ht : null,
+    montantAccepte: accepte,
+    montantAjusteApresAccord: livraisonTerminee
+      && accepte !== null
+      && ecartReel(d.montant_total_ht, accepte),
     documentAcceptation: exposerDocument(documentActif(documents, d.id)),
     historiqueDocuments: documents
       .filter((doc) => doc.devis_id === d.id)
@@ -674,7 +748,7 @@ Deno.serve(async (req) => {
   if (apres[0] !== 'affaires') return json(404, { error: 'NOT_FOUND' });
 
   const materiaux = await chargerMateriaux();
-  const { demandes, devis, messages, documents } = await chargerAffaires(token.sub);
+  const { demandes, devis, messages, documents, versions } = await chargerAffaires(token.sub);
 
   /** Dates du justificatif, injectées dans la timeline. */
   const jalonsDocument = (devisId: string | null) => {
@@ -684,7 +758,7 @@ Deno.serve(async (req) => {
 
   // ---- Liste ----
   if (apres.length === 1) {
-    return json(200, { affaires: construireFil(demandes, devis, messages, materiaux) });
+    return json(200, { affaires: construireFil(demandes, devis, messages, materiaux, versions) });
   }
 
   // ---- Détail ----
@@ -703,7 +777,7 @@ Deno.serve(async (req) => {
     const devisVisible = devisTransmis(devisLies);
 
     const statut = statutAffaire(dem, devisVisible, devisLies);
-    const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux, documents) : null;
+    const devisDetail = devisVisible ? detailDevis(devisVisible, materiaux, documents, versions) : null;
 
     return json(200, {
       id: affaireId,
@@ -727,7 +801,7 @@ Deno.serve(async (req) => {
     if (!d) return json(404, { error: 'NOT_FOUND' });
 
     const statut = statutDepuisDevis(d);
-    const devisDetail = detailDevis(d, materiaux, documents);
+    const devisDetail = detailDevis(d, materiaux, documents, versions);
 
     return json(200, {
       id: affaireId,

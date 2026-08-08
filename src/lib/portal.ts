@@ -96,8 +96,10 @@ export interface DevisDetail {
   remplaceParDevisId: string | null;
   /** Le serveur tranche : le bouton de dépôt n'est jamais déduit côté navigateur. */
   depotPossible: boolean;
-  /** Montant réellement facturé, une fois la livraison engagée. */
+  /** Montant réellement facturé, une fois la livraison terminée. */
   montantFacture: number | null;
+  /** Montant de la version acceptée, figé au contrôle du justificatif. */
+  montantAccepte: number | null;
   montantAjusteApresAccord: boolean;
   documentAcceptation: DocumentAcceptation | null;
   historiqueDocuments: DocumentAcceptation[];

@@ -315,15 +315,17 @@ export default function AffairePage() {
                   </div>
                 )}
                 {/* Le montant réellement facturé peut différer une fois la
-                    livraison engagée : le tonnage livré fait foi. Ce n'est pas
-                    une modification du devis, rien n'est redemandé au client. */}
+                    livraison terminée : le tonnage livré fait foi. Ce n'est pas
+                    une modification du devis, rien n'est redemandé au client.
+                    La référence est le montant de la version signée, pas le
+                    montant courant ni celui du premier envoi. */}
                 {devis.montantFacture !== null && devis.montantAjusteApresAccord && (
                   <div className="flex gap-3 border-t border-border/60 bg-sky-50 p-5">
                     <FileText className="h-5 w-5 shrink-0 text-sky-700" />
                     <div>
                       <p className="text-sm font-bold text-sky-900">Montant ajusté au tonnage livré</p>
                       <p className="mt-0.5 text-sm text-sky-800">
-                        Montant accepté : {formatMontant(devis.montantEnvoye ?? devis.montantHT)} € HT ·
+                        Montant accepté : {formatMontant(devis.montantAccepte ?? devis.montantHT)} € HT ·
                         {' '}Montant facturé : <strong>{formatMontant(devis.montantFacture)} € HT</strong>
                       </p>
                     </div>
