@@ -71,6 +71,7 @@ export async function envoyerEmail(
   sujet: string,
   html: string,
   piecesJointes: PieceJointeEmail[] = [],
+  texte?: string,
 ): Promise<boolean> {
   if (!/^\S+@\S+\.\S+$/.test(destinataire)) return false;
 
@@ -98,6 +99,9 @@ export async function envoyerEmail(
       from: `"${nomAffiche}" <${params.smtp_user}>`,
       to: destinataire,
       subject: sujet.replace(/[\r\n]/g, ' ').slice(0, 500),
+      // Un message uniquement HTML pèse dans le score anti-spam — les clients
+      // TVM38 sont très majoritairement derrière un filtre Microsoft 365.
+      ...(texte ? { text: texte } : {}),
       html,
       attachments: piecesJointes.length > 0 ? piecesJointes : undefined,
     });
