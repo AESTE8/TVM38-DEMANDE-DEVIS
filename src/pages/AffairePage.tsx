@@ -35,6 +35,7 @@ import {
   CRENEAU_LABELS,
   type LignePortail,
   SessionExpiree,
+  type StatutDocumentAcceptation,
   TYPE_DEMANDE_LABELS,
   deciderDevis,
   envoyerMessage,
@@ -50,6 +51,22 @@ import {
 import AcceptanceDocumentDialog from '@/components/portal/AcceptanceDocumentDialog';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/15';
+
+/**
+ * Ce que devient un justificatif, dit au client.
+ *
+ * `remplace` et `obsolete_par_nouvelle_version` sont des états internes : le
+ * client n'a pas à décoder « obsolete_par_nouvelle_version », il doit
+ * comprendre que la pièce ne compte plus et pourquoi.
+ */
+const STATUT_DOCUMENT_LABELS: Record<StatutDocumentAcceptation, string> = {
+  a_verifier: 'En attente de vérification',
+  valide: 'Validé par TVM38',
+  regularisation_demandee: 'À corriger',
+  rejete: 'Refusé',
+  remplace: 'Remplacé par un document plus récent',
+  obsolete_par_nouvelle_version: 'Caduc — le devis a changé de version',
+};
 
 function TableauLignes({ lignes }: { lignes: LignePortail[] }) {
   if (lignes.length === 0) return <p className="text-sm text-secondary">Aucun matériau.</p>;
@@ -296,6 +313,14 @@ export default function AffairePage() {
   const depotPossible = Boolean(devis?.depotPossible);
   const devisActionnable = depotPossible && !devis?.clientAction;
   const documentTransmis = devis?.documentAcceptation ?? null;
+  // Un devis peut porter plusieurs justificatifs valides à la fois : l'index
+  // unique de `documents_acceptation` ne couvre que « à vérifier » et
+  // « régularisation demandée ». Devis signé + bon de commande, ou plusieurs
+  // bons, sont donc le cas normal. Le serveur les envoie tous depuis le début
+  // dans `historiqueDocuments`, mais la page n'affichait que le plus récent :
+  // le client déposait deux pièces et n'en revoyait qu'une.
+  const autresDocuments = (devis?.historiqueDocuments ?? [])
+    .filter((doc) => doc.id !== documentTransmis?.id);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-surface pb-28 sm:pb-24">
@@ -418,6 +443,41 @@ export default function AffairePage() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {autresDocuments.length > 0 && (
+                  <div className="border-t border-border/60 p-5">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-secondary">
+                      {documentTransmis ? 'Autres documents transmis' : 'Documents transmis'} ({autresDocuments.length})
+                    </p>
+                    <ul className="mt-3 divide-y divide-border/40">
+                      {autresDocuments.map((doc) => (
+                        <li key={doc.id} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 py-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-on-surface">
+                              {doc.type === 'bon_commande' ? 'Bon de commande' : 'Devis signé'}
+                              {doc.referenceBonCommande ? ` n° ${doc.referenceBonCommande}` : ''}
+                            </p>
+                            <p className="mt-0.5 text-xs text-secondary">
+                              {STATUT_DOCUMENT_LABELS[doc.statut] ?? doc.statut}
+                              {' · '}transmis le {formatDate(doc.deposeAt)} par {doc.transmetteurNom}
+                            </p>
+                            {doc.commentaireControle && (
+                              <p className="mt-1.5 text-xs text-on-surface/80"><strong>Motif :</strong> {doc.commentaireControle}</p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            disabled={documentEnCours}
+                            onClick={() => void ouvrirDocument(doc.id)}
+                            className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-lg border border-border bg-white px-3 text-xs font-bold text-on-surface disabled:opacity-60"
+                          >
+                            <Download className="h-4 w-4 text-primary" /> Voir
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
 
