@@ -6,6 +6,18 @@ import { setSession, type ClientData } from '@/lib/auth';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 /**
+ * Destinations que les e-mails savent demander (`&vers=…`).
+ *
+ * Le logiciel envoie un mot-clé, pas un chemin : le site reste libre de ses
+ * routes. Un mot-clé inconnu n'est pas une erreur — il retombe sur l'espace,
+ * pour qu'un e-mail parti avant une évolution du site n'ouvre jamais une 404.
+ */
+const DESTINATIONS: Record<string, string> = {
+  dossiers: '/espace',
+  'nouvelle-demande': '/formulaire',
+};
+
+/**
  * Connexion depuis un lien d'e-mail.
  *
  * Le lien porte un jeton signé, jamais le mot de passe du client : une adresse
@@ -50,9 +62,14 @@ export default function AccesPage() {
         }
 
         setSession(data.client as ClientData, data.token as string, data.expiresAt as number);
-        const destination = typeof data.affaire === 'string' && data.affaire
-          ? `/espace/${encodeURIComponent(data.affaire)}`
-          : '/espace';
+        // `vers` l'emporte sur l'affaire du jeton : il n'est posé que sur les
+        // liens secondaires (« tous mes dossiers », « faire une demande »), où
+        // le client demande explicitement autre chose que le dossier concerné.
+        const vers = searchParams.get('vers');
+        const destination = (vers && DESTINATIONS[vers])
+          || (typeof data.affaire === 'string' && data.affaire
+            ? `/espace/${encodeURIComponent(data.affaire)}`
+            : '/espace');
         // `replace` : le jeton disparaît de l'historique du navigateur.
         navigate(destination, { replace: true });
       } catch {
