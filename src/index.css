@@ -106,22 +106,24 @@ input[type=number] {
   -moz-appearance: textfield;
 }
 
-/* Spring-like & Ultra-smooth cubic-bezier easing curves (Motion Design System) */
+/* Spring-like & Ultra-smooth cubic-bezier easing curves (Motion Design System)
+ *
+ * Durées alignées sur le logiciel (v1.11.1) : au-delà de ~150 ms, une réponse
+ * au survol se lit comme une latence plutôt que comme un mouvement. */
 .motion-smooth {
   transition-property: transform, opacity, box-shadow, background-color, border-color;
-  transition-duration: 250ms;
+  transition-duration: 150ms;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity;
 }
 
+/* Le décalage vertical au survol déplaçait la cible sous le doigt/curseur au
+ * moment même du clic. La bordure et l'ombre suffisent à marquer le survol. */
 .motion-hover-lift {
-  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-.motion-hover-lift:hover {
-  transform: translateY(-3px);
+  transition: box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1), border-color 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 .motion-hover-lift:active {
-  transform: translateY(0) scale(0.98);
+  transform: scale(0.995);
 }
 
 /* Supprimer les barres de défilement tout en gardant le défilement */
@@ -137,7 +139,7 @@ input[type=number] {
 @keyframes slide-up-fade {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -160,11 +162,11 @@ input[type=number] {
 }
 
 .animate-slide-up {
-  animation: slide-up-fade 300ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: slide-up-fade 180ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-scale-bounce {
-  animation: scale-in-bounce 350ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: scale-in-bounce 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Spring-like easing pour la barre de progression */
