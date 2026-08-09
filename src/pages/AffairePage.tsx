@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
+  Copy,
   Download,
   FileText,
   Loader2,
@@ -64,6 +65,54 @@ function TableauLignes({ lignes }: { lignes: LignePortail[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/**
+ * Le numéro de devis est la seule référence que le client doit reporter dans
+ * ses e-mails et ses bons de commande. Le retaper à la main est la première
+ * source d'écart entre son bon et notre dossier : un clic le copie.
+ */
+function NumeroDevis({ numero, className }: { numero: string; className?: string }) {
+  const [copie, setCopie] = useState(false);
+
+  useEffect(() => {
+    if (!copie) return;
+    const minuterie = window.setTimeout(() => setCopie(false), 1600);
+    return () => window.clearTimeout(minuterie);
+  }, [copie]);
+
+  async function copier() {
+    try {
+      // `navigator.clipboard` n'existe pas hors contexte sécurisé, et Safari
+      // le refuse hors geste utilisateur direct : l'échec doit rester muet.
+      await navigator.clipboard.writeText(numero);
+      setCopie(true);
+    } catch {
+      toast.error('La copie a échoué. Sélectionnez le numéro à la main.');
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void copier()}
+      title="Copier le numéro de devis"
+      aria-label={`Copier le numéro de devis ${numero}`}
+      className={cn(
+        // `tap-target-auto` : la règle mobile impose 44px de haut à tout
+        // `button`, ce qui ferait de ce numéro en ligne un bloc de la hauteur
+        // d'un bouton au milieu d'une phrase. La cible reste atteignable, elle
+        // est contenue dans un en-tête déjà cliquable.
+        'tap-target-auto inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-black text-on-surface transition-colors duration-150 hover:bg-primary/10 hover:text-primary active:scale-[0.98]',
+        className,
+      )}
+    >
+      {numero}
+      {copie
+        ? <Check aria-hidden="true" className="h-3.5 w-3.5 text-emerald-600" />
+        : <Copy aria-hidden="true" className="h-3.5 w-3.5 opacity-50" />}
+    </button>
   );
 }
 
@@ -264,7 +313,7 @@ export default function AffairePage() {
             <section className="rounded-xl border border-border/75 bg-card p-5 shadow-sm">
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-border/50 pb-4">
                 <StatutBadge statut={affaire.statut} />
-                {devis?.numero && <span className="text-xs font-bold text-secondary">Devis n° <strong className="font-black text-on-surface">{devis.numero}</strong></span>}
+                {devis?.numero && <span className="inline-flex items-center gap-1 text-xs font-bold text-secondary">Devis n° <NumeroDevis numero={devis.numero} className="text-xs" /></span>}
               </div>
               <ol>
                 {affaire.timeline.map((etape, index) => (
@@ -397,8 +446,29 @@ export default function AffairePage() {
             <section className="rounded-xl border border-border/75 bg-card p-5 shadow-sm">
               <div className="flex items-center gap-3"><span className="grid h-10 w-10 place-items-center rounded-lg bg-primary/10 text-primary"><MessageSquare className="h-5 w-5" /></span><div><p className="text-[11px] font-bold uppercase tracking-widest text-secondary">Échanges</p><h2 className="font-headline text-lg font-black text-on-surface">Messagerie du dossier</h2></div></div>
               <div className="mt-5 space-y-3" aria-live="polite">
-                {affaire.messages.length === 0 && <p className="rounded-lg bg-surface-container-low p-4 text-sm text-secondary">Aucun échange pour le moment. Écrivez ici pour que votre message reste associé à ce dossier.</p>}
-                {affaire.messages.map((message) => <div key={message.id} className={cn('flex', message.auteur === 'client' ? 'justify-end' : 'justify-start')}><div className={cn('max-w-[85%] rounded-xl px-4 py-3', message.auteur === 'client' ? 'bg-primary text-white' : 'border border-border bg-surface-container-low text-on-surface')}><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.contenu}</p><p className={cn('mt-1.5 text-[10px]', message.auteur === 'client' ? 'text-white/70' : 'text-secondary')}>{message.auteur === 'client' ? 'Vous' : 'TVM38'} · {new Date(message.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p></div></div>)}
+                {/* Les repères système ne sont pas un échange : sans ce filtre,
+                    un dossier où personne n'a écrit paraissait déjà entamé. */}
+                {affaire.messages.every((message) => message.type === 'systeme') && <p className="rounded-lg bg-surface-container-low p-4 text-sm text-secondary">Aucun échange pour le moment. Écrivez ici pour que votre message reste associé à ce dossier.</p>}
+                {affaire.messages.map((message) => {
+                  // Un message système est un repère de chronologie, pas une
+                  // parole. Les triggers SQL en écrivent avec `auteur` à
+                  // « client » (dépôt d'un justificatif) : en bulle, le client
+                  // lisait « Devis signé transmis… · Vous » comme s'il l'avait
+                  // tapé lui-même. Le logiciel les affiche déjà en séparateur.
+                  if (message.type === 'systeme') {
+                    return (
+                      <div key={message.id} className="flex items-center gap-3 py-1" role="separator">
+                        <span className="h-px flex-1 bg-border" />
+                        <span className="max-w-[75%] text-center text-[11px] leading-4 text-secondary">
+                          {message.contenu}
+                          <span className="mt-0.5 block opacity-70">{new Date(message.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                        </span>
+                        <span className="h-px flex-1 bg-border" />
+                      </div>
+                    );
+                  }
+                  return <div key={message.id} className={cn('flex', message.auteur === 'client' ? 'justify-end' : 'justify-start')}><div className={cn('max-w-[85%] rounded-xl px-4 py-3', message.auteur === 'client' ? 'bg-primary text-white' : 'border border-border bg-surface-container-low text-on-surface')}><p className="whitespace-pre-wrap text-sm leading-relaxed">{message.contenu}</p><p className={cn('mt-1.5 text-[10px]', message.auteur === 'client' ? 'text-white/70' : 'text-secondary')}>{message.auteur === 'client' ? 'Vous' : 'TVM38'} · {new Date(message.createdAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })}</p></div></div>;
+                })}
               </div>
               <form onSubmit={posterMessage} className="mt-4 flex flex-col gap-2 sm:flex-row"><textarea aria-label="Votre message" maxLength={2000} rows={2} value={nouveauMessage} onChange={(event) => setNouveauMessage(event.target.value)} className={`${inputClass} resize-y`} placeholder="Écrire un message à TVM38…" /><button type="submit" disabled={messageEnCours || !nouveauMessage.trim()} className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-xs font-bold text-white disabled:opacity-50">{messageEnCours ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />} Envoyer</button></form>
             </section>
@@ -415,7 +485,9 @@ export default function AffairePage() {
 
       {/* Barre d'action persistante. Sur mobile le libellé du bouton est long
           (« Transmettre mon accord ») : on autorise le retour à la ligne du
-          conteneur et on protège la zone de la barre d'accueil iOS. */}
+          conteneur et on protège la zone de la barre d'accueil iOS.
+          Le numéro y reste en texte tronqué : la copie est offerte une seule
+          fois, en tête de page, où le numéro s'affiche en entier. */}
       {!chargement && devis && <div className="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border/80 bg-white/95 px-3 py-3 shadow-2xl backdrop-blur-md"><div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-3 gap-y-2"><div className="min-w-0"><p className="truncate text-xs font-medium text-secondary">Devis n° {devis.numero}</p><p className="font-headline text-lg font-black text-on-surface">{formatMontant(devis.montantHT)} € <span className="text-xs text-secondary">HT</span></p></div>{depotPossible ? <button type="button" onClick={() => setDepotOuvert(true)} className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-extrabold uppercase text-white shadow-md sm:flex-none sm:px-5"><ThumbsUp className="h-4 w-4 shrink-0" /><span className="sm:hidden">{documentTransmis ? 'Renvoyer' : 'Mon accord'}</span><span className="hidden sm:inline">{documentTransmis ? 'Renvoyer un document' : 'Transmettre mon accord'}</span></button> : <span className="text-right text-xs font-bold text-secondary">{documentTransmis?.statut === 'valide' ? 'Acceptation validée' : documentTransmis ? 'Document en vérification' : 'Réponse enregistrée'}</span>}</div></div>}
 
       {depotOuvert && devis && affaire?.devisId && (
