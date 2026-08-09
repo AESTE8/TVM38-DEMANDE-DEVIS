@@ -298,7 +298,6 @@ Deno.serve(async (req) => {
     // SMTP en panne ne doit pas transformer un dépôt réussi en erreur.
     const destinataire = transmetteurEmail || (await emailDuCompte(token.sub));
     if (destinataire) {
-      const compte = await identifiantsDuCompte(token.sub);
       const lien = await lienAcces(token.sub, jwtSecret, affaireDuDevis(devis.id, devis.demande_id));
       const qr = await qrCodeBase64(lien);
 
@@ -321,7 +320,9 @@ Deno.serve(async (req) => {
           bouton: { libelle: 'Suivre mon dossier', url: lien },
           lienSecondaire: { libelle: 'Accéder à tous mes dossiers', url: `${SITE_URL}/` },
           qrCodeCid: qr ? QR_CID : undefined,
-          identifiants: compte,
+          // Pas de bloc identifiants : sans le mot de passe il ne permet de se
+          // connecter nulle part ailleurs, et l'encadré l'affirmait pourtant.
+          // Le bouton porte un lien signé qui connecte directement.
           rappelEspace: true,
         }),
         pieceJointeQr(qr),
@@ -384,15 +385,6 @@ Deno.serve(async (req) => {
 async function emailDuCompte(clientId: string): Promise<string> {
   const { data } = await supabase.from('clients').select('email').eq('id', clientId).maybeSingle();
   return String(data?.email || '').trim();
-}
-
-/** Identifiants rappelés dans l'e-mail, comme dans celui d'envoi du devis. */
-async function identifiantsDuCompte(clientId: string) {
-  const { data } = await supabase
-    .from('clients').select('identifiant, password').eq('id', clientId).maybeSingle();
-  return data?.identifiant
-    ? { identifiant: String(data.identifiant), motDePasse: String(data.password ?? '') }
-    : undefined;
 }
 
 /** Identifiant d'affaire du portail : `d:` s'il vient d'une demande, `q:` sinon. */
