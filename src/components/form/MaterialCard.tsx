@@ -1,6 +1,7 @@
 import { Materiau, LigneDevis } from '@/types';
 import { cn } from '@/lib/utils';
 import { Check } from 'lucide-react';
+import { infoMateriau } from '@/data/guide';
 import QuantityPanel from './QuantityPanel';
 
 interface Props {
@@ -13,6 +14,7 @@ interface Props {
 
 export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, onUpdate }: Props) {
   const isSelected = !!ligne && ligne.quantiteTonnes > 0;
+  const resume = infoMateriau(materiau.id)?.resume;
 
   return (
     <div className="flex flex-col">
@@ -34,11 +36,18 @@ export default function MaterialCard({ materiau, ligne, isExpanded, onToggle, on
         )}>
           {isSelected && <Check className="w-3 h-3 text-white" strokeWidth={3} />}
         </div>
-        <span className={cn(
-          "font-bold text-sm flex-1 uppercase tracking-tight transition-colors",
-          isSelected ? "text-primary" : "text-on-surface"
-        )}>
-          {materiau.nom}
+        <span className="flex-1 min-w-0">
+          <span className={cn(
+            "block font-bold text-sm uppercase tracking-tight transition-colors",
+            isSelected ? "text-primary" : "text-on-surface"
+          )}>
+            {materiau.nom}
+          </span>
+          {resume && (
+            <span className="block text-xs text-secondary font-body normal-case mt-0.5">
+              {resume}
+            </span>
+          )}
         </span>
         {isSelected && (
           <span className="bg-primary text-on-primary text-xs font-bold px-2.5 py-0.5 rounded-sm ml-2 shrink-0 tabular-nums">

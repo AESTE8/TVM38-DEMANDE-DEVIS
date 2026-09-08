@@ -5,15 +5,11 @@ import { Download } from 'lucide-react';
 
 export default function PWAInstallButton() {
   const pwaRef = useRef<PWAInstallElement>(null);
-  const [isInstalled, setIsInstalled] = useState(false);
-  const isMobile = window.matchMedia('(max-width: 767px)').matches;
+  const [isInstalled, setIsInstalled] = useState(
+    () => window.matchMedia('(display-mode: standalone)').matches,
+  );
 
   useEffect(() => {
-    if (window.matchMedia('(display-mode: standalone)').matches) {
-      setIsInstalled(true);
-      return;
-    }
-
     const el = pwaRef.current;
     if (!el) return;
 
@@ -33,16 +29,16 @@ export default function PWAInstallButton() {
         description="Devis & Estimation - MIDALI"
         icon="/android/launchericon-192x192.png"
         styles={{ '--tint-color': '#2c64a3' }}
-        manualApple={isMobile}
-        manualChrome={isMobile}
+        manualApple
+        manualChrome
       />
       <button
         type="button"
         onClick={() => pwaRef.current?.showDialog(true)}
-        className="w-full flex items-center justify-center gap-2 bg-primary/10 border border-primary/30 text-primary font-headline font-bold py-2.5 px-6 rounded-sm uppercase tracking-tighter text-xs hover:bg-primary/20 transition-all"
+        className="flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-primary/25 bg-primary/5 px-6 py-2.5 font-headline text-xs font-bold text-primary transition hover:bg-primary/10 active:scale-[0.98]"
       >
         <Download className="w-4 h-4" />
-        Installer en tant qu'application
+        Installer l'application
       </button>
     </>
   );

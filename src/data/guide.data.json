@@ -1,0 +1,386 @@
+{
+  "version": "1.0-a-valider",
+  "coefficients": {
+    "compactee": { "valeur": 1.2, "libelle": "Couche compactée", "explication": "Un matériau compacté au rouleau ou à la plaque perd environ 20 % de volume. Sans cette marge, la commande est systématiquement courte." },
+    "non_compactee": { "valeur": 1.0, "libelle": "Couche non compactée", "explication": "Gravier décoratif, galets de drainage, lit de pose : mis en place sans compactage, le volume commandé est le volume en place." },
+    "terre_vegetale": { "valeur": 1.15, "libelle": "Terre végétale", "explication": "La terre rapportée se tasse naturellement les premiers mois. 15 % de marge évite un affaissement visible." }
+  },
+  "projets": [
+    {
+      "id": "allee",
+      "label": "Allée, cour, accès",
+      "icone": "route",
+      "question2": "Qui va circuler dessus ?",
+      "variantes": [
+        {
+          "id": "pieton",
+          "label": "Piétons uniquement",
+          "aide": "Allée de jardin, cheminement, accès de portail sans véhicule",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b12", "epaisseurCm": 10, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b51", "epaisseurCm": 4, "compactage": "compactee" }
+          ],
+          "note": "Sur terre végétale ou sol argileux, poser un géotextile anticontaminant avant la fondation (non fourni par TVM38)."
+        },
+        {
+          "id": "vl",
+          "label": "Voitures (véhicule léger)",
+          "aide": "Allée de garage, cour de maison, place de stationnement",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b12", "epaisseurCm": 15, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b51", "epaisseurCm": 5, "compactage": "compactee" }
+          ],
+          "note": "Décaisser d'au moins 20 cm avant de remblayer. Géotextile conseillé sur sol argileux."
+        },
+        {
+          "id": "pl",
+          "label": "Camions ou engins",
+          "aide": "Accès de ferme, cour d'entreprise, passage de poids lourd",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b13", "epaisseurCm": 25, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b52", "epaisseurCm": 10, "compactage": "compactee" }
+          ],
+          "note": "Compacter la fondation par couches de 20 cm maximum. Sur sol portant faible, faire vérifier la structure."
+        }
+      ]
+    },
+    {
+      "id": "chemin-parking",
+      "label": "Chemin, parking, plateforme",
+      "icone": "map",
+      "question2": "Quel usage et quel terrain ?",
+      "variantes": [
+        {
+          "id": "vl",
+          "label": "Parking véhicules légers",
+          "aide": "Aire de stationnement, cour gravillonnée",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b13", "epaisseurCm": 20, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b52", "epaisseurCm": 8, "compactage": "compactee" }
+          ],
+          "note": "Prévoir une pente de 2 % pour l'évacuation de l'eau."
+        },
+        {
+          "id": "pl_engins",
+          "label": "Chemin d'exploitation, passage d'engins",
+          "aide": "Chemin agricole, piste de chantier, accès poids lourd régulier",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b53", "epaisseurCm": 30, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b52", "epaisseurCm": 10, "compactage": "compactee" }
+          ],
+          "note": "Le 0/100 apporte la portance ; il ne se roule pas seul, la couche de finition est indispensable."
+        },
+        {
+          "id": "humide",
+          "label": "Terrain humide ou peu portant",
+          "aide": "Sol qui garde l'eau, ornières, terrain gorgé au printemps",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation drainante", "materiauId": "b62", "epaisseurCm": 25, "compactage": "compactee" },
+            { "role": "Finition", "materiauId": "b61", "epaisseurCm": 8, "compactage": "compactee" }
+          ],
+          "note": "Le granit résiste mieux à l'eau que le calcaire, qui se délite en présence d'humidité permanente. Géotextile fortement conseillé."
+        }
+      ]
+    },
+    {
+      "id": "drainage",
+      "label": "Drainage, évacuation d'eau",
+      "icone": "droplets",
+      "question2": "Où l'eau doit-elle être reprise ?",
+      "variantes": [
+        {
+          "id": "pied_mur",
+          "label": "Drain en pied de mur ou de fondation",
+          "aide": "Mur enterré, sous-sol humide, cave",
+          "modeMesure": "tranchee",
+          "couches": [
+            { "role": "Remplissage drainant", "materiauId": "b43", "epaisseurCm": 40, "compactage": "non_compactee" }
+          ],
+          "note": "Toujours un matériau lavé. Un granulat chargé en fines colmate le drain en une à deux saisons et le mur redevient humide."
+        },
+        {
+          "id": "tranchee",
+          "label": "Tranchée drainante dans le terrain",
+          "aide": "Terrain qui retient l'eau, drain agricole, reprise de source",
+          "modeMesure": "tranchee",
+          "couches": [
+            { "role": "Remplissage drainant", "materiauId": "b46", "epaisseurCm": 40, "compactage": "non_compactee" }
+          ],
+          "note": "Enrober le drain dans un géotextile avant de remblayer, sinon les fines du terrain migrent dans le granulat."
+        },
+        {
+          "id": "massif",
+          "label": "Massif d'infiltration ou puits perdu",
+          "aide": "Rejet d'eaux pluviales, épandage",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Corps du massif", "materiauId": "b44", "epaisseurCm": 0, "compactage": "non_compactee" }
+          ],
+          "note": "Volume de vide utile d'environ 30 % du volume de galets : un massif de 3 m³ stocke à peu près 1 m³ d'eau."
+        }
+      ]
+    },
+    {
+      "id": "jardin",
+      "label": "Jardin, plantation, engazonnement",
+      "icone": "sprout",
+      "question2": "Que voulez-vous faire pousser ?",
+      "variantes": [
+        {
+          "id": "gazon",
+          "label": "Semer ou refaire un gazon",
+          "aide": "Apport de finition avant semis",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Terre de finition", "materiauId": "b21", "epaisseurCm": 10, "compactage": "terre_vegetale" }
+          ],
+          "note": "Le 0/10 se règle finement au râteau : c'est le criblage adapté au semis."
+        },
+        {
+          "id": "massif",
+          "label": "Créer un massif ou un potager",
+          "aide": "Plantations, arbustes, culture",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Terre de plantation", "materiauId": "b23", "epaisseurCm": 30, "compactage": "terre_vegetale" }
+          ],
+          "note": "La terre amendée est enrichie : inutile d'ajouter du compost la première année."
+        },
+        {
+          "id": "remodelage",
+          "label": "Remonter ou niveler un terrain",
+          "aide": "Combler un creux, rattraper un niveau avant engazonnement",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Terre de remblai", "materiauId": "b22", "epaisseurCm": 20, "compactage": "terre_vegetale" }
+          ],
+          "note": "Pour une remontée de plus de 30 cm, remblayer en tout-venant puis finir en terre végétale : moins cher et moins de tassement."
+        },
+        {
+          "id": "fosse_arbre",
+          "label": "Planter un arbre (fosse)",
+          "aide": "Arbre de haute tige, alignement, fosse en zone circulée",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Remplissage de fosse", "materiauId": "b24", "epaisseurCm": 0, "compactage": "terre_vegetale" }
+          ],
+          "note": "Le mélange terre-pierres supporte la circulation sans écraser les racines : c'est sa raison d'être en fosse d'arbre urbaine."
+        }
+      ]
+    },
+    {
+      "id": "mur-gabion",
+      "label": "Mur, gabion, enrochement",
+      "icone": "brick-wall",
+      "question2": "Quel type d'ouvrage ?",
+      "variantes": [
+        {
+          "id": "gabion",
+          "label": "Remplir des gabions",
+          "aide": "Cages métalliques, mur décoratif ou de soutènement léger",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Remplissage de cage", "materiauId": "b63", "epaisseurCm": 0, "compactage": "non_compactee" }
+          ],
+          "note": "Le calibre 60/100 est fait pour des mailles standard. Plus petit, les blocs traversent la maille."
+        },
+        {
+          "id": "enrochement",
+          "label": "Mur de soutènement en enrochement",
+          "aide": "Retenue de talus, rattrapage de niveau",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Blocs", "materiauId": "b25", "epaisseurCm": 0, "compactage": "non_compactee" }
+          ],
+          "note": "Prévoir une assise décaissée et un fruit (inclinaison vers le talus). Au-delà de 1,50 m de hauteur, faire dimensionner l'ouvrage."
+        },
+        {
+          "id": "paysager",
+          "label": "Rocaille, décor, blocs apparents",
+          "aide": "Aménagement paysager, séparation de zones",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Blocs", "materiauId": "b26", "epaisseurCm": 0, "compactage": "non_compactee" }
+          ],
+          "note": "Blocs choisis pour l'aspect : préciser la taille moyenne souhaitée dans les notes de la demande."
+        }
+      ]
+    },
+    {
+      "id": "remblai",
+      "label": "Remblai, comblement de fouille",
+      "icone": "layers",
+      "question2": "Que devez-vous remblayer ?",
+      "variantes": [
+        {
+          "id": "fouille",
+          "label": "Combler une fouille ou un vide",
+          "aide": "Ancienne fosse, cave comblée, excavation",
+          "modeMesure": "volume",
+          "couches": [
+            { "role": "Remblai", "materiauId": "b41", "epaisseurCm": 0, "compactage": "compactee" }
+          ],
+          "note": "Remblayer par couches de 30 cm compactées. Un remblai déversé en une fois se tasse et crée un affaissement."
+        },
+        {
+          "id": "reseau",
+          "label": "Enrober des canalisations ou des gaines",
+          "aide": "Tranchée de réseaux : eau, électricité, télécom",
+          "modeMesure": "tranchee",
+          "couches": [
+            { "role": "Lit de pose et enrobage", "materiauId": "b42", "epaisseurCm": 30, "compactage": "non_compactee" },
+            { "role": "Remblai supérieur", "materiauId": "b41", "epaisseurCm": 50, "compactage": "compactee" }
+          ],
+          "note": "Le sable protège la canalisation ; ne jamais mettre de grave au contact direct d'un tuyau. Grillage avertisseur à 30 cm au-dessus du réseau."
+        },
+        {
+          "id": "plateforme",
+          "label": "Créer une plateforme portante",
+          "aide": "Plateforme de bâtiment, aire de stockage, dalle à venir",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Corps de plateforme", "materiauId": "b13", "epaisseurCm": 30, "compactage": "compactee" },
+            { "role": "Réglage de surface", "materiauId": "b52", "epaisseurCm": 10, "compactage": "compactee" }
+          ],
+          "note": "Le réglage en 0/31.5 permet de rattraper le niveau au laser avant coulage."
+        }
+      ]
+    },
+    {
+      "id": "terrasse-dalle",
+      "label": "Terrasse, dalle béton, dallage",
+      "icone": "square",
+      "question2": "Comment posez-vous votre surface ?",
+      "variantes": [
+        {
+          "id": "dalle_beton",
+          "label": "Couler une dalle béton",
+          "aide": "Terrasse béton, abri de jardin, garage",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Hérisson (fondation)", "materiauId": "b12", "epaisseurCm": 15, "compactage": "compactee" },
+            { "role": "Lit de réglage", "materiauId": "b71", "epaisseurCm": 3, "compactage": "non_compactee" }
+          ],
+          "note": "TVM38 fournit le support de la dalle, pas le béton. Si vous fabriquez votre béton sur place, il faut en plus de la Gravette 4/12 et du Sable 0/4, plus le ciment (non fourni). Le béton prêt à l'emploi n'est pas au catalogue.",
+          "nonFourni": "Ciment, béton prêt à l'emploi, film polyane, treillis soudé"
+        },
+        {
+          "id": "dallage_sable",
+          "label": "Poser des dalles ou des pavés sur lit de sable",
+          "aide": "Terrasse en dalles, pavage, allée pavée",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Fondation", "materiauId": "b12", "epaisseurCm": 10, "compactage": "compactee" },
+            { "role": "Lit de pose", "materiauId": "b71", "epaisseurCm": 4, "compactage": "non_compactee" }
+          ],
+          "note": "Le lit de pose ne se compacte pas avant la pose : il se règle à la règle, puis les dalles sont vibrées dessus."
+        }
+      ]
+    },
+    {
+      "id": "nid-de-poule",
+      "label": "Réparation de nid-de-poule",
+      "icone": "wrench",
+      "question2": "Que réparez-vous ?",
+      "variantes": [
+        {
+          "id": "ponctuel",
+          "label": "Trous et affaissements ponctuels",
+          "aide": "Cour, chemin d'accès, voirie privée",
+          "modeMesure": "surface",
+          "couches": [
+            { "role": "Réparation", "materiauId": "b81", "epaisseurCm": 6, "compactage": "compactee" }
+          ],
+          "note": "Se met en œuvre à froid, sans matériel spécifique. Compacter en deux passes de 3 cm. Le produit se stocke : un sac entamé reste utilisable."
+        }
+      ]
+    }
+  ],
+  "decharge": {
+    "question1": "D'où vient ce que vous devez évacuer ?",
+    "origines": [
+      {
+        "id": "demolition",
+        "label": "Démolition de maçonnerie ou de béton",
+        "question2": "Y a-t-il des fers à béton dans les blocs ?",
+        "reponses": [
+          { "id": "oui", "label": "Oui, il y a du ferraillage", "materiauId": "b32" },
+          { "id": "non", "label": "Non, béton et pierre uniquement", "materiauId": "b31" }
+        ]
+      },
+      {
+        "id": "terrassement",
+        "label": "Terrassement, fond de fouille",
+        "question2": "Est-ce de la terre et des cailloux propres, sans autre déchet ?",
+        "reponses": [
+          { "id": "propre", "label": "Oui, terre et cailloux uniquement", "materiauId": "b33" },
+          { "id": "melange", "label": "Non, il y a du plâtre, du plastique, du bois ou de l'enrobé", "materiauId": "b34" }
+        ]
+      },
+      {
+        "id": "tranchee",
+        "label": "Tranchée de réseaux",
+        "question2": "Les déblais sont-ils propres, sans gravats ni enrobé ?",
+        "reponses": [
+          { "id": "propre", "label": "Oui, déblais de terre et cailloux", "materiauId": "b33" },
+          { "id": "melange", "label": "Non, mélangés avec des gravats", "materiauId": "b34" }
+        ]
+      },
+      {
+        "id": "enrobe",
+        "label": "Rabotage ou croûte d'enrobé",
+        "question2": "Est-ce de l'enrobé seul, sans terre ni gravats ?",
+        "reponses": [
+          { "id": "trie", "label": "Oui, enrobé seul", "materiauId": "b35" },
+          { "id": "melange", "label": "Non, mélangé à de la terre ou des gravats", "materiauId": "b34" }
+        ]
+      },
+      {
+        "id": "inconnu",
+        "label": "Mélangé, ou je ne sais pas",
+        "question2": null,
+        "reponses": [
+          { "id": "defaut", "label": "Classement à confirmer par TVM38", "materiauId": "b34" }
+        ],
+        "note": "Ajoutez une photo du chargement dans votre demande. TVM38 confirme le classement à la réception. Un chargement mal déclaré peut être refusé au pont-bascule ou requalifié, ce qui change le prix."
+      }
+    ]
+  },
+  "materiaux": {
+    "b11": { "usages": ["allee", "finition"], "resume": "Finition d'allée ou de cour, se prend en masse au soleil", "eviter": "Pas en fondation : il n'apporte pas de portance." },
+    "b12": { "usages": ["fondation", "allee", "remblai"], "resume": "La fondation de référence : allée, cour, dalle. Se compacte très bien", "eviter": "Pas en finition apparente : contient des fines qui salissent par temps humide." },
+    "b13": { "usages": ["fondation", "remblai"], "resume": "Grosse fondation, plateforme et passage de poids lourd", "eviter": "Trop grossier pour une finition ou pour être réglé finement." },
+    "b14": { "usages": ["fondation", "remblai"], "resume": "Alternative économique pour fondation et remblai courant", "eviter": "Composition mixte : à éviter sous une dalle destinée à recevoir une charge lourde." },
+    "b21": { "usages": ["paysager"], "resume": "Terre fine pour semer un gazon ou finir un terrain", "eviter": "Pas pour remonter un terrain sur une forte épaisseur : tassement." },
+    "b22": { "usages": ["paysager"], "resume": "Terre pour remblayer, remodeler, remonter un niveau", "eviter": "Trop grossière pour un semis de gazon en finition." },
+    "b23": { "usages": ["paysager"], "resume": "Terre enrichie pour massifs, potager et plantations", "eviter": "Inutilement chère pour du simple remblaiement." },
+    "b24": { "usages": ["paysager"], "resume": "Fosse d'arbre en zone circulée : supporte la charge sans écraser les racines", "eviter": "Pas pour un massif de fleurs ou un gazon." },
+    "b25": { "usages": ["enrochement"], "resume": "Blocs de soutènement, retenue de talus", "eviter": "Au-delà de 1,50 m de mur, faire dimensionner l'ouvrage." },
+    "b26": { "usages": ["enrochement", "paysager"], "resume": "Blocs choisis pour l'aspect : rocaille, décor, séparation", "eviter": "Non calibrés pour un ouvrage de soutènement structurel." },
+    "b31": { "usages": ["decharge"], "resume": "Béton et pierre de démolition, sans ferraillage", "eviter": "Présence de fers : le chargement bascule en béton ferraillé." },
+    "b32": { "usages": ["decharge"], "resume": "Béton de démolition contenant des fers à béton", "eviter": null },
+    "b33": { "usages": ["decharge"], "resume": "Déblais de terrassement et de tranchée, propres et criblables", "eviter": "Toute présence de plâtre, plastique, bois ou enrobé le déclasse." },
+    "b34": { "usages": ["decharge"], "resume": "Déblais mélangés ou pollués, non valorisables", "eviter": null },
+    "b35": { "usages": ["decharge"], "resume": "Croûte et rabotage d'enrobé, triés, sans terre", "eviter": "Mélangé à de la terre, il passe en déblais non recyclables." },
+    "b41": { "usages": ["remblai", "fondation"], "resume": "Remblai courant, comblement de fouille, plateforme", "eviter": "Pas au contact direct d'une canalisation." },
+    "b42": { "usages": ["enrobage-reseau", "remblai"], "resume": "Lit de pose et enrobage de canalisations et de gaines", "eviter": "Aucune portance : jamais en fondation de voirie." },
+    "b43": { "usages": ["drainage"], "resume": "Drainage en pied de mur et de fondation, lavé donc non colmatant", "eviter": "Pas en circulation : les galets roulent sous les roues." },
+    "b44": { "usages": ["drainage", "paysager"], "resume": "Massif d'infiltration, puits perdu, gros drainage et décor", "eviter": "Trop gros pour un drain périphérique classique." },
+    "b45": { "usages": ["beton", "paysager", "drainage"], "resume": "Granulat à béton, gravier décoratif, drainage fin", "eviter": "Roulé et lavé : ne se compacte pas, pas en fondation." },
+    "b46": { "usages": ["drainage", "paysager"], "resume": "Tranchée drainante et gravier décoratif de calibre moyen", "eviter": "Ne se compacte pas : pas en couche de roulement." },
+    "b51": { "usages": ["finition", "allee"], "resume": "Finition d'allée et de cour, se ferme et se roule bien", "eviter": "Se délite en terrain humide en permanence : préférer le granit." },
+    "b52": { "usages": ["finition", "fondation", "allee"], "resume": "Finition et réglage de plateforme, tenue au passage de camions", "eviter": "Même réserve que le 0/15 en présence d'eau permanente." },
+    "b53": { "usages": ["fondation"], "resume": "Portance forte : chemin d'exploitation, piste, fond de forme", "eviter": "Ne se règle pas seul : demande une couche de finition." },
+    "b61": { "usages": ["finition", "allee"], "resume": "Finition dure, résiste à l'humidité mieux que le calcaire", "eviter": "Plus cher que le calcaire : réservé aux zones humides ou très circulées." },
+    "b62": { "usages": ["fondation", "drainage"], "resume": "Fondation drainante en terrain humide ou peu portant", "eviter": "Trop grossier en finition." },
+    "b63": { "usages": ["enrochement"], "resume": "Remplissage de gabions, calibre adapté aux mailles standard", "eviter": "Calibre plus petit : les blocs traversent la maille." },
+    "b71": { "usages": ["beton", "lit-de-pose"], "resume": "Lit de pose de dalles et de pavés, sable à béton", "eviter": "Aucune portance : ne remplace pas une fondation." },
+    "b81": { "usages": ["reparation"], "resume": "Réparation de nid-de-poule à froid, sans matériel spécifique", "eviter": "Pas pour refaire une chaussée complète : produit de réparation ponctuelle." }
+  }
+}

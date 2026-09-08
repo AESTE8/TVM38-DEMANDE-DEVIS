@@ -68,7 +68,7 @@ self.addEventListener('fetch', (event) => {
 
   // Ne jamais cacher les appels API externes (Supabase, Resend)
   const isExternalAPI = !url.origin.includes(self.location.origin) &&
-    (url.hostname.includes('supabase.co') || url.hostname.includes('web3forms.com') || url.hostname.includes('resend.com'));
+    (url.hostname.includes('supabase.co') || url.hostname.includes('resend.com'));
   if (isExternalAPI) return;
 
   // Assets hachés Vite (/assets/nom-[hash].js ou .css) → Cache-First

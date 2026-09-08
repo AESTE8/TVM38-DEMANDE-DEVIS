@@ -5,9 +5,11 @@ import { cn } from '@/lib/utils';
 
 interface HeaderProps {
   children?: ReactNode;
+  showSecondaryAction?: boolean;
+  showPrimaryAction?: boolean;
 }
 
-export default function Header({ children }: HeaderProps) {
+export default function Header({ children, showSecondaryAction = true, showPrimaryAction = true }: HeaderProps) {
   // Quand le header porte un badge client, logo + texte + badge + CTA ne
   // tiennent plus sous sm : le nom de marque se tronquait en « MIDALI - T… ».
   // Le logo suffit alors à identifier le site sur ces largeurs.
@@ -22,7 +24,7 @@ export default function Header({ children }: HeaderProps) {
           to="/"
           className="flex min-h-11 min-w-11 items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 transition-all hover:opacity-95 sm:gap-2.5 lg:gap-3.5"
         >
-          <img src="/logo-tvm38.png" alt="TVM38 Logo" className="h-9 w-auto shrink-0 object-contain transition-transform duration-300 hover:scale-105 sm:h-10 lg:h-13" />
+          <img src="/logo-tvm38.png" alt="TVM38" className="h-9 w-auto shrink-0 object-contain sm:h-10 lg:h-13" />
           <div className={cn("min-w-0 flex-col", avecBadge ? "hidden sm:flex" : "flex")}>
             <span className="-mb-0.5 truncate font-headline text-sm font-black uppercase tracking-tighter text-white sm:text-base lg:text-2xl">
               MIDALI - TVM38
@@ -36,21 +38,25 @@ export default function Header({ children }: HeaderProps) {
         <div className="flex shrink-0 items-center gap-2 md:gap-3">
           {children}
 
-          <Link
-            to="/estimation"
-            className="hidden min-h-11 items-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-tight text-white transition-all hover:bg-white/20 hover:border-white/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 active:scale-95 lg:inline-flex"
-          >
-            Donnez votre avis
-          </Link>
+          {showSecondaryAction && (
+            <Link
+              to="/estimation"
+              className="hidden min-h-11 items-center rounded-lg border border-white/30 bg-white/10 px-4 py-2 text-xs font-black uppercase tracking-tight text-white transition hover:border-white/50 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 active:scale-[0.98] lg:inline-flex"
+            >
+              Donner mon avis
+            </Link>
+          )}
 
-          <Link
-            to="/formulaire"
-            aria-label="Demander un devis"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-4 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-on-primary shadow-lg shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 active:translate-y-0 active:scale-98 md:px-5 motion-reduce:transform-none"
-          >
-            <FilePlus2 aria-hidden="true" className="h-5 w-5 stroke-[2.5]" />
-            <span className="hidden sm:inline">Demander un devis</span>
-          </Link>
+          {showPrimaryAction && (
+            <Link
+              to="/formulaire"
+              aria-label="Demander un devis"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-lg bg-industrial-gradient px-4 py-2.5 font-headline text-xs font-extrabold uppercase tracking-tight text-on-primary shadow-lg shadow-black/20 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl hover:brightness-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 active:translate-y-0 active:scale-98 md:px-5 motion-reduce:transform-none"
+            >
+              <FilePlus2 aria-hidden="true" className="h-5 w-5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Demander un devis</span>
+            </Link>
+          )}
         </div>
       </div>
     </nav>

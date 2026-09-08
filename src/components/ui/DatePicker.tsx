@@ -95,8 +95,9 @@ export default function DatePicker({ value, onChange, placeholder = 'Choisir une
                 orientation === 'left'
                   ? <ChevronLeft className="w-4 h-4" />
                   : <ChevronRight className="w-4 h-4" />,
-              DayButton: ({ day: _day, modifiers, ...props }) => (
-                <button
+              DayButton: ({ day, modifiers, ...props }) => {
+                void day;
+                return <button
                   {...props}
                   className={cn(
                     'w-9 h-9 rounded-lg text-sm flex items-center justify-center transition-colors m-px font-medium',
@@ -108,8 +109,8 @@ export default function DatePicker({ value, onChange, placeholder = 'Choisir une
                       ? 'text-secondary/30 cursor-not-allowed'
                       : !modifiers.selected && 'hover:bg-primary/10 hover:text-primary cursor-pointer',
                   )}
-                />
-              ),
+                />;
+              },
             }}
           />
           {value && (

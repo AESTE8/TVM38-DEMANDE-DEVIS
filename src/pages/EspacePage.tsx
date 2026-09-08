@@ -225,7 +225,7 @@ export default function EspacePage() {
   }, [affaires, filtre, recherche]);
 
   return (
-    <div ref={pageRef} className="flex min-h-screen flex-col bg-surface">
+    <div ref={pageRef} className="flex min-h-[100dvh] flex-col bg-surface">
       <Header>{client && <ClientBadge />}</Header>
 
       <main className="w-full flex-1 pb-16 pt-20 md:pt-24">
@@ -240,7 +240,7 @@ export default function EspacePage() {
                   {prenomOuNom ? `Bonjour, ${prenomOuNom}` : 'Bonjour'}
                 </h1>
                 <p data-espace-intro className="mt-2 max-w-xl text-sm leading-relaxed text-secondary sm:text-base">
-                  Retrouvez vos demandes, suivez l'avancement de vos chiffrages et téléchargez vos devis TVM38 en temps réel.
+                  Retrouvez vos demandes, suivez l'avancement de vos chiffrages et téléchargez les devis disponibles.
                 </p>
               </div>
 
@@ -259,6 +259,8 @@ export default function EspacePage() {
                     type="button"
                     onClick={() => setMenuContactOuvert((v) => !v)}
                     aria-expanded={menuContactOuvert}
+                    aria-haspopup="dialog"
+                    aria-controls="contact-tvm38"
                     className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 py-2.5 text-xs font-bold text-on-surface transition hover:border-primary/40 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary shadow-sm sm:w-auto sm:justify-start"
                   >
                     <PhoneCall aria-hidden="true" className="h-4 w-4 text-primary" />
@@ -283,14 +285,11 @@ export default function EspacePage() {
                       {/* Largeur bornée au viewport : sur mobile ce bouton passe
                           souvent à la ligne près du bord gauche, et un popover
                           de 288px fixe débordait alors de l'écran. */}
-                      <div className="absolute right-0 top-full mt-2 z-50 w-[min(18rem,calc(100vw-2rem))] origin-top-right rounded-xl border border-border/80 bg-white p-3 shadow-2xl backdrop-blur-md animate-scale-bounce">
+                      <div id="contact-tvm38" role="dialog" aria-label="Coordonnées de TVM38" className="absolute right-0 top-full mt-2 z-50 w-[min(18rem,calc(100vw-2rem))] origin-top-right rounded-xl border border-border/80 bg-white p-3 shadow-2xl backdrop-blur-md animate-scale-bounce">
                         <div className="flex items-center justify-between pb-2 border-b border-border/40 px-1">
                           <p className="text-[11px] font-bold uppercase tracking-wider text-secondary/70">
                             Contacter TVM38
                           </p>
-                          <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-                            Carrière ouverte
-                          </span>
                         </div>
 
                         <div className="mt-2.5 flex flex-col gap-1.5">

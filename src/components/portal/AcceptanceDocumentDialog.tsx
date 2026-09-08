@@ -273,7 +273,7 @@ export default function AcceptanceDocumentDialog({
               {type === 'bon_commande' && (
                 <label className="block text-xs font-bold text-on-surface">
                   Référence de votre bon de commande
-                  <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} placeholder="Ex. BC-2026-114" className={champ} />
+                  <input value={reference} onChange={(event) => setReference(event.target.value)} maxLength={60} placeholder="Votre référence de commande" className={champ} />
                 </label>
               )}
 
@@ -360,7 +360,7 @@ export default function AcceptanceDocumentDialog({
                     <span className="mt-1 block font-normal text-[11px] text-red-700">Cette adresse ne semble pas valide.</span>
                   )}
                 </label>
-                <label className="text-xs font-bold text-on-surface">Fonction <span className="font-normal text-secondary">(facultatif)</span><input value={fonction} onChange={(event) => setFonction(event.target.value)} maxLength={160} placeholder="Ex. Conducteur de travaux" className={champ} /></label>
+                <label className="text-xs font-bold text-on-surface">Fonction <span className="font-normal text-secondary">(facultatif)</span><input value={fonction} onChange={(event) => setFonction(event.target.value)} maxLength={160} placeholder="Votre fonction dans l'entreprise" className={champ} /></label>
                 {agenceFigee ? (
                   <div className="text-xs font-bold text-on-surface">
                     Agence

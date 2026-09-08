@@ -1,10 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
+import { CheckCircle2, ExternalLink, FileText, Loader2, Mail, Phone, Star, X } from 'lucide-react';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { formatPhoneInput } from '@/lib/utils';
-
-/* ─── Types ─────────────────────────────────────────────── */
-type ModalView = 'form' | 'success';
+import { envoyerMessageContact } from '@/lib/contact';
 
 const RATING_LABELS: Record<number, string> = {
   1: 'Très insatisfait',
@@ -16,714 +15,194 @@ const RATING_LABELS: Record<number, string> = {
 
 const GOOGLE_URL = 'https://g.page/r/CcJfc4onmZFmEAE/review';
 
-function buildStars(n: number) {
-  return '★'.repeat(n) + '☆'.repeat(5 - n);
-}
-
-/* ─── Modal Contact ──────────────────────────────────────── */
-function ContactModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  // Fermer avec Échap
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-
-  return (
-    <div
-      className={`est-modal-overlay${open ? ' active' : ''}`}
-      id="contactModalOverlay"
-      role="dialog"
-      aria-modal="true"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="est-modal">
-        <button className="est-modal-close" onClick={onClose} aria-label="Fermer">✕</button>
-        <div className="est-contact-info">
-          <span className="est-role">Responsable carrière</span>
-          <span className="est-manager">Maxime ROMANET</span>
-          <div style={{ marginTop: 30 }}>
-            <a href="mailto:tvm38@midali.fr" className="est-contact-link">
-              <span>✉️</span> tvm38@midali.fr
-            </a>
-            <a href="tel:0620721960" className="est-contact-link">
-              <span>📞</span> 06 20 72 19 60
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── Modal Avis ─────────────────────────────────────────── */
-function ReviewModal({
-  open,
-  rating,
-  onClose,
-}: {
-  open: boolean;
-  rating: number;
+interface ModalProps {
+  title: string;
   onClose: () => void;
-}) {
-  const [view, setView] = useState<ModalView>('form');
-  const formRef = useRef<HTMLFormElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
+  children: React.ReactNode;
+}
+
+function Modal({ title, onClose, children }: ModalProps) {
+  const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setView('form');
-      formRef.current?.reset();
-    }
-  }, [open, rating]);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
   }, [onClose]);
 
-  useEffect(() => {
-    document.body.style.overflow = open ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [open]);
-
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const btn = btnRef.current!;
-    const originalText = btn.textContent ?? '';
-    btn.textContent = 'Envoi en cours...';
-    btn.disabled = true;
-
-    const data = new FormData(e.currentTarget);
-    const object: Record<string, string> = Object.fromEntries(
-      [...data.entries()].map(([k, v]) => [k, v.toString()])
-    );
-
-    object.access_key = '9006136e-466e-4e94-8c92-8b29e693c28e';
-    object.subject = '⚠️ Avis Négatif reçu - TVM38 Estimation';
-    object.from_name = 'TVM38 - Votre Site Web';
-    if (object['Email de contact']) object.replyto = object['Email de contact'];
-    delete object._captcha;
-    delete object._honey;
-    delete object._subject;
-
-    try {
-      const response = await fetch('https://api.web3forms.com/submit', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(object),
-      });
-      const result = await response.json();
-      if (result.success) {
-        setView('success');
-        setTimeout(onClose, 3200);
-      } else {
-        alert("Une erreur est survenue lors de l'envoi. Veuillez réessayer.");
-      }
-    } catch {
-      alert('Erreur de connexion. Veuillez vérifier votre réseau.');
-    } finally {
-      btn.textContent = originalText;
-      btn.disabled = false;
-    }
-  };
-
   return (
-    <div
-      className={`est-modal-overlay${open ? ' active' : ''}`}
-      id="modalOverlay"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modalTitle"
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div className="est-modal" id="modal">
-        <button className="est-modal-close" onClick={onClose} aria-label="Fermer">✕</button>
-
-        {/* Vue formulaire */}
-        {view === 'form' && (
-          <div id="formView">
-            <div className="est-modal-rating-display">
-              <span
-                className="est-modal-stars"
-                style={{ color: rating === 0 ? '#d4d4d4' : '#f5a623' }}
-              >
-                {buildStars(rating)}
-              </span>
-              <span className="est-modal-rating-text">
-                Vous avez cliqué sur {rating} étoile{rating > 1 ? 's' : ''} sur 5
-              </span>
-            </div>
-
-            <h2 id="modalTitle">Votre retour nous aide</h2>
-            <p className="est-modal-subtitle">
-              Vous confirmez vouloir nous laisser un avis de{' '}
-              <strong>{rating} étoile{rating > 1 ? 's' : ''}</strong> ?<br />
-              Dites-nous pourquoi ci-dessous.
-            </p>
-
-            <form id="reviewForm" ref={formRef} onSubmit={handleSubmit}>
-              <input type="hidden" name="note" value={`${rating}/5`} readOnly />
-              <input type="hidden" name="_subject" value="Nouvel avis TVM38 !" />
-              <input type="hidden" name="_captcha" value="false" />
-              <input type="text" name="_honey" style={{ display: 'none' }} />
-
-              <div className="est-form-group">
-                <label htmlFor="est-name">Prénom / Nom</label>
-                <input type="text" id="est-name" name="Nom de l'utilisateur" placeholder="Jean Dupont" required />
-              </div>
-              <div className="est-form-group">
-                <label htmlFor="est-email">
-                  Email <span style={{ fontWeight: 400, color: '#bbb', textTransform: 'none', letterSpacing: 0 }}>(optionnel)</span>
-                </label>
-                <input type="email" id="est-email" name="Email de contact" placeholder="jean@exemple.fr" />
-              </div>
-              <div className="est-form-group">
-                <label htmlFor="est-phone">
-                  Téléphone <span style={{ fontWeight: 400, color: '#bbb', textTransform: 'none', letterSpacing: 0 }}>(optionnel)</span>
-                </label>
-                <input type="tel" inputMode="tel" id="est-phone" name="Numéro de téléphone" placeholder="06 12 34 56 78" pattern="[0-9 \.\-\+\(\)]*" onInput={e => { const t = e.currentTarget; t.value = formatPhoneInput(t.value); }} />
-              </div>
-              <div className="est-form-group">
-                <label htmlFor="est-message">Votre message</label>
-                <textarea id="est-message" name="Détails de l'avis" placeholder="Décrivez votre expérience..." required />
-              </div>
-              <button type="submit" className="est-btn-submit" ref={btnRef}>Envoyer mon avis</button>
-            </form>
-          </div>
-        )}
-
-        {/* Vue succès */}
-        {view === 'success' && (
-          <div id="successView" className="est-success-message">
-            <span className="est-success-icon">✅</span>
-            <h3>Merci pour votre retour !</h3>
-            <p>Votre avis a bien été transmis.<br />Nous en tiendrons compte pour nous améliorer.</p>
-          </div>
-        )}
-      </div>
+    <div className="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/65 px-4 py-8 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
+      <section role="dialog" aria-modal="true" aria-labelledby="estimation-modal-title" className="relative w-full max-w-lg rounded-xl border border-white/30 bg-card p-6 shadow-[0_24px_80px_rgba(0,28,54,0.32)] sm:p-8">
+        <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer" className="absolute right-3 top-3 grid h-11 w-11 place-items-center rounded-lg text-secondary transition hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+          <X aria-hidden="true" className="h-5 w-5" />
+        </button>
+        <h2 id="estimation-modal-title" className="pr-12 font-headline text-2xl font-black tracking-tight text-on-surface">{title}</h2>
+        {children}
+      </section>
     </div>
   );
 }
 
-/* ─── Page principale ─────────────────────────────────────── */
 export default function EstimationPage() {
+  const [rating, setRating] = useState(0);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
   useEffect(() => {
-    document.title = "Valorisation de matériaux - Estimation";
+    document.title = 'Votre avis - TVM38';
   }, []);
 
-  const handleRating = (n: number) => {
-    if (n >= 4) {
-      window.open(GOOGLE_URL, '_blank');
+  function handleRating(value: number) {
+    setRating(value);
+    setSubmitError(null);
+    if (value >= 4) {
+      window.open(GOOGLE_URL, '_blank', 'noopener,noreferrer');
       return;
     }
-    setRating(n);
+    setSent(false);
     setReviewOpen(true);
-  };
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSending(true);
+    setSubmitError(null);
+    const form = new FormData(event.currentTarget);
+    const champ = (nom: string) => (form.get(nom) ?? '').toString();
+
+    try {
+      await envoyerMessageContact({
+        type: 'avis',
+        nom: champ("Nom de l'utilisateur"),
+        email: champ('Email de contact'),
+        telephone: champ('Numéro de téléphone'),
+        note: `${rating}/5`,
+        message: champ("Détails de l'avis"),
+      });
+      setSent(true);
+    } catch {
+      setSubmitError("L'avis n'a pas pu être envoyé. Vérifiez votre connexion puis réessayez.");
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
-    <>
-      <style>{`
-        /* ── Variables ── */
-        .est-root {
-          --blue:       #2c64a3;
-          --blue-dark:  #235084;
-          --blue-light: #e9f0f7;
-          --text:       #666666;
-          --title:      #333333;
-          --border:     #e2e2e2;
-          --white:      #ffffff;
-          --shadow-lg:  0 8px 40px rgba(0,0,0,0.13);
-          font-family: 'Open Sans', sans-serif;
-          color: var(--text);
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-        /* Calque de fond dédié : la propriété background-attachment: fixed n'est
-           pas gérée par Safari iOS, qui recadrait l'image en plein zoom et la
-           faisait sauter au défilement. */
-        .est-root::before {
-          content: '';
-          position: fixed;
-          inset: 0;
-          z-index: -1;
-          background: url('/fond_page.png') center / cover no-repeat;
-        }
+    <div className="relative flex min-h-[100dvh] flex-col bg-slate-900">
+      <div aria-hidden="true" className="fixed inset-0 bg-[linear-gradient(rgba(7,22,39,0.56),rgba(7,22,39,0.72)),url('/fond_page.png')] bg-cover bg-center" />
+      <div className="relative flex min-h-[100dvh] flex-col">
+        <Header showSecondaryAction={false} />
 
-        /* ── LAYOUT ── */
-        .est-page {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 48px 20px;
-        }
-
-        .est-card {
-          background: var(--white);
-          border-radius: 18px;
-          box-shadow: var(--shadow-lg);
-          padding: 52px 44px;
-          max-width: 500px;
-          width: 100%;
-          border: 1px solid var(--border);
-          position: relative;
-          overflow: hidden;
-        }
-        .est-card::before {
-          content: '';
-          position: absolute;
-          top: 0; left: 0; right: 0;
-          height: 4px;
-          background: linear-gradient(90deg, var(--blue), #568ec9);
-        }
-
-        /* ── LOGO ── */
-        .est-logo-wrap {
-          position: relative;
-          text-align: center;
-          margin-bottom: 32px;
-          animation: estFadeDown .6s ease both;
-        }
-        .est-logo-wrap img {
-          display: block;
-          margin: 0 auto;
-          max-height: 90px;
-          max-width: 240px;
-          object-fit: contain;
-        }
-
-        /* ── EN-TÊTE ── */
-        .est-header {
-          text-align: center;
-          margin-bottom: 32px;
-          animation: estFadeDown .6s ease .1s both;
-        }
-        .est-header h1 {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 26px;
-          font-weight: 800;
-          color: var(--title);
-          letter-spacing: -0.6px;
-          margin-bottom: 8px;
-        }
-        .est-header p {
-          font-size: 14px;
-          color: var(--text);
-          line-height: 1.6;
-        }
-
-        .est-divider {
-          height: 1px;
-          background: var(--border);
-          margin-bottom: 28px;
-          animation: estFadeIn .6s ease .15s both;
-        }
-
-        /* ── WIDGET ÉTOILES ── */
-        .est-stars-widget {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 6px;
-          padding: 16px 0;
-          animation: estFadeIn .6s ease .2s both;
-          direction: rtl;
-        }
-        .est-star-btn {
-          background: none;
-          border: none;
-          cursor: pointer;
-          padding: 8px 10px;
-          min-width: 48px;
-          min-height: 48px;
-          font-size: 40px;
-          line-height: 1;
-          color: #f5a623;
-          transition: transform .15s ease, color .15s ease;
-          direction: ltr;
-          touch-action: manipulation;
-          border-radius: 8px;
-        }
-        @media (min-width: 640px) {
-          .est-star-btn {
-            font-size: 48px;
-            padding: 8px 12px;
-          }
-        }
-        /* Aperçu au survol réservé aux pointeurs : sur écran tactile le :hover
-           reste collé après l'appui et fige des étoiles grisées. */
-        @media (hover: hover) {
-          .est-stars-widget:hover .est-star-btn            { color: #d4d4d4; }
-          .est-stars-widget .est-star-btn:hover,
-          .est-stars-widget .est-star-btn:hover ~ .est-star-btn { color: #f5a623; }
-          .est-star-btn:hover  { transform: scale(1.25); }
-        }
-        .est-star-btn:active { transform: scale(1.1); }
-
-        /* ── FOOTER ── */
-        .est-footer {
-          text-align: center;
-          padding: 20px;
-          font-size: 12px;
-          color: #b0b8c4;
-        }
-        .est-footer a {
-          color: #b0b8c4;
-          text-decoration: none;
-          transition: color .2s;
-        }
-        .est-footer a:hover { color: var(--blue); }
-
-        /* ── BOUTON DEMANDER DEVIS (bas gauche) ── */
-        .est-btn-devis {
-          position: fixed;
-          bottom: 76px; left: 24px;
-          background: #0f2940;
-          color: #fff !important;
-          padding: 12px 20px;
-          border-radius: 50px;
-          text-decoration: none;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 13px; font-weight: 700;
-          box-shadow: 0 4px 15px rgba(15,41,64,0.3);
-          transition: transform .2s, background .2s, box-shadow .2s;
-          z-index: 100;
-          display: flex; align-items: center; gap: 8px;
-        }
-        .est-btn-devis:hover {
-          background: #1a3f60;
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(15,41,64,0.4);
-        }
-
-        /* ── BOUTON FLOTTANT CARRIÈRE ── */
-        .est-btn-valorisation {
-          position: fixed;
-          bottom: 24px; right: 24px;
-          background: #d13239;
-          color: #fff !important;
-          padding: 12px 20px;
-          border-radius: 50px;
-          text-decoration: none;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 13px; font-weight: 700;
-          box-shadow: 0 4px 15px rgba(209,50,57,0.3);
-          transition: transform .2s, background .2s, box-shadow .2s;
-          z-index: 100;
-          display: flex; align-items: center; gap: 8px;
-        }
-        .est-btn-valorisation:hover {
-          background: #b52b31;
-          transform: translateY(-3px);
-          box-shadow: 0 6px 20px rgba(209,50,57,0.4);
-        }
-
-        /* ── BOUTON CONTACT ── */
-        .est-btn-contact {
-          position: fixed;
-          bottom: 24px; left: 24px;
-          background: var(--blue);
-          color: #ffffff !important;
-          padding: 14px 24px;
-          border-radius: 50px;
-          text-decoration: none;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 13px; font-weight: 800;
-          box-shadow: 0 4px 15px rgba(46,163,242,0.3);
-          transition: transform .2s, background .2s, box-shadow .2s;
-          z-index: 100;
-          display: flex; align-items: center; gap: 8px;
-          cursor: pointer; border: none;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .est-btn-contact:hover {
-          background: var(--blue-dark);
-          transform: translateY(-3px);
-          box-shadow: 0 8px 25px rgba(46,163,242,0.4);
-        }
-
-        /* ── MODAL ── */
-        .est-modal-overlay {
-          position: fixed; inset: 0;
-          background: rgba(0,0,0,.65);
-          backdrop-filter: blur(8px);
-          z-index: 1000;
-          display: flex; align-items: center; justify-content: center;
-          padding: 20px;
-          opacity: 0; visibility: hidden;
-          transition: opacity .3s, visibility .3s;
-        }
-        .est-modal-overlay.active { opacity: 1; visibility: visible; }
-
-        .est-modal {
-          background: #ffffff !important;
-          border-radius: 24px;
-          box-shadow: 0 20px 60px rgba(0,0,0,0.25);
-          padding: 44px 40px;
-          max-width: 480px; width: 100%;
-          max-height: 90vh; overflow-y: auto;
-          position: relative;
-          border: none;
-          transform: translateY(30px) scale(.95);
-          transition: transform .4s cubic-bezier(.16,1,.3,1), opacity .4s;
-        }
-        .est-modal-overlay.active .est-modal { transform: translateY(0) scale(1); }
-        .est-modal::before {
-          content: '';
-          position: absolute; top: 0; left: 0; right: 0;
-          height: 4px;
-          background: linear-gradient(90deg, var(--blue), #568ec9);
-          border-radius: 18px 18px 0 0;
-        }
-
-        .est-modal-close {
-          position: absolute; top: 16px; right: 16px;
-          width: 44px; height: 44px;
-          border: none; background: var(--border);
-          border-radius: 50%; cursor: pointer;
-          display: flex; align-items: center; justify-content: center;
-          font-size: 15px; color: var(--text);
-          transition: background .2s, color .2s;
-        }
-        .est-modal-close:hover { background: var(--blue); color: #fff; }
-
-        .est-modal-rating-display { text-align: center; margin-bottom: 20px; }
-        .est-modal-stars  { font-size: 30px; display: block; margin-bottom: 5px; }
-        .est-modal-rating-text {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 13px; color: var(--text); font-weight: 500;
-        }
-        .est-modal h2 {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 20px; font-weight: 700; color: var(--title);
-          text-align: center; margin-bottom: 6px;
-        }
-        .est-modal-subtitle {
-          font-size: 13px; color: var(--text);
-          text-align: center; margin-bottom: 26px; line-height: 1.55;
-        }
-
-        /* Formulaire */
-        .est-form-group { margin-bottom: 16px; }
-        .est-form-group label {
-          display: block;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 11px; font-weight: 700; color: var(--title);
-          margin-bottom: 6px;
-          text-transform: uppercase; letter-spacing: .6px;
-        }
-        .est-form-group input,
-        .est-form-group textarea {
-          width: 100%; padding: 12px 16px;
-          border: 1.5px solid var(--border); border-radius: 8px;
-          font-family: 'Open Sans', sans-serif;
-          font-size: 14px; color: var(--title);
-          outline: none; background: #fafafa;
-          transition: border-color .2s, box-shadow .2s, background .2s;
-        }
-        .est-form-group input:focus,
-        .est-form-group textarea:focus {
-          border-color: var(--blue);
-          box-shadow: 0 0 0 3px rgba(46,163,242,.13);
-          background: var(--white);
-        }
-        .est-form-group textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
-        .est-form-group input::placeholder,
-        .est-form-group textarea::placeholder { color: #c0c0c0; }
-
-        .est-btn-submit {
-          width: 100%; padding: 14px;
-          background: #2c64a3; color: #fff;
-          border: none; border-radius: 8px;
-          font-family: 'Montserrat', sans-serif;
-          font-size: 14px; font-weight: 700;
-          cursor: pointer; letter-spacing: .4px; margin-top: 8px;
-          transition: background .2s, transform .15s, box-shadow .2s;
-        }
-        .est-btn-submit:hover {
-          background: #235084;
-          box-shadow: 0 4px 18px rgba(46,163,242,.35);
-          transform: translateY(-1px);
-        }
-        .est-btn-submit:active { transform: translateY(0); }
-
-        /* Contact modal */
-        .est-contact-info { text-align: center; padding: 10px 0; }
-        .est-contact-info .est-manager {
-          font-size: 18px; color: var(--title); font-weight: 700;
-          margin-bottom: 5px; display: block;
-        }
-        .est-contact-info .est-role {
-          font-size: 13px; color: var(--blue); font-weight: 600;
-          text-transform: uppercase; letter-spacing: 1px;
-          margin-bottom: 25px; display: block;
-        }
-        .est-contact-link {
-          display: flex; align-items: center; justify-content: center;
-          gap: 12px; padding: 15px; margin-bottom: 12px;
-          background: var(--blue-light); border-radius: 12px;
-          color: var(--blue-dark); text-decoration: none; font-weight: 600;
-          transition: transform .2s, background .2s;
-        }
-        .est-contact-link:hover { transform: scale(1.02); background: #dbeefc; }
-        .est-contact-link span { font-size: 20px; }
-
-        /* Succès */
-        .est-success-message { text-align: center; padding: 24px 0; }
-        .est-success-icon {
-          font-size: 52px; display: block; margin-bottom: 18px;
-          animation: estBounceIn .5s cubic-bezier(.34,1.56,.64,1);
-        }
-        .est-success-message h3 {
-          font-family: 'Montserrat', sans-serif;
-          font-size: 20px; font-weight: 700; color: var(--title); margin-bottom: 8px;
-        }
-        .est-success-message p { font-size: 14px; color: var(--text); line-height: 1.6; }
-
-        /* ── ANIMATIONS ── */
-        @keyframes estFadeDown {
-          from { opacity: 0; transform: translateY(-14px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes estFadeIn {
-          from { opacity: 0; } to { opacity: 1; }
-        }
-        @keyframes estBounceIn {
-          from { transform: scale(.5); opacity: 0; }
-          to   { transform: scale(1);  opacity: 1; }
-        }
-
-        /* Libellés courts réservés au mobile (voir media query ci-dessous). */
-        .est-label-short { display: none; }
-
-        /* ── RESPONSIVE ── */
-        @media (max-width: 520px) {
-          .est-card   { padding: 36px 22px; }
-          .est-modal  { padding: 34px 22px; }
-          .est-header h1 { font-size: 22px; }
-
-          .est-label-long  { display: none; }
-          .est-label-short { display: inline; }
-
-          /* Les trois boutons flottants s'empilaient sur toute la largeur et
-             recouvraient près de 180px de bas d'écran, masquant le widget de
-             notation. On les regroupe en une seule barre d'actions compacte. */
-          .est-actions {
-            position: fixed;
-            left: 0; right: 0; bottom: 0;
-            z-index: 100;
-            display: flex;
-            gap: 8px;
-            padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
-            background: rgba(255, 255, 255, 0.94);
-            backdrop-filter: blur(8px);
-            border-top: 1px solid rgba(15, 41, 64, 0.12);
-          }
-          .est-actions > .est-btn-devis,
-          .est-actions > .est-btn-valorisation,
-          .est-actions > .est-btn-contact {
-            position: static;
-            flex: 1 1 0;
-            min-width: 0;
-            width: auto;
-            justify-content: center;
-            text-align: center;
-            padding: 12px 8px;
-            font-size: 12px;
-            letter-spacing: 0;
-            box-shadow: none;
-          }
-          /* Marges latérales resserrées pour regagner de la largeur utile, et
-             place laissée sous le contenu pour la barre d'actions. */
-          .est-page { padding: 32px 14px 96px; }
-
-          /* Cinq étoiles à 48px minimum débordaient de la carte sous 380px. */
-          .est-stars-widget { gap: 2px; }
-          .est-star-btn {
-            font-size: 34px;
-            padding: 8px 4px;
-            min-width: 44px;
-          }
-        }
-      `}</style>
-
-      <div className="est-root">
-        <main className="est-page">
-          <div className="est-card">
-            <div className="est-logo-wrap">
-              <img src="/logo-tvm38.png" alt="TVM38 Estimation" />
-            </div>
-
-            <div className="est-header">
-              <h1>Comment s'est passée votre expérience ?</h1>
-              <p>2 minutes pour nous aider à nous améliorer</p>
-            </div>
-
-            <div className="est-divider" />
-
-            <p style={{ textAlign: 'center', fontStyle: 'italic', color: '#aaa', fontSize: 13, marginBottom: 16 }}>
-              Cliquez sur les étoiles correspondant à votre ressenti
+        <main className="mx-auto grid w-full max-w-6xl flex-1 place-items-center px-4 pb-12 pt-24 sm:px-6 md:pt-28">
+          <section className="w-full max-w-xl rounded-xl border border-white/25 bg-white/95 p-6 text-center shadow-[0_24px_80px_rgba(0,28,54,0.30)] backdrop-blur-md sm:p-9">
+            <img src="/logo-tvm38.png" alt="TVM38" className="mx-auto h-20 w-auto object-contain" />
+            <h1 className="mt-6 font-headline text-3xl font-black tracking-tight text-on-surface sm:text-4xl">
+              Comment s'est passée votre expérience ?
+            </h1>
+            <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-secondary">
+              Sélectionnez la note qui correspond à votre expérience avec TVM38.
             </p>
 
-            {/* Widget étoiles — ordre inversé dans le DOM pour l'effet CSS RTL */}
-            <div className="est-stars-widget" role="group" aria-label="Choisissez votre note">
-              <button className="est-star-btn" aria-label={`5 étoiles — ${RATING_LABELS[5]}`} onClick={() => handleRating(5)}>★</button>
-              <button className="est-star-btn" aria-label={`4 étoiles — ${RATING_LABELS[4]}`} onClick={() => handleRating(4)}>★</button>
-              <button className="est-star-btn" aria-label={`3 étoiles — ${RATING_LABELS[3]}`} onClick={() => handleRating(3)}>★</button>
-              <button className="est-star-btn" aria-label={`2 étoiles — ${RATING_LABELS[2]}`} onClick={() => handleRating(2)}>★</button>
-              <button className="est-star-btn" aria-label={`1 étoile — ${RATING_LABELS[1]}`}  onClick={() => handleRating(1)}>★</button>
+            <div className="mt-8 border-t border-border/70 pt-7">
+              <p className="text-sm font-semibold text-secondary">Votre note</p>
+              <div className="mt-4 flex justify-center gap-1 sm:gap-3" role="group" aria-label="Choisissez votre note">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <button key={value} type="button" onClick={() => handleRating(value)} aria-label={`${value} étoile${value > 1 ? 's' : ''} - ${RATING_LABELS[value]}`} className="grid h-12 w-12 place-items-center rounded-lg text-amber-500 transition hover:bg-amber-50 hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary active:scale-[0.98] sm:h-14 sm:w-14">
+                    <Star aria-hidden="true" className="h-8 w-8 fill-current" />
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+
+            <div className="mt-8 grid gap-3 border-t border-border/70 pt-6 sm:grid-cols-2">
+              <a href="/" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-bold text-white transition hover:bg-primary/90 active:scale-[0.98]">
+                <FileText aria-hidden="true" className="h-4 w-4" />
+                Demander un devis
+              </a>
+              <button type="button" onClick={() => setContactOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-border bg-white px-4 text-sm font-bold text-primary transition hover:border-primary/40 hover:bg-primary/5 active:scale-[0.98]">
+                <Phone aria-hidden="true" className="h-4 w-4" />
+                Contacter TVM38
+              </button>
+            </div>
+            <a href="https://midali.fr/valorisation-des-materiaux/" target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex min-h-11 items-center gap-2 text-sm font-semibold text-secondary transition hover:text-primary hover:underline">
+              Voir la page de la carrière
+              <ExternalLink aria-hidden="true" className="h-4 w-4" />
+            </a>
+          </section>
         </main>
 
-        <footer className="est-footer">
-          <p>© {new Date().getFullYear()} TVM38 Estimation — Tous droits réservés</p>
-        </footer>
-
-        {/* Actions flottantes — regroupées en barre unique sous 520px */}
-        <div className="est-actions">
-          {/* Bouton Demander un devis */}
-          <Link to="/" className="est-btn-devis" aria-label="Demander un devis">
-            <FileText size={18} />
-            <span className="est-label-long">Demander un devis</span>
-            <span className="est-label-short">Devis</span>
-          </Link>
-
-          {/* Bouton Contact */}
-          <button className="est-btn-contact" onClick={() => setContactOpen(true)}>
-            <span className="est-label-long">📞 Nous contacter</span>
-            <span className="est-label-short">Contact</span>
-          </button>
-
-          {/* Bouton Carrière */}
-          <a
-            href="https://midali.fr/valorisation-des-materiaux/"
-            className="est-btn-valorisation"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <span className="est-label-long">Voir la page de la carrière</span>
-            <span className="est-label-short">Carrière</span>
-          </a>
-        </div>
+        <Footer compact />
       </div>
 
-      {/* Modals */}
-      <ContactModal open={contactOpen} onClose={() => setContactOpen(false)} />
-      <ReviewModal open={reviewOpen} rating={rating} onClose={() => setReviewOpen(false)} />
-    </>
+      {contactOpen && (
+        <Modal title="Contacter TVM38" onClose={() => setContactOpen(false)}>
+          <p className="mt-2 text-sm text-secondary">Responsable carrière : Maxime ROMANET</p>
+          <div className="mt-6 grid gap-3">
+            <a href="tel:0620721960" className="inline-flex min-h-12 items-center gap-3 rounded-lg border border-border bg-surface px-4 font-bold text-on-surface transition hover:border-primary/40 hover:text-primary">
+              <Phone aria-hidden="true" className="h-5 w-5 text-primary" />
+              06 20 72 19 60
+            </a>
+            <a href="mailto:tvm38@midali.fr" className="inline-flex min-h-12 items-center gap-3 rounded-lg border border-border bg-surface px-4 font-bold text-on-surface transition hover:border-primary/40 hover:text-primary">
+              <Mail aria-hidden="true" className="h-5 w-5 text-primary" />
+              tvm38@midali.fr
+            </a>
+          </div>
+        </Modal>
+      )}
+
+      {reviewOpen && (
+        <Modal title={sent ? 'Merci pour votre retour' : 'Votre retour nous aide'} onClose={() => setReviewOpen(false)}>
+          {sent ? (
+            <div className="mt-6 text-center" role="status">
+              <CheckCircle2 aria-hidden="true" className="mx-auto h-12 w-12 text-emerald-600" />
+              <p className="mt-4 text-sm leading-relaxed text-secondary">Votre avis a bien été transmis à TVM38.</p>
+              <button type="button" onClick={() => setReviewOpen(false)} className="mt-6 min-h-11 rounded-lg bg-primary px-5 text-sm font-bold text-white hover:bg-primary/90">Fermer</button>
+            </div>
+          ) : (
+            <>
+              <p className="mt-2 text-sm leading-relaxed text-secondary">
+                Vous avez sélectionné {rating} étoile{rating > 1 ? 's' : ''} sur 5. Expliquez-nous votre expérience.
+              </p>
+              <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="review-name" className="text-sm font-bold text-on-surface">Prénom et nom</label>
+                  <input id="review-name" name="Nom de l'utilisateur" autoComplete="name" required className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="review-email" className="text-sm font-bold text-on-surface">Email <span className="font-normal text-secondary">(optionnel)</span></label>
+                    <input id="review-email" name="Email de contact" type="email" autoComplete="email" className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="review-phone" className="text-sm font-bold text-on-surface">Téléphone <span className="font-normal text-secondary">(optionnel)</span></label>
+                    <input id="review-phone" name="Numéro de téléphone" type="tel" inputMode="tel" autoComplete="tel" onInput={(event) => { event.currentTarget.value = formatPhoneInput(event.currentTarget.value); }} className="min-h-11 w-full rounded-lg border border-border bg-surface px-3 text-base text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="review-message" className="text-sm font-bold text-on-surface">Votre message</label>
+                  <textarea id="review-message" name="Détails de l'avis" required rows={5} className="w-full resize-y rounded-lg border border-border bg-surface px-3 py-3 text-base text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/20" />
+                </div>
+                {submitError && <p role="alert" className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm font-semibold text-destructive">{submitError}</p>}
+                <button type="submit" disabled={sending} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                  {sending && <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />}
+                  {sending ? 'Envoi en cours' : 'Envoyer mon avis'}
+                </button>
+              </form>
+            </>
+          )}
+        </Modal>
+      )}
+    </div>
   );
 }

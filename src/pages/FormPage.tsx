@@ -4,8 +4,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { DevisFormData, LigneDevis } from '@/types';
 import { toast, Toaster } from 'sonner';
-import { useNavigate, Link } from 'react-router-dom';
-import { ChevronLeft, Pencil, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ChevronLeft, Pencil, MapPin, ShieldCheck, Truck, Package, ArrowDownToLine, Trash2, CheckCircle2 } from 'lucide-react';
 
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -33,7 +33,7 @@ const schema = z.object({
   nom: z.string().min(2, 'Nom requis'),
   prenom: z.string().min(2, 'Prénom requis'),
   telephone: z.string()
-    .regex(/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
+    .regex(/^(?:\+33|0033|0)[1-9](?:[\s.-]?\d{2}){4}$/, 'Numéro français invalide (ex : 06 12 34 56 78)'),
   email: z.string().optional(),
   sansEmail: z.boolean().optional(),
   typeDemande: z.enum(['livraison', 'fourniture', 'decharge', 'livraison_decharge']),
@@ -122,6 +122,9 @@ export default function FormPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [typeDemandeChosen, setTypeDemandeChosen] = useState(false);
   const [combiTab, setCombiTab] = useState<'livraison' | 'decharge'>('livraison');
+  // Résumés des parcours d'aide au choix : joints aux notes de la demande pour
+  // que TVM38 voie le contexte du chantier avant de chiffrer.
+  const [contexteProjet, setContexteProjet] = useState<string[]>([]);
   const sectionClientRef = useRef<SectionClientHandle>(null);
   const draftTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const connectedClient = getConnectedClient();
@@ -150,7 +153,7 @@ export default function FormPage() {
       // Professionnel (classique ou sans compte) : pré-remplissage entreprise
       if (connectedClient.nom) setValue('entrepriseNom', connectedClient.nom);
       if (connectedClient.adresse) setValue('entrepriseAdresse', connectedClient.adresse);
-      const principal = connectedClient.contacts?.find((c: any) => c.principal) ?? connectedClient.contacts?.[0];
+      const principal = connectedClient.contacts?.find((contact) => contact.principal) ?? connectedClient.contacts?.[0];
       if (principal) {
         if (principal.nom) setValue('nom', principal.nom);
         if (principal.prenom) setValue('prenom', principal.prenom);
@@ -167,6 +170,8 @@ export default function FormPage() {
 
   // Sauvegarde automatique du brouillon à chaque modification (debouncé 1s)
   useEffect(() => {
+    // React Hook Form fournit volontairement une API d'abonnement non mémorisable.
+    // eslint-disable-next-line react-hooks/incompatible-library
     const subscription = watch((data) => {
       if (draftTimerRef.current) clearTimeout(draftTimerRef.current);
       draftTimerRef.current = setTimeout(() => {
@@ -326,7 +331,7 @@ export default function FormPage() {
       await sectionClientRef.current?.updateClientInfoIfChanged(data);
     } catch (err) {
       console.warn('Supabase sync partielle :', err);
-      // L'email Web3Forms reste le filet de sécurité — on continue quand même
+      // L'envoi de l'email reste le filet de sécurité — on continue quand même
     }
 
     try {
@@ -335,12 +340,12 @@ export default function FormPage() {
         const { data: sbMateriaux } = await supabase
           .from('materiaux')
           .select('id, code_article');
-        (sbMateriaux || []).forEach((m: any) => { if (m.code_article) codeArticleMap[m.id] = m.code_article; });
+        (sbMateriaux || []).forEach((materiau) => { if (materiau.code_article) codeArticleMap[materiau.id] = materiau.code_article; });
       } catch {
         // fallback silencieux — on continue sans code_article
       }
 
-      const buildItem = (l: any) => {
+      const buildItem = (l: LigneDevis) => {
         const mat = MATERIAUX.find(m => m.id === l.materiauId);
         return {
           code: codeArticleMap[l.materiauId] || mat?.code || '',
@@ -355,14 +360,14 @@ export default function FormPage() {
       if (data.typeDemande === 'livraison_decharge') {
         materiauxData = {
           sections: [
-            { label: 'Matériaux à livrer', type: 'livraison', items: lignes.filter((l: any) => l.type === 'livraison' && l.quantiteTonnes > 0).map(buildItem) },
-            { label: 'Déblais à récupérer', type: 'decharge', items: lignes.filter((l: any) => l.type === 'decharge' && l.quantiteTonnes > 0).map(buildItem) },
+            { label: 'Matériaux à livrer', type: 'livraison', items: lignes.filter((ligne) => ligne.type === 'livraison' && ligne.quantiteTonnes > 0).map(buildItem) },
+            { label: 'Déblais à récupérer', type: 'decharge', items: lignes.filter((ligne) => ligne.type === 'decharge' && ligne.quantiteTonnes > 0).map(buildItem) },
           ],
           enginChantier: data.enginChantier,
         };
       } else {
         materiauxData = {
-          sections: [{ label: 'Matériaux', items: lignes.filter((l: any) => l.quantiteTonnes > 0).map(buildItem) }],
+          sections: [{ label: 'Matériaux', items: lignes.filter((ligne) => ligne.quantiteTonnes > 0).map(buildItem) }],
         };
       }
 
@@ -391,7 +396,9 @@ export default function FormPage() {
         // Lignes brutes : servent à enregistrer la demande en base pour
         // l'espace client. L'email, lui, continue d'utiliser materiauxData.
         lignes: lignes.filter((l: LigneDevis) => l.quantiteTonnes > 0),
-        notes: data.notes,
+        // Le contexte déclaré dans l'aide au choix précède le texte libre du
+        // client, sans jamais l'écraser.
+        notes: [...contexteProjet, data.notes].filter(Boolean).join('\n\n'),
       };
 
       const res = await fetch(
@@ -434,6 +441,26 @@ export default function FormPage() {
       const mat = MATERIAUX.find(m => m.id === l.materiauId);
       return { nom: mat?.nom ?? l.materiauId, quantite: l.quantiteTonnes, type: l.type };
     });
+
+  // Cohérence tonnage / camion demandé. Informatif : c'est TVM38 qui tranche
+  // le nombre de rotations au devis, on évite seulement l'appel de rattrapage.
+  const alerteCamion = (() => {
+    const camion = CAMIONS_LIVRAISON.find(c => c.id === formValues.camionLivraison);
+    if (!camion) return null; // « auto » ou pas encore choisi
+    const tonnesLivrees = lignes
+      .filter(l => l.quantiteTonnes > 0 && l.type !== 'decharge')
+      .reduce((s, l) => s + l.quantiteTonnes, 0);
+    if (tonnesLivrees <= camion.capacite) return null;
+
+    const rotations = Math.ceil(tonnesLivrees / camion.capacite);
+    const suffisant = CAMIONS_LIVRAISON.find(c => c.capacite >= tonnesLivrees);
+    return {
+      titre: `${Math.round(tonnesLivrees * 10) / 10} t demandées pour un ${camion.nom} (${camion.capacite} t maximum)`,
+      detail: suffisant
+        ? `Il faudra ${rotations} rotations, ou un seul passage avec un ${suffisant.nom} (${suffisant.capacite} t). TVM38 confirme l'organisation au devis.`
+        : `Il faudra ${rotations} rotations. TVM38 confirme l'organisation de la livraison au devis.`,
+    };
+  })();
 
   return (
     <div className="min-h-screen bg-surface">
@@ -576,8 +603,8 @@ export default function FormPage() {
                   {/* Titre et légende réduits sous lg : à 320px de large, le
                       texte en text-3xl débordait de la zone dégradée. */}
                   <div className="absolute inset-0 bg-gradient-to-t from-on-surface/80 to-transparent flex flex-col justify-end p-5 lg:p-8">
-                    <span className="font-headline font-black text-xl lg:text-3xl text-white tracking-tighter uppercase mb-1.5 lg:mb-2 leading-tight">350+ clients BTP nous font confiance</span>
-                    <p className="text-surface-variant text-xs lg:text-sm italic opacity-90 leading-snug">Carrière & centre de valorisation à Villard-Bonnot — livraison sur chantier partout en Isère.</p>
+                    <span className="font-headline font-black text-xl lg:text-3xl text-white tracking-tighter uppercase mb-1.5 lg:mb-2 leading-tight">Votre demande de devis TVM38</span>
+                    <p className="text-surface-variant text-xs lg:text-sm italic opacity-90 leading-snug">Carrière et centre de valorisation à Villard-Bonnot.</p>
                   </div>
                 </div>
                 <div className="bg-surface-container-low p-5 lg:p-8 border-l-4 border-primary">
@@ -589,7 +616,7 @@ export default function FormPage() {
                       </div>
                       <div>
                         <span className="text-destructive font-bold uppercase tracking-tighter text-sm block mb-0.5">Basés en Isère dans le Grésivaudan</span>
-                        <span className="text-sm text-secondary leading-snug">Société familiale depuis 1937 — on connaît vos chantiers et vos contraintes locales.</span>
+                        <span className="text-sm text-secondary leading-snug">Une demande structurée autour de votre chantier et de ses contraintes.</span>
                       </div>
                     </li>
                     <li className="flex items-start gap-4">
@@ -598,7 +625,7 @@ export default function FormPage() {
                       </div>
                       <div>
                         <span className="text-primary font-bold uppercase tracking-tighter text-sm block mb-0.5">Certifiés CE</span>
-                        <span className="text-sm text-secondary leading-snug">Matériaux conformes aux normes CE — acceptés sur tous vos marchés publics et privés.</span>
+                        <span className="text-sm text-secondary leading-snug">Les matériaux sélectionnés sont détaillés dans votre demande.</span>
                       </div>
                     </li>
                   </ul>
@@ -634,7 +661,7 @@ export default function FormPage() {
                   {currentStep === 1 && (
                     <div className="flex items-center gap-2 mb-6 px-4 py-2.5 bg-surface-container rounded-sm border border-border/40 text-xs text-secondary font-body">
                       <span className="text-primary">⏱</span>
-                      <span>Environ <strong>2 minutes</strong> — sans engagement, devis gratuit</span>
+                      <span>Les informations peuvent être vérifiées avant l'envoi.</span>
                     </div>
                   )}
 
@@ -735,7 +762,16 @@ export default function FormPage() {
                       {/* Étape 3 — Matériaux */}
                       {currentStep === 3 && (
                         <>
-                          <SectionMateriaux lignes={lignes} setLignes={setLignes} typeDemande={watch('typeDemande')} onNext={handleNext} activeTab={combiTab} onActiveTabChange={setCombiTab} />
+                          <SectionMateriaux
+                            lignes={lignes}
+                            setLignes={setLignes}
+                            typeDemande={watch('typeDemande')}
+                            typeClient={watch('typeClient')}
+                            onNext={handleNext}
+                            activeTab={combiTab}
+                            onActiveTabChange={setCombiTab}
+                            onContexteProjet={r => setContexteProjet(prev => [...prev, r])}
+                          />
                           {errors.lignes && (
                             <p className="text-sm text-destructive font-medium bg-error-container p-3 rounded-lg border border-destructive/20 mt-4">
                               {errors.lignes.message as string}
@@ -910,6 +946,24 @@ export default function FormPage() {
                         </div>
                       </div>
 
+                      {/* Alerte capacité camion — informative, jamais bloquante */}
+                      {alerteCamion && (
+                        <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+                          <p className="text-sm font-bold text-amber-900">{alerteCamion.titre}</p>
+                          <p className="text-xs text-amber-800 mt-1 font-body">{alerteCamion.detail}</p>
+                        </div>
+                      )}
+
+                      {/* Contexte issu de l'aide au choix, joint à la demande */}
+                      {contexteProjet.length > 0 && (
+                        <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                          <p className="font-label text-[0.65rem] font-bold uppercase tracking-[0.2em] text-primary/80 mb-1.5">
+                            Joint à votre demande
+                          </p>
+                          <pre className="text-xs text-secondary font-body whitespace-pre-wrap">{contexteProjet.join('\n\n')}</pre>
+                        </div>
+                      )}
+
                       {/* Notes */}
                       <div className="space-y-2 mb-8">
                         <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary" htmlFor="notes">
@@ -936,22 +990,19 @@ export default function FormPage() {
                       )}
 
                       <div className="flex items-center justify-center gap-4 mb-4 text-xs text-secondary font-body">
-                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Devis gratuit</span>
-                        <span className="flex items-center gap-1"><span className="text-green-600">✓</span> Sans engagement</span>
+                        <span className="flex items-center gap-1"><CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-green-600" /> Demande vérifiable avant envoi</span>
+                        <span className="flex items-center gap-1"><CheckCircle2 aria-hidden="true" className="h-3.5 w-3.5 text-green-600" /> Récapitulatif avant transmission</span>
                       </div>
                       <button
                         type="submit"
                         disabled={isSubmitting}
                         className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold px-8 py-4.5 md:py-5 rounded-xl shadow-xl shadow-red-900/20 hover:brightness-110 active:scale-[0.98] transition-all uppercase tracking-tight text-base md:text-xl flex items-center justify-center gap-3 min-h-[52px]"
                       >
-                        <span>{isSubmitting ? 'Transmission en cours...' : '🚀 Obtenir mon devis gratuit'}</span>
+                        <span>{isSubmitting ? 'Transmission en cours...' : 'Transmettre ma demande de devis'}</span>
                       </button>
                       <div className="space-y-2 mt-3.5">
                         <p className="text-xs text-secondary text-center max-w-xs mx-auto font-medium">
-                          Vos données restent 100% confidentielles et servent uniquement à l'établissement de votre devis.
-                        </p>
-                        <p className="text-xs text-primary font-bold text-center max-w-xs mx-auto">
-                          Réponse sous 24-48h par nos équipes MIDALI - TVM38.
+                          Les informations saisies sont transmises à TVM38 pour traiter votre demande de devis.
                         </p>
                       </div>
                     </div>

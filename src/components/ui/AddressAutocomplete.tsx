@@ -10,8 +10,15 @@ interface Props {
   className?: string;
 }
 
+interface AddressFeature {
+  properties: {
+    label: string;
+    context?: string;
+  };
+}
+
 export default function AddressAutocomplete({ value, onChange, onSelect, placeholder, className }: Props) {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<AddressFeature[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,7 +36,6 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
 
   useEffect(() => {
     if (value.length < 3) {
-      setSuggestions([]);
       return;
     }
 
@@ -41,9 +47,10 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
     const timer = setTimeout(async () => {
       try {
         const response = await fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(value)}&limit=5`);
-        const data = await response.json();
-        setSuggestions(data.features || []);
-        if (data.features?.length > 0) setIsOpen(true);
+        const data = await response.json() as { features?: AddressFeature[] };
+        const features = data.features ?? [];
+        setSuggestions(features);
+        if (features.length > 0) setIsOpen(true);
       } catch (error) {
         console.error('API Adresse error:', error);
       }
@@ -51,6 +58,8 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
 
     return () => clearTimeout(timer);
   }, [value]);
+
+  const visibleSuggestions = value.length >= 3 ? suggestions : [];
 
   return (
     <div className={cn("relative w-full", className)} ref={containerRef}>
@@ -62,11 +71,11 @@ export default function AddressAutocomplete({ value, onChange, onSelect, placeho
         className="w-full"
         autoComplete="off"
       />
-      {isOpen && suggestions.length > 0 && (
+      {isOpen && visibleSuggestions.length > 0 && (
         <ul className="absolute z-50 w-full bg-white border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((s, idx) => (
+          {visibleSuggestions.map((s) => (
             <li
-              key={idx}
+              key={s.properties.label}
               className="px-4 py-2 hover:bg-muted cursor-pointer text-sm transition-colors border-b last:border-0"
               onClick={() => {
                 skipNextFetchRef.current = true;

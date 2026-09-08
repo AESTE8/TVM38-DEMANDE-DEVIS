@@ -2,18 +2,19 @@ import { useEffect, useState, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
+import type { ClientData } from '@/lib/auth';
 
 interface Props {
   value: string;
   onChange: (val: string) => void;
-  onSelect: (company: any) => void;
+  onSelect: (company: ClientData) => void;
   placeholder?: string;
   className?: string;
   clientType?: string;
 }
 
 export default function CompanyAutocomplete({ value, onChange, onSelect, placeholder, className, clientType }: Props) {
-  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [suggestions, setSuggestions] = useState<ClientData[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const justSelected = useRef(false);
@@ -30,7 +31,6 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
 
   useEffect(() => {
     if (value.length < 1) {
-      setSuggestions([]);
       return;
     }
 
@@ -63,7 +63,9 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [value]);
+  }, [clientType, value]);
+
+  const visibleSuggestions = value.length >= 1 ? suggestions : [];
 
   return (
     <div className={cn("relative w-full", className)} ref={containerRef}>
@@ -74,11 +76,11 @@ export default function CompanyAutocomplete({ value, onChange, onSelect, placeho
         className="w-full"
         autoComplete="off"
       />
-      {isOpen && suggestions.length > 0 && (
+      {isOpen && visibleSuggestions.length > 0 && (
         <ul className="absolute z-50 w-full bg-white border border-border mt-1 rounded-md shadow-lg max-h-60 overflow-auto">
-          {suggestions.map((s, idx) => (
+          {visibleSuggestions.map((s) => (
             <li
-              key={idx}
+              key={s.id}
               className="px-4 py-2 hover:bg-muted cursor-pointer text-sm transition-colors border-b last:border-0"
               onClick={() => {
                 justSelected.current = true;

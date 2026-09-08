@@ -1,10 +1,13 @@
 /**
- * Gabarit unique des e-mails TVM38 vers les clients.
+ * ⚠️ COPIE. L'original vit dans le dépôt du site :
+ * `TVM38-DEMANDE-DEVIS/supabase/functions/_shared/emailTemplate.ts`
  *
- * ORIGINAL. Le logiciel en garde une copie dans
- * `TVM38-Devis-Logistique/supabase/functions/_shared/emailTemplate.ts`, et son
- * test `emailTemplate.test.ts` compare les deux : toute modification faite ici
- * doit être reportée là-bas, et réciproquement.
+ * Les deux dépôts ne partagent pas de code, et l'envoi du devis reste piloté
+ * par le logiciel. Toute modification doit être reportée des deux côtés ; le
+ * test `emailTemplate.test.ts` compare les deux fichiers et échoue s'ils
+ * divergent.
+ *
+ * Gabarit unique des e-mails TVM38 vers les clients.
  *
  * Neuf e-mails partent vers les clients : devis envoyé, identifiants,
  * ouverture de compte, document reçu, acceptation validée, régularisation

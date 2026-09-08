@@ -55,7 +55,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
 
   const showCreneauSection = (typeDemande === 'livraison' || typeDemande === 'decharge' || typeDemande === 'livraison_decharge') && watch('dateSouhaitee');
 
-  const CamionSelector = () => (
+  const renderCamionSelector = () => (
     <div className="md:col-span-2 space-y-2">
       <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary block">
         Choix du camion <span className="text-destructive">*</span>
@@ -270,7 +270,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>
 
-            <CamionSelector />
+            {renderCamionSelector()}
 
             <div className="space-y-1">
               <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">
@@ -342,7 +342,7 @@ export default function SectionDemande({ register, errors, watch, setValue, onTy
               {errors.adresseLivraison && <p className="text-xs text-destructive mt-1">{errors.adresseLivraison.message}</p>}
             </div>
 
-            <CamionSelector />
+            {renderCamionSelector()}
 
             <div className="space-y-1">
               <Label className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary flex justify-between items-center w-full">

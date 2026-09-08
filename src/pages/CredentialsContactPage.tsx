@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { KeyRound } from 'lucide-react';
+import { ArrowLeft, Check, CheckCircle2, KeyRound, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { cn, formatPhoneInput } from '@/lib/utils';
+import { envoyerMessageContact } from '@/lib/contact';
 
-const WEB3FORMS_KEY = '6b3c4c9e-c46d-4e6c-beaf-06ede9b43b96';
+const inputClass = 'min-h-11 w-full rounded-lg border border-border bg-surface px-3 py-3 text-base text-on-surface outline-none transition placeholder:text-secondary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:bg-surface-container-low disabled:text-secondary';
 
 export default function CredentialsContactPage() {
   const [form, setForm] = useState({ codeClient: '', email: '', nom: '', telephone: '' });
@@ -15,31 +17,27 @@ export default function CredentialsContactPage() {
   const [savedEmail, setSavedEmail] = useState('');
 
   const handleSansEmailToggle = () => {
+    setError(null);
     if (!sansEmail) {
-      // Sauvegarder l'email actuel avant de désactiver
-      if (form.email && form.email !== 'Contact sans adresse email') {
-        setSavedEmail(form.email);
-      }
+      if (form.email) setSavedEmail(form.email);
       setSansEmail(true);
-      setForm(f => ({ ...f, email: 'Contact sans adresse email' }));
-    } else {
-      setSansEmail(false);
-      setForm(f => ({ ...f, email: savedEmail || '' }));
+      setForm((value) => ({ ...value, email: '' }));
+      return;
     }
+    setSansEmail(false);
+    setForm((value) => ({ ...value, email: savedEmail }));
   };
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
 
-    // Validation téléphone si sans email
     if (sansEmail && !form.telephone) {
       setError('Veuillez renseigner votre numéro de téléphone pour être recontacté.');
       return;
     }
 
-    // Validation téléphone format français
-    if (form.telephone && !/^(?:\+33|0033|0)[1-9](?:[\s.\-]?\d{2}){4}$/.test(form.telephone)) {
-      setError('Numéro de téléphone français invalide (ex : 06 12 34 56 78).');
+    if (form.telephone && !/^(?:\+33|0033|0)[1-9](?:[\s.-]?\d{2}){4}$/.test(form.telephone)) {
+      setError('Le numéro de téléphone français semble incomplet.');
       return;
     }
 
@@ -47,189 +45,96 @@ export default function CredentialsContactPage() {
     setError(null);
 
     try {
-      const body = new FormData();
-      body.append('access_key', WEB3FORMS_KEY);
-      body.append('subject', 'Récupération identifiants TVM38 — ' + form.codeClient);
-      body.append('from_name', form.nom);
-      body.append('email', sansEmail ? 'tvm38@midali.fr' : form.email);
-      const messageParts = [`Demande de récupération d'identifiants\n\nNom : ${form.nom}`, `Code client : ${form.codeClient}`];
-      if (sansEmail) {
-        messageParts.push(`Téléphone : ${form.telephone}`);
-        messageParts.push(`Email de réponse : non renseigné (contact par téléphone)`);
-      } else {
-        messageParts.push(`Email de réponse : ${form.email}`);
-        if (form.telephone) {
-          messageParts.push(`Téléphone : ${form.telephone}`);
-        }
-      }
-      body.append('message', messageParts.join('\n'));
+      const messageParts = ["Demande de récupération d'identifiants"];
+      messageParts.push(sansEmail ? 'Email de réponse : non renseigné' : `Email de réponse : ${form.email}`);
 
-      const res = await fetch('https://api.web3forms.com/submit', { method: 'POST', body });
-      if (res.ok) {
-        setSent(true);
-      } else {
-        setError('Envoi échoué. Veuillez réessayer ou contacter TVM38 directement.');
-      }
+      await envoyerMessageContact({
+        type: 'identifiants',
+        nom: form.nom,
+        codeClient: form.codeClient,
+        email: sansEmail ? '' : form.email,
+        telephone: form.telephone,
+        message: messageParts.join('\n'),
+      });
+      setSent(true);
     } catch {
-      setError('Impossible d\'envoyer le formulaire. Vérifiez votre connexion internet.');
+      setError("La demande n'a pas pu être envoyée. Réessayez ou contactez TVM38 directement.");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col">
-      <Header />
+    <div className="flex min-h-[100dvh] flex-col bg-surface">
+      <Header showSecondaryAction={false} showPrimaryAction={false} />
 
-      <main className="flex-1 flex items-center justify-center px-4 pt-28 pb-12">
+      <main className="flex flex-1 items-center justify-center px-4 pb-12 pt-28">
         <div className="w-full max-w-md">
-
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-primary/10 rounded-sm mb-4">
-              <KeyRound className="w-8 h-8 text-primary" />
+          <div className="mb-7 text-center">
+            <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-xl bg-primary/10 text-primary">
+              <KeyRound aria-hidden="true" className="h-8 w-8" />
             </div>
-            <h1 className="text-3xl font-black tracking-tighter text-on-surface uppercase font-headline">
-              Identifiants oubliés
-            </h1>
-            <p className="text-sm text-secondary mt-1 font-body">
-              Renseignez votre numéro de compte client et notre équipe vous recontactera.
-            </p>
+            <h1 className="font-headline text-3xl font-black uppercase tracking-tighter text-on-surface">Identifiants oubliés</h1>
+            <p className="mt-2 text-sm leading-relaxed text-secondary">Transmettez les éléments qui permettront à l'équipe TVM38 de retrouver votre compte.</p>
           </div>
 
-          <div className="bg-surface-container-lowest border border-border/40 rounded-sm shadow-xl shadow-primary/5 p-8">
+          <div className="rounded-xl border border-border/70 bg-card p-5 shadow-[0_16px_45px_rgba(0,83,161,0.08)] sm:p-7">
             {sent ? (
-              <div className="text-center py-6 space-y-3">
-                <div className="text-4xl">✓</div>
-                <p className="text-lg font-black uppercase tracking-tighter text-on-surface font-headline">
-                  Demande envoyée !
-                </p>
-                <p className="text-sm text-secondary font-body">
-                  {sansEmail
-                    ? `Notre équipe vous recontactera par téléphone au <strong>${form.telephone}</strong> dans les meilleurs délais.`
-                    : `Notre équipe vous recontactera à l'adresse <strong>${form.email}</strong> dans les meilleurs délais.`
-                  }
-                </p>
-                <Link
-                  to="/"
-                  className="inline-block mt-4 text-sm text-primary hover:underline font-body"
-                >
-                  ← Retour à la connexion
+              <div className="space-y-4 py-4 text-center" role="status" aria-live="polite">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-emerald-100 text-emerald-700">
+                  <CheckCircle2 aria-hidden="true" className="h-7 w-7" />
+                </div>
+                <div>
+                  <h2 className="font-headline text-xl font-black text-on-surface">Demande envoyée</h2>
+                  <p className="mt-2 text-sm leading-relaxed text-secondary">Votre demande de récupération a été transmise à l'équipe TVM38.</p>
+                </div>
+                <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-4 text-sm font-bold text-primary hover:bg-primary/5">
+                  <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                  Retour à la connexion
                 </Link>
               </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                    Nom complet *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.nom}
-                    onChange={e => setForm(f => ({ ...f, nom: e.target.value }))}
-                    placeholder="Jean Dupont"
-                    required
-                    className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                  />
+                  <label htmlFor="recovery-name" className="text-xs font-bold uppercase tracking-wider text-secondary">Nom complet *</label>
+                  <input id="recovery-name" type="text" autoComplete="name" value={form.nom} onChange={(event) => setForm((value) => ({ ...value, nom: event.target.value }))} required className={inputClass} />
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                    Numéro de compte client *
-                  </label>
-                  <input
-                    type="text"
-                    value={form.codeClient}
-                    onChange={e => setForm(f => ({ ...f, codeClient: e.target.value }))}
-                    placeholder="CTVM01. Identifier un client"
-                    required
-                    className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                  />
-                  <p className="text-xs text-secondary/60 font-body">
-                    Ce numéro figure sur vos devis ou bons de livraison TVM38.
-                  </p>
+                  <label htmlFor="recovery-code" className="text-xs font-bold uppercase tracking-wider text-secondary">Numéro de compte client *</label>
+                  <input id="recovery-code" type="text" autoComplete="username" value={form.codeClient} onChange={(event) => setForm((value) => ({ ...value, codeClient: event.target.value }))} required className={inputClass} />
+                  <p className="text-xs text-secondary">Ce numéro figure sur vos devis ou bons de livraison TVM38.</p>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                    Email de contact {!sansEmail && '*'}
-                  </label>
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    placeholder="jean.dupont@entreprise.fr"
-                    required={!sansEmail}
-                    disabled={sansEmail}
-                    className={cn(
-                      "w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors",
-                      sansEmail && "bg-surface-container-lowest opacity-60"
-                    )}
-                  />
-
-                  {/* Bouton pour continuer sans email */}
-                  <button
-                    type="button"
-                    onClick={handleSansEmailToggle}
-                    className={cn(
-                      "w-full text-left text-xs font-medium transition-all rounded-lg px-3 py-2.5 flex items-center gap-2 border mt-2",
-                      sansEmail
-                        ? "bg-primary/5 border-primary text-primary"
-                        : "bg-transparent border-border hover:border-primary/30 text-secondary hover:text-primary"
-                    )}
-                  >
-                    {sansEmail ? (
-                      <>
-                        <span className="w-5 h-5 rounded-full border-2 border-primary bg-primary flex items-center justify-center text-white text-xs">✓</span>
-                        <span>Contact sans adresse email</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="w-5 h-5 rounded-full border-2 border-secondary/40"></span>
-                        <span>Pas d'adresse email ? Continuer</span>
-                      </>
-                    )}
+                  <label htmlFor="recovery-email" className="text-xs font-bold uppercase tracking-wider text-secondary">Email de contact {!sansEmail && '*'}</label>
+                  <input id="recovery-email" type="email" autoComplete="email" value={form.email} onChange={(event) => setForm((value) => ({ ...value, email: event.target.value }))} required={!sansEmail} disabled={sansEmail} className={inputClass} />
+                  <button type="button" role="switch" aria-checked={sansEmail} onClick={handleSansEmailToggle} className={cn('flex min-h-11 w-full items-center gap-3 rounded-lg border px-3 text-left text-xs font-semibold transition', sansEmail ? 'border-primary bg-primary/5 text-primary' : 'border-border text-secondary hover:border-primary/30 hover:text-primary')}>
+                    <span aria-hidden="true" className={cn('grid h-5 w-5 shrink-0 place-items-center rounded-md border-2', sansEmail ? 'border-primary bg-primary text-white' : 'border-secondary/40')}>
+                      {sansEmail && <Check className="h-3.5 w-3.5" />}
+                    </span>
+                    Je n'ai pas d'adresse email
                   </button>
                 </div>
 
-                {/* Téléphone affiché uniquement si sans email */}
-                <div
-                  className={cn(
-                    "overflow-hidden transition-all duration-300 ease-out",
-                    sansEmail ? "max-h-32 opacity-100 mt-5" : "max-h-0 opacity-0"
-                  )}
-                >
+                {sansEmail && (
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-widest text-secondary font-headline">
-                      Numéro de téléphone *
-                    </label>
-                    <input
-                      type="tel"
-                      value={form.telephone}
-                      onChange={e => setForm(f => ({ ...f, telephone: formatPhoneInput(e.target.value) }))}
-                      placeholder="06 12 34 56 78"
-                      required
-                      className="w-full px-3 py-3 border border-border rounded-sm text-sm font-body text-on-surface bg-surface placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors"
-                    />
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="bg-destructive/10 border border-destructive/20 rounded-sm p-3 text-sm text-destructive font-body">
-                    {error}
+                    <label htmlFor="recovery-phone" className="text-xs font-bold uppercase tracking-wider text-secondary">Numéro de téléphone *</label>
+                    <input id="recovery-phone" type="tel" inputMode="tel" autoComplete="tel" value={form.telephone} onChange={(event) => setForm((value) => ({ ...value, telephone: formatPhoneInput(event.target.value) }))} required className={inputClass} />
                   </div>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-industrial-gradient text-on-primary font-headline font-extrabold py-3.5 px-6 rounded-sm uppercase tracking-tighter text-sm shadow-lg shadow-primary/20 active:scale-[0.98] transition-all disabled:opacity-60"
-                >
-                  {loading ? 'Envoi...' : 'Envoyer la demande'}
+                {error && <p role="alert" aria-live="assertive" className="rounded-lg border border-destructive/25 bg-destructive/5 p-3 text-sm font-semibold text-destructive">{error}</p>}
+
+                <button type="submit" disabled={loading} className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-extrabold uppercase tracking-tight text-white transition hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60">
+                  {loading && <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />}
+                  {loading ? 'Envoi en cours' : 'Envoyer la demande'}
                 </button>
 
                 <div className="text-center">
-                  <Link to="/" className="text-xs text-secondary/70 hover:text-secondary font-body">
-                    ← Retour à la connexion
+                  <Link to="/" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-xs font-bold text-secondary hover:bg-surface-container-low hover:text-primary">
+                    <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+                    Retour à la connexion
                   </Link>
                 </div>
               </form>
@@ -237,6 +142,8 @@ export default function CredentialsContactPage() {
           </div>
         </div>
       </main>
+
+      <Footer compact />
     </div>
   );
 }

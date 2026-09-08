@@ -253,11 +253,14 @@ export default function AffaireCard({ affaire }: AffaireCardProps) {
             </div>
           ) : (
             <div className="flex flex-col gap-2 py-1 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-              <p className="text-xs font-semibold text-secondary flex items-center gap-1.5">
-                <span className="w-2 h-2 shrink-0 rounded-full bg-amber-500 animate-pulse"></span>
-                <span>Chiffrage en cours (réponse sous 24-48h)</span>
+              <p className="text-xs font-semibold text-secondary">
+                {affaire.statut === 'sans_suite'
+                  ? 'Ce dossier est classé sans suite.'
+                  : affaire.statut === 'envoyee'
+                    ? 'Demande transmise à TVM38.'
+                    : 'Chiffrage en cours.'}
               </p>
-              <span className="shrink-0 text-xs font-extrabold text-primary group-hover:underline max-sm:self-end">Suivre le dossier →</span>
+              <span className="shrink-0 text-xs font-extrabold text-primary group-hover:underline max-sm:self-end">Suivre le dossier</span>
             </div>
           )}
         </div>

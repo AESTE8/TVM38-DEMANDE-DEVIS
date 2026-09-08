@@ -30,7 +30,8 @@ const DESTINATIONS: Record<string, string> = {
 export default function AccesPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [erreur, setErreur] = useState<string | null>(null);
+  const jeton = searchParams.get('t');
+  const [erreur, setErreur] = useState<string | null>(() => jeton ? null : 'Ce lien est incomplet.');
   // React monte deux fois en développement : sans ce garde, le jeton serait
   // échangé deux fois et la seconde réponse écraserait la première session.
   const dejaTente = useRef(false);
@@ -39,11 +40,7 @@ export default function AccesPage() {
     if (dejaTente.current) return;
     dejaTente.current = true;
 
-    const jeton = searchParams.get('t');
-    if (!jeton) {
-      setErreur('Ce lien est incomplet.');
-      return;
-    }
+    if (!jeton) return;
 
     (async () => {
       try {
@@ -76,7 +73,7 @@ export default function AccesPage() {
         setErreur('La connexion a échoué. Vérifiez votre réseau et réessayez.');
       }
     })();
-  }, [navigate, searchParams]);
+  }, [jeton, navigate, searchParams]);
 
   return (
     <main className="flex min-h-[100dvh] items-center justify-center bg-surface px-4">

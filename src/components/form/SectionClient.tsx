@@ -7,6 +7,8 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 // RadioGroup/RadioGroupItem gardé pour le sélecteur typeClient
 import { cn, formatPhoneInput } from '@/lib/utils';
 import { authHeaders } from '@/lib/auth';
+import type { ClientData } from '@/lib/auth';
+import { envoyerMessageContact } from '@/lib/contact';
 import { Trash2, Pencil, ShieldCheck } from 'lucide-react';
 import AddressAutocomplete from '../ui/AddressAutocomplete';
 import CompanyAutocomplete from '../ui/CompanyAutocomplete';
@@ -38,24 +40,18 @@ async function callUpdateClient(operation: string, data: unknown) {
   }
 }
 
+type ClientContact = NonNullable<ClientData['contacts']>[number];
+type ClientAgence = NonNullable<ClientData['agences']>[number] & {
+  adresseStructuree?: { rue?: string };
+};
+
 interface Props {
   register: UseFormRegister<DevisFormData>;
   errors: FieldErrors<DevisFormData>;
   watch: UseFormWatch<DevisFormData>;
   setValue: UseFormSetValue<DevisFormData>;
   guestMode?: boolean;
-  connectedClient?: {
-    id: string;
-    nom: string;
-    prenom?: string;
-    code: string;
-    type: string;
-    email?: string;
-    telephone?: string;
-    adresse?: string;
-    contacts?: any[];
-    agences?: any[];
-  };
+  connectedClient?: ClientData;
 }
 
 export interface SectionClientHandle {
@@ -70,13 +66,12 @@ export interface SectionClientHandle {
 const SectionClient = forwardRef<SectionClientHandle, Props>(
   ({ register, errors, watch, setValue, guestMode, connectedClient }, deleteContactRef) => {
     const typeClient = watch('typeClient');
-    const handleRef = useRef<SectionClientHandle>(null);
     const dejaClient = watch('dejaClient');
     const entrepriseAdresse = watch('entrepriseAdresse') || '';
 
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
-    const [companyContacts, setCompanyContacts] = useState<any[]>([]);
-    const [companyAgences, setCompanyAgences] = useState<any[]>([]);
+    const [companyContacts, setCompanyContacts] = useState<ClientContact[]>([]);
+    const [companyAgences, setCompanyAgences] = useState<ClientAgence[]>([]);
     const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
 
     // Amélioration 1 — Nouvelle agence inline
@@ -124,7 +119,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
       const contacts = connectedClient.contacts ?? [];
       setCompanyContacts(contacts);
       if (contacts.length > 0) {
-        const principal = contacts.find((c: any) => c.principal) ?? contacts[0];
+        const principal = contacts.find((contact) => contact.principal) ?? contacts[0];
         setSelectedContactId(principal.id ?? null);
       } else {
         setSelectedContactId('nouveau');
@@ -173,7 +168,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
         });
       },
 
-      saveNewAgenceIfNeeded: async (_formData: DevisFormData) => {
+      saveNewAgenceIfNeeded: async () => {
         if (!showNewAgence || !newAgenceNom || !selectedClientId) return;
         await callUpdateClient('add_agence', {
           id: crypto.randomUUID(),
@@ -214,7 +209,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
       deleteContact: async (contactId: string) => {
         if (!selectedClientId) return;
         await callUpdateClient('delete_contact', { id: contactId });
-        setCompanyContacts((prev) => prev.filter((c: any) => c.id !== contactId));
+        setCompanyContacts((prev) => prev.filter((contact) => contact.id !== contactId));
         if (selectedContactId === contactId) {
           setSelectedContactId(null);
           setValue('prenom', '');
@@ -226,7 +221,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }), [selectedClientId, selectedContactId, dejaClient, originalClient, showNewAgence, newAgenceNom, newAgenceAdresse, selectedAgenceId, originalAgence, editedAgenceNom, editedAgenceAdresse, editingAgence]);
 
-    const handleSelectCompany = (company: any) => {
+    const handleSelectCompany = (company: ClientData) => {
       setSelectedClientId(company.id || null);
       setValue('entrepriseNom', company.nom || '', { shouldValidate: true });
       if (company.adresse) setValue('entrepriseAdresse', company.adresse, { shouldValidate: true });
@@ -331,7 +326,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                     onClick={() => setShowDemandeCompte(true)}
                     className="w-full py-3 px-4 rounded-lg border-2 border-primary/30 bg-primary/5 text-primary font-medium text-sm hover:bg-primary/10 transition-colors"
                   >
-                    Demander votre ouverture de compte gratuite
+                    Demander l'ouverture d'un compte
                   </button>
                 )}
 
@@ -359,15 +354,10 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                           if (!emailDemandeCompte) return;
                           setSendingDemandeCompte(true);
                           try {
-                            await fetch('https://api.web3forms.com/submit', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                access_key: import.meta.env.VITE_WEB3FORMS_KEY,
-                                subject: 'Demande d\'ouverture de compte TVM38',
-                                email: emailDemandeCompte,
-                                message: `Nouvelle demande d'ouverture de compte.\n\nEmail : ${emailDemandeCompte}`,
-                              }),
+                            await envoyerMessageContact({
+                              type: 'ouverture_compte',
+                              email: emailDemandeCompte,
+                              message: "Nouvelle demande d'ouverture de compte depuis le formulaire de devis.",
                             });
                             setDemandeCompteSent(true);
                             setShowDemandeCompte(false);
@@ -527,7 +517,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                       Choisir une agence
                     </Label>
                     <div className="grid grid-cols-1 gap-2">
-                      {companyAgences.map((agence: any) => (
+                      {companyAgences.map((agence) => (
                         <button
                           key={agence.id}
                           type="button"
@@ -587,7 +577,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                 if (selectedClientId) {
                                   await callUpdateClient('delete_agence', { id: agence.id });
                                 }
-                                setCompanyAgences((prev: any[]) => prev.filter((a: any) => a.id !== agence.id));
+                                setCompanyAgences((prev) => prev.filter((item) => item.id !== agence.id));
                                 if (selectedAgenceId === agence.id) {
                                   setSelectedAgenceId(null);
                                   setOriginalAgence(null);
@@ -646,10 +636,10 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                                       adresse: editedAgenceAdresse,
                                     });
                                     setOriginalAgence({ nom: editedAgenceNom, adresse: editedAgenceAdresse });
-                                    setCompanyAgences(prev => prev.map((a: any) =>
-                                      a.id === selectedAgenceId
-                                        ? { ...a, nom: editedAgenceNom, adresse: editedAgenceAdresse }
-                                        : a
+                                    setCompanyAgences(prev => prev.map((item) =>
+                                      item.id === selectedAgenceId
+                                        ? { ...item, nom: editedAgenceNom, adresse: editedAgenceAdresse }
+                                        : item
                                     ));
                                   }
                                   setEditingAgence(false);
@@ -706,7 +696,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                             Nom de l'agence <span className="text-destructive">*</span>
                           </Label>
                           <Input
-                            placeholder="Ex: Agence Nord Isère"
+                            placeholder="Nom utilisé par votre entreprise"
                             value={newAgenceNom}
                             onChange={(e) => {
                               setNewAgenceNom(e.target.value);
@@ -758,7 +748,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {companyContacts.map((contact: any) => (
+                      {companyContacts.map((contact) => (
                         <div
                           key={contact.id}
                           className={cn(
@@ -787,7 +777,9 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                             onClick={(e) => {
                               e.stopPropagation();
                               if (confirm(`Supprimer le contact "${contact.prenom ? `${contact.prenom} ${contact.nom}` : contact.nom}" ?`)) {
-                                (deleteContactRef as any)?.current?.deleteContact(contact.id);
+                                if (deleteContactRef && typeof deleteContactRef !== 'function') {
+                                  void deleteContactRef.current?.deleteContact(contact.id);
+                                }
                               }
                             }}
                             className="absolute top-2 right-2 p-1.5 text-secondary hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors"
@@ -845,7 +837,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
                 <Label htmlFor="entrepriseNom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
                   Nom de l'entreprise <Badge variant="required" />
                 </Label>
-                <Input id="entrepriseNom" placeholder="Ex: TP Isère" {...register('entrepriseNom')} />
+                <Input id="entrepriseNom" placeholder="Raison sociale de votre entreprise" {...register('entrepriseNom')} />
                 {errors.entrepriseNom && <p className="text-xs text-destructive mt-1">{errors.entrepriseNom.message}</p>}
               </div>
               <div className="space-y-1 md:col-span-1">
@@ -874,7 +866,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
               <Label htmlFor="nom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
                 Nom <Badge variant="required" />
               </Label>
-              <Input id="nom" placeholder="Ex: Dupont" {...register('nom')} />
+              <Input id="nom" autoComplete="family-name" {...register('nom')} />
               {errors.nom && <p className="text-xs text-destructive mt-1">{errors.nom.message}</p>}
             </div>
 
@@ -882,7 +874,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
               <Label htmlFor="prenom" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">
                 Prénom <Badge variant="required" />
               </Label>
-              <Input id="prenom" placeholder="Ex: Jean" {...register('prenom')} />
+              <Input id="prenom" autoComplete="given-name" {...register('prenom')} />
               {errors.prenom && <p className="text-xs text-destructive mt-1">{errors.prenom.message}</p>}
             </div>
 
@@ -943,7 +935,7 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
             {dejaClient === 'oui' && selectedContactId === 'nouveau' && typeClient !== 'particulier' && (
               <div className="space-y-1 md:col-span-2">
                 <Label htmlFor="fonction" className="font-label text-[0.7rem] font-bold uppercase tracking-wider text-secondary">Fonction <span className="text-xs normal-case font-normal text-secondary/60">(optionnel)</span></Label>
-                <Input id="fonction" placeholder="Ex: Conducteur de travaux" {...register('fonction')} />
+                <Input id="fonction" placeholder="Votre fonction dans l'entreprise" {...register('fonction')} />
               </div>
             )}
           </div>
@@ -952,7 +944,8 @@ const SectionClient = forwardRef<SectionClientHandle, Props>(
           <div className="mt-6 flex items-center gap-3 p-3.5 rounded-xl bg-primary/5 border border-primary/20 text-on-surface text-xs font-body animate-fade-in">
             <ShieldCheck className="w-5 h-5 text-primary shrink-0" />
             <span>
-              <strong className="text-primary font-headline">Confidentialité 100% garantie :</strong> Vos données restent strictement confidentielles et servent uniquement à l'établissement immédiat de votre devis.
+              <strong className="text-primary font-headline">Utilisation des informations :</strong> les données saisies sont transmises à TVM38 pour établir votre devis et vous recontacter. Elles ne sont ni vendues ni utilisées à des fins publicitaires. Vous pouvez y accéder, les corriger ou les faire supprimer — voir la{' '}
+              <a href="/confidentialite" className="font-semibold text-primary underline underline-offset-2">politique de confidentialité</a>.
             </span>
           </div>
         </div>

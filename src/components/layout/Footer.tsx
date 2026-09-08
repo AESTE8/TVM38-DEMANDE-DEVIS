@@ -23,6 +23,15 @@ export default function Footer({ compact = false }: FooterProps) {
             <Link className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/estimation">
               Donner mon avis
             </Link>
+            <Link className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/mentions-legales">
+              Mentions légales
+            </Link>
+            <Link className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/confidentialite">
+              Confidentialité
+            </Link>
+            <Link className="inline-flex min-h-11 items-center text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" to="/cgu">
+              CGU
+            </Link>
           </div>
         </div>
       </footer>
@@ -46,6 +55,9 @@ export default function Footer({ compact = false }: FooterProps) {
           <span className="font-headline font-bold text-sm uppercase text-on-surface">Liens utiles</span>
           <a className="inline-flex min-h-11 items-center font-body text-sm text-secondary hover:text-primary transition-colors" href="https://www.midali.fr" target="_blank" rel="noopener">Société MIDALI</a>
           <Link className="inline-flex min-h-11 items-center font-body text-sm text-secondary hover:text-primary transition-colors" to="/estimation">Laisser un avis</Link>
+          <Link className="inline-flex min-h-11 items-center font-body text-sm text-secondary hover:text-primary transition-colors" to="/mentions-legales">Mentions légales</Link>
+          <Link className="inline-flex min-h-11 items-center font-body text-sm text-secondary hover:text-primary transition-colors" to="/confidentialite">Politique de confidentialité</Link>
+          <Link className="inline-flex min-h-11 items-center font-body text-sm text-secondary hover:text-primary transition-colors" to="/cgu">Conditions d'utilisation</Link>
         </div>
         <div className="flex flex-col gap-4">
           <span className="font-headline font-bold text-sm uppercase text-on-surface">Contact</span>

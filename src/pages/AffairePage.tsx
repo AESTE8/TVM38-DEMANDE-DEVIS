@@ -323,7 +323,7 @@ export default function AffairePage() {
     .filter((doc) => doc.id !== documentTransmis?.id);
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-surface pb-28 sm:pb-24">
+    <div className="relative flex min-h-[100dvh] flex-col bg-surface pb-28 sm:pb-24">
       <Header>{client && <ClientBadge />}</Header>
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-12 pt-24 md:pt-32">
         <Link to="/espace" className="mb-3 inline-flex min-h-11 items-center gap-1.5 text-sm font-bold text-secondary transition-colors hover:text-primary">
@@ -360,8 +360,8 @@ export default function AffairePage() {
               </div>
               {editionMeta ? (
                 <form onSubmit={enregistrerMeta} className="mt-4 space-y-3">
-                  <div><label htmlFor="nom-chantier" className="mb-1.5 block text-xs font-bold">Nom du chantier</label><input id="nom-chantier" maxLength={120} value={meta.nomChantier} onChange={(event) => setMeta((v) => ({ ...v, nomChantier: event.target.value }))} className={inputClass} placeholder="Ex. Résidence Les Érables" /></div>
-                  <div><label htmlFor="reference-client" className="mb-1.5 block text-xs font-bold">Votre référence interne</label><input id="reference-client" maxLength={80} value={meta.referenceClient} onChange={(event) => setMeta((v) => ({ ...v, referenceClient: event.target.value }))} className={inputClass} placeholder="Ex. CH-2026-014" /></div>
+                  <div><label htmlFor="nom-chantier" className="mb-1.5 block text-xs font-bold">Nom du chantier</label><input id="nom-chantier" maxLength={120} value={meta.nomChantier} onChange={(event) => setMeta((v) => ({ ...v, nomChantier: event.target.value }))} className={inputClass} placeholder="Nom utilisé pour retrouver ce chantier" /></div>
+                  <div><label htmlFor="reference-client" className="mb-1.5 block text-xs font-bold">Votre référence interne</label><input id="reference-client" maxLength={80} value={meta.referenceClient} onChange={(event) => setMeta((v) => ({ ...v, referenceClient: event.target.value }))} className={inputClass} placeholder="Référence utilisée par votre entreprise" /></div>
                   <div className="flex justify-end gap-2"><button type="button" onClick={() => setEditionMeta(false)} className="min-h-11 rounded-lg px-4 text-xs font-bold text-secondary">Annuler</button><button disabled={metaEnCours} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-xs font-bold text-white disabled:opacity-60">{metaEnCours && <Loader2 className="h-4 w-4 animate-spin" />} Enregistrer</button></div>
                 </form>
               ) : (

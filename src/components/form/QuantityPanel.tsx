@@ -11,12 +11,14 @@ interface Props {
 
 export default function QuantityPanel({ materiau, ligne, onUpdate }: Props) {
   const isTonnes = ligne.modeEntree === 'tonnes';
-  const timerRef = useRef<any>(null);
-  const intervalRef = useRef<any>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   
   // On utilise des Refs pour toujours avoir la valeur la plus à jour dans les Timers sans re-render
   const currentLigneRef = useRef(ligne);
-  currentLigneRef.current = ligne;
+  useEffect(() => {
+    currentLigneRef.current = ligne;
+  }, [ligne]);
 
   const setUnit = (unit: 'tonnes' | 'm3') => {
     if (ligne.modeEntree === unit) return;
