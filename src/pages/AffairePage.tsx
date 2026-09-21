@@ -49,6 +49,7 @@ import {
   updateAffaireMetadata,
 } from '@/lib/portal';
 import AcceptanceDocumentDialog from '@/components/portal/AcceptanceDocumentDialog';
+import LivraisonDocuments from '@/components/portal/LivraisonDocuments';
 
 const inputClass = 'min-h-11 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-on-surface outline-none transition placeholder:text-secondary/60 focus:border-primary focus:ring-2 focus:ring-primary/15';
 
@@ -491,6 +492,7 @@ export default function AffairePage() {
                   </div>
                 )}
 
+                {affaire.devisId && <LivraisonDocuments key={affaire.devisId} devisId={affaire.devisId} />}
                 {devis.remplaceParDevisId && (
                   <div className="flex gap-3 border-t border-border/60 bg-surface-container-low p-5">
                     <FileText className="h-5 w-5 shrink-0 text-secondary" />

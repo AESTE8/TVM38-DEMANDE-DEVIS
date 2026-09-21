@@ -184,6 +184,18 @@ export function fetchAffaire(id: string): Promise<AffaireDetail> {
   return appel<AffaireDetail>(`affaires/${encodeURIComponent(id)}`);
 }
 
+export interface LivraisonDocuments {
+  id: string; numero: number; date: string; journee: number | null; totalJournees: number | null;
+  documents: {id: string; kind: 'bon' | 'materiaux'; tour: number | null; date: string | null}[];
+}
+export function fetchLivraisonDocuments(devisId: string): Promise<{livraisons: LivraisonDocuments[]}> {
+  return appel(`livraisons/${encodeURIComponent(devisId)}`);
+}
+export function ouvrirLivraisonDocument(devisId: string, livraisonId: string, documentId: string): Promise<void> {
+  return ouvrirFichierProtege(`client-portal/livraisons/${[devisId,livraisonId,documentId].map(encodeURIComponent).join('/')}`,
+    'Chargement du justificatif', 'Ce justificatif n’est plus disponible. Actualisez le dossier.');
+}
+
 async function action<T>(operation: string, affaireId: string, data: Record<string, unknown> = {}): Promise<T> {
   const res = await fetch(`${SUPABASE_URL}/functions/v1/client-actions`, {
     method: 'POST',

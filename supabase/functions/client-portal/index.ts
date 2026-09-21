@@ -19,6 +19,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { requireClient } from '../_shared/crypto.ts';
 import { json, preflight, requireSecret } from '../_shared/http.ts';
+import { deliveryDocuments } from './transport.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -739,6 +740,7 @@ Deno.serve(async (req) => {
   // Le chemin est préfixé par le nom de la fonction : /client-portal/affaires/...
   const segments = url.pathname.split('/').filter(Boolean);
   const apres = segments.slice(segments.indexOf('client-portal') + 1);
+  if (apres[0] === 'livraisons') return deliveryDocuments(supabase, token.sub, apres);
 
   if (apres[0] === 'profil') {
     const { data: client, error } = await supabase
