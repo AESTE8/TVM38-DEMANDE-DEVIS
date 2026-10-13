@@ -983,7 +983,15 @@ serve(async (req: Request) => {
 
     const { data, error } = await supabase
       .from('devis').update(propre).eq('id', id).select().single();
-    if (error) return json(500, { error: 'Erreur serveur' });
+    if (error) {
+      const refusTransport = [
+        'Des livraisons restent à réaliser',
+        'Des quantités du devis restent à répartir',
+        'Utilisez les livraisons liées à Mi Planning pour modifier ce transport',
+      ];
+      if (refusTransport.includes(error.message)) return json(409, { error: error.message });
+      return json(500, { error: 'Erreur serveur' });
+    }
     return json(200, { devis: data });
   }
 
